@@ -1,5 +1,17 @@
+## 初回デプロイ
+
+1. `./cli/reset_remote_db.bash`
+1. `./cli/deploy.bash`
+
+## 運用
+
+1. `./cli/deploy.bash`
+
+
+## tips
+
 ```
-$ sqlite3 hoge.db
+$ sqlite3 river.db
 > .mode line
 > .schema
 ```
@@ -34,3 +46,6 @@ $ sqlite3 hoge.db
 - https://developers.facebook.com/apps/461498540066147/dashboard/
 - https://github.com/settings/applications/2657880
 - https://dash.cloudflare.com/688933c4553b4284a2684583893badc9/domains/duxca.com
+
+
+sqlite3 app.sqlite3 < seeds.sql

@@ -49,13 +49,13 @@ RUN \
   ca-certificates openssl
 
 COPY --from=builder /app/litestream /app/litestream
-COPY --from=builder /app/litestream /app/litestream
 COPY --from=builder /app/key.json /app/key.json
 COPY --from=builder /app/litestream.yml /app/litestream.yml
-COPY --from=builder /app/run.bash /app/run.bash
+COPY --from=builder /app/cli/run.bash /app/run.bash
 COPY --from=builder /app/.env /app/.env
-COPY --from=builder /app/target/release/litestream-sandbox /app/target/release/litestream-sandbox
+COPY --from=builder /app/target/release/river_map /app/target/release/river_map
 COPY --from=builder /app/web/dist /app/dist
+COPY --from=builder /app/web2/dist /app/dist2
 
 EXPOSE 8080
 CMD ["/app/run.bash"]

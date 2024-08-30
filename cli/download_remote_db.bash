@@ -6,5 +6,4 @@ rm -f ./river.db
 
 export GOOGLE_APPLICATION_CREDENTIALS=./key.json
 ./litestream restore -if-replica-exists -config ./litestream.yml ./river.db
-./litestream replicate -exec ./target/release/river_map -config ./litestream.yml
 

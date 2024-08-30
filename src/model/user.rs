@@ -1,4 +1,5 @@
 #[derive(Clone, serde::Serialize, serde::Deserialize, sqlx::FromRow, Debug, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct User {
     pub user_id: i64,
     pub github_id: Option<i64>,
@@ -26,6 +27,7 @@ impl axum_login::AuthUser for User {
 }
 
 #[derive(Debug, serde::Deserialize, serde::Serialize, Clone, PartialEq, Eq, sqlx::FromRow)]
+#[serde(rename_all = "camelCase")]
 pub struct AccessLog {
     pub access_log_id: i64,
     pub user_id: i64,

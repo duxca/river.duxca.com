@@ -1,5 +1,11 @@
 #!/bin/bash
 set -euxo pipefail
+pushd web
+npm run build
+popd
+pushd web2
+trunk build --release
+popd
 NAME=asia-northeast1-docker.pkg.dev/duxca-298210/cloud-run-source-deploy/litestream-sandbox:latest
 docker build . --tag=$NAME
 docker push $NAME

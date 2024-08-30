@@ -100,11 +100,13 @@ async fn main() -> Result<(), anyhow::Error> {
     let st = crate::web::State::from_pool(pool)?;
 
     let app = axum::Router::new()
-        // プライベートなページはないのでコメントアウト
-        // .route_layer(axum_login::login_required!(
-        //     crate::auth::Backend,
-        //     login_url = "/"
-        // ))
+        .nest_service("/map", tower_http::services::ServeDir::new("dist"))
+        .nest_service("/map2", tower_http::services::ServeDir::new("dist2"))
+        .route("/api", axum::routing::post(crate::web::api::api))
+        .route_layer(axum_login::login_required!(
+            crate::auth::Backend,
+            login_url = "/"
+        ))
         .route("/", axum::routing::get(crate::web::index::index))
         .route("/login", axum::routing::post(crate::web::login::login))
         .route("/logout", axum::routing::post(crate::web::login::logout))
@@ -112,8 +114,6 @@ async fn main() -> Result<(), anyhow::Error> {
             "/oauth/callback",
             axum::routing::get(crate::web::login::callback),
         )
-        .nest_service("/assets", tower_http::services::ServeDir::new("dist"))
-        .route("/api", axum::routing::post(crate::web::api::api))
         .layer(axum_login::AuthManagerLayerBuilder::new(backend, session_layer).build())
         .layer(
             tower_http::cors::CorsLayer::very_permissive()

@@ -1,5 +1,3 @@
-name: Rust
-
 on:
   push:
     branches: [ "main" ]
@@ -43,3 +41,11 @@ jobs:
     - uses: Swatinem/rust-cache@v2
     - run: cargo build --release
 
+  deploy:
+    runs-on: ubuntu-22.04
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+    - uses: actions/checkout@v4
+    - uses: dtolnay/rust-toolchain@stable
+    - uses: Swatinem/rust-cache@v2
+    - run: ./cli/deploy.bash

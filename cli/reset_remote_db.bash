@@ -2,7 +2,7 @@
 
 set -euxo pipefail
 
-gcloud storage rm --recursive gs://duxca-litestream-sandbox/hoge.db || true
+gcloud storage rm --recursive gs://duxca-litestream-sandbox/river.db || true
 
 sqlx database reset -y
 

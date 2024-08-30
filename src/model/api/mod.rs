@@ -15,7 +15,7 @@ pub mod create_river_waypoint;
     derive_more::From,
 )]
 #[serde(tag = "type")]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "PascalCase")]
 pub enum Request {
     ListUsers(crate::model::api::list_users::Request),
     ListAccessLogs(crate::model::api::list_access_logs::Request),
@@ -35,7 +35,7 @@ pub enum Request {
     derive_more::From,
 )]
 #[serde(tag = "type")]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "PascalCase")]
 pub enum Response {
     ListUser(crate::model::api::list_users::Response),
     ListAccessLogs(crate::model::api::list_access_logs::Response),
@@ -48,7 +48,7 @@ pub enum Response {
 
 #[derive(Debug, serde::Deserialize, serde::Serialize, Clone, PartialEq, Eq)]
 #[serde(tag = "errorType")]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "PascalCase")]
 pub enum ErrorKind {
     PermissionDenied,
     InvalidRequest,

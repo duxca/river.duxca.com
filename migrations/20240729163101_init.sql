@@ -33,11 +33,6 @@ CREATE TABLE facebook (
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 ) WITHOUT ROWID;
 
-INSERT INTO roles (role_name) VALUES ('default');
-INSERT INTO roles (role_name) VALUES ('admin');
-INSERT INTO users (role_id) VALUES (2); -- admin user
-INSERT INTO github (github_id, user_id, login) VALUES (2429307, 1, 'legokichi');
-
 CREATE TABLE access_logs (
     access_log_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
@@ -45,3 +40,8 @@ CREATE TABLE access_logs (
     created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
+
+INSERT INTO roles (role_name) VALUES ('default');
+INSERT INTO roles (role_name) VALUES ('admin');
+INSERT INTO users (role_id) VALUES (2); -- admin user
+INSERT INTO github (github_id, user_id, login) VALUES (2429307, 1, 'legokichi');

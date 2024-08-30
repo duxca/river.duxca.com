@@ -40,7 +40,6 @@ pub async fn list_river_waypoints(
             river_id,
             river_waypoint_id,
             name,
-            distance,
             latitude,
             longitude
         FROM river_waypoints
@@ -61,19 +60,17 @@ pub async fn list_river_waypoints(
 pub async fn create_river_waypoint(
     pool: &sqlx::sqlite::SqlitePool,
     river_id: i64,
-    distance: f64,
     name: String,
     longitude: f64,
     latitude: f64,
 ) -> Result<i64, anyhow::Error> {
     let row = sqlx::query!(
         r#"
-        INSERT INTO river_waypoints (river_id, distance, name, longitude, latitude)
-        VALUES (?1, ?2, ?3, ?4, ?5)
+        INSERT INTO river_waypoints (river_id, name, longitude, latitude)
+        VALUES (?1, ?2, ?3, ?4)
         RETURNING river_waypoint_id;
         "#,
         river_id,
-        distance,
         name,
         longitude,
         latitude

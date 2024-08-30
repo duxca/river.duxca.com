@@ -29,7 +29,7 @@
         // "rootDir": ".",
         // "types": [],
         // emit
-        "declaration": false,
+        // "declaration": false,
         "emitBOM": false,
         "inlineSourceMap": false,
         "inlineSources": false,

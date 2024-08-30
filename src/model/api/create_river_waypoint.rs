@@ -3,7 +3,6 @@
 pub struct Request {
     pub river_id: i64,
     pub name: String,
-    pub distance: f64,
     pub latitude: f64,
     pub longitude: f64,
 }
