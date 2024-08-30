@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Welcome</title>
+</head>
+
+<body>
+    <header>
+        {% if let Some(user) = user %}
+        <p>
+            id: {{user.user_id}}
+        </p>
+        {% if let Some(github_id) = user.github_id %}
+        <p>
+            github: {{ github_id }}
+        </p>
+        {% else %}
+        <form method="post" action="/login">
+            <input type="submit" value="GitHub Login" />
+            <input type="hidden" name="provider" value="github" />
+        </form>
+        {% endif %}
+        {% if let Some(facebook_id) = user.facebook_id %}
+        <p>
+            facebook: {{ facebook_id }}
+        </p>
+        {% else %}
+        <form method="post" action="/login">
+            <input type="submit" value="Facebook Login" />
+            <input type="hidden" name="provider" value="facebook" />
+        </form>
+        {% endif %}
+        <form method="post" action="/logout">
+            <input type="submit" value="logout" />
+        </form>
+        {% else %}
+        <form method="post" action="/login">
+            <input type="submit" value="Local Login" />
+            <input type="hidden" name="provider" value="local" />
+        </form>
+
+        <form method="post" action="/login">
+            <input type="submit" value="GitHub Login" />
+            <input type="hidden" name="provider" value="github" />
+        </form>
+        <form method="post" action="/login">
+            <input type="submit" value="Facebook Login" />
+            <input type="hidden" name="provider" value="facebook" />
+        </form>
+        {% endif %}
+    </header>
+    <script>
+        async function listRiverWaypoints(riverId) {
+            const res = await fetch("https://litestream-sandbox-4h2uh5x4wa-an.a.run.app/api", {
+                method: "POST", credentials: "include", headers: { 'Accept': 'application/json', "Content-Type": "application/json" }, body: JSON.stringify({
+                    type: "listRiverWaypoints",
+                    riverId
+                })
+            });
+            const json = await res.json();
+            console.log(json);
+        }
+        async function listRivers() {
+            const res = await fetch("https://litestream-sandbox-4h2uh5x4wa-an.a.run.app/api", {
+                method: "POST", credentials: "include", headers: { 'Accept': 'application/json', "Content-Type": "application/json" }, body: JSON.stringify({
+                    type: "listRivers",
+                })
+            });
+            const json = await res.json();
+            console.log(json);
+        }
+        async function listUsers() {
+            const res = await fetch("https://litestream-sandbox-4h2uh5x4wa-an.a.run.app/api", {
+                method: "POST", credentials: "include", headers: { 'Accept': 'application/json', "Content-Type": "application/json" }, body: JSON.stringify({
+                    type: "listUsers",
+                })
+            });
+            const json = await res.json();
+            console.log(json);
+        }
+    </script>
+</body>
+
+</html>
