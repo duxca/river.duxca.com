@@ -20,6 +20,9 @@
 - https://maps.gsi.go.jp/development/sample.html
 - https://github.com/gsi-cyberjapan/gsitiles-leaflet/blob/gh-pages/index.html
 - https://www.gsi.go.jp/kohokocho/map-sign-tizukigou-2022-itiran.html
+- https://maps.gsi.go.jp/development/ichiran.html
+- https://user.numazu-ct.ac.jp/~tsato/webmap/map/lmap.html
+- https://github.com/gsi-cyberjapan/gsitiles-leaflet/blob/gh-pages/index.html
 
 ### litestream
 - https://qiita.com/ydclab_0006/items/9503303f7f3112dc760a
@@ -41,6 +44,17 @@
 - https://yew.rs/docs/concepts/basic-web-technologies/html
 - https://rustwasm.github.io/docs/wasm-bindgen/
 - https://yew.rs/ja/docs/tutorial#fetching-data-using-external-rest-api
+- https://docs.rs/gloo-net/latest/gloo_net/http/struct.Response.html
+- https://rustwasm.github.io/wasm-bindgen/api/js_sys/index.html
+- https://docs.rs/gloo-utils/latest/gloo_utils/format/trait.JsValueSerdeExt.html
+- https://docs.rs/crate/gloo/latest/features
+- https://ja.react.dev/reference/react/useEffect
+- https://github.com/yewstack/yew/issues/3563
+- https://docs.rs/yew-hooks/latest/yew_hooks/prelude/index.html
+- https://yew.rs/docs/next/concepts/function-components/hooks
+- https://yew.rs/docs/next/tutorial#fetching-data-using-external-rest-api
+- https://yew-rs-api.web.app/next/yew/functional/
+
 
 ### trunk
 - https://trunkrs.dev/guide/assets/index.html

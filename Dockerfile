@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM rust:1.79.0-bookworm AS builder
+FROM rust:1.80.1-bookworm AS builder
 
 WORKDIR /app
 
@@ -17,26 +17,42 @@ RUN \
 ADD https://github.com/benbjohnson/litestream/releases/download/v0.3.13/litestream-v0.3.13-linux-amd64.tar.gz /tmp/litestream.tar.gz
 RUN tar -C ./ -xzf /tmp/litestream.tar.gz
 
-COPY . .
+RUN rustup target add wasm32-unknown-unknown
 
 ENV CARGO_HOME=/var/cache/cargo
 ENV RUSTC_WRAPPER=/usr/local/bin/sccache
 ENV SCCACHE_DIR=/var/cache/sccache
 
-#RUN \
-#  --mount=type=cache,target=/var/cache/cargo \ 
-#  cargo install -f sqlx-cli --no-default-features --features sqlite
-#RUN cargo sqlx migrate run
+RUN \
+  --mount=type=cache,target=/var/cache/cargo \
+  --mount=type=cache,target=/var/cache/sccache \
+  cargo install --locked trunk
 
 RUN \
-  --mount=type=cache,target=/var/cache/cargo \ 
+  --mount=type=cache,target=/var/cache/cargo \
+  --mount=type=cache,target=/var/cache/sccache \
+  cargo install -f sqlx-cli --no-default-features --features sqlite
+
+COPY . .
+
+RUN \
+  --mount=type=cache,target=/var/cache/cargo \
+  --mount=type=cache,target=/var/cache/sccache \
   cargo fetch --locked
 
 RUN \
   # --mount=type=cache,target=./target \
   --mount=type=cache,target=/var/cache/cargo \
   --mount=type=cache,target=/var/cache/sccache \
-  cargo build --offline --release
+  cd browser && /var/cache/cargo/bin/trunk build --release --public-url ./
+
+# RUN cargo sqlx migrate run
+
+RUN \
+  # --mount=type=cache,target=./target \
+  --mount=type=cache,target=/var/cache/cargo \
+  --mount=type=cache,target=/var/cache/sccache \
+  cargo build --offline --release -p server
 
 FROM debian:bookworm-slim
 
@@ -48,14 +64,13 @@ RUN \
   apt-get update && apt-get install -y \
   ca-certificates openssl
 
-COPY --from=builder /app/litestream /app/litestream
-COPY --from=builder /app/key.json /app/key.json
-COPY --from=builder /app/litestream.yml /app/litestream.yml
-COPY --from=builder /app/cli/run.bash /app/run.bash
-COPY --from=builder /app/.env /app/.env
-COPY --from=builder /app/target/release/river_map /app/target/release/river_map
-COPY --from=builder /app/web/dist /app/dist
-COPY --from=builder /app/web2/dist /app/dist2
+COPY --from=builder /app/server/litestream /app/litestream
+COPY --from=builder /app/server/key.json /app/key.json
+COPY --from=builder /app/server/litestream.yml /app/litestream.yml
+COPY --from=builder /app/server/cli/run.bash /app/run.bash
+COPY --from=builder /app/server/.env /app/.env
+COPY --from=builder /app/target/release/server /app/server
+COPY --from=builder /app/browser/dist /app/dist
 
 EXPOSE 8080
 CMD ["/app/run.bash"]
