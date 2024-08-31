@@ -4,7 +4,7 @@ pushd web
 npm run build
 popd
 pushd web2
-trunk build --release
+trunk build --release --public-url ./
 popd
 NAME=asia-northeast1-docker.pkg.dev/duxca-298210/cloud-run-source-deploy/litestream-sandbox:latest
 docker build . --tag=$NAME

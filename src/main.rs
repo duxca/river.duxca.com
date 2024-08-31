@@ -12,6 +12,8 @@ struct Config {
     github_client_secret: oauth2::ClientSecret,
     local_client_id: oauth2::ClientId,
     local_client_secret: oauth2::ClientSecret,
+    duxca_client_id: oauth2::ClientId,
+    duxca_client_secret: oauth2::ClientSecret,
     facebook_client_id: oauth2::ClientId,
     facebook_client_secret: oauth2::ClientSecret,
     redirect_url: oauth2::RedirectUrl,
@@ -36,6 +38,8 @@ async fn main() -> Result<(), anyhow::Error> {
         github_client_secret,
         local_client_id,
         local_client_secret,
+        duxca_client_id,
+        duxca_client_secret,
         facebook_client_id,
         facebook_client_secret,
         redirect_url,
@@ -52,7 +56,7 @@ async fn main() -> Result<(), anyhow::Error> {
         .synchronous(sqlx::sqlite::SqliteSynchronous::Normal);
     let pool = sqlx::sqlite::SqlitePool::connect_with(opt).await?;
 
-    // query! マクロ使ってたらいらないはず
+    // ここで remote db に対して migrate する
     sqlx::migrate!().run(&pool).await?;
 
     let session_store = tower_sessions_sqlx_store::SqliteStore::new(pool.clone());
@@ -65,7 +69,7 @@ async fn main() -> Result<(), anyhow::Error> {
         use tower_sessions::ExpiredDeletion;
         session_store
             .clone()
-            .continuously_delete_expired(tokio::time::Duration::from_secs(3600))
+            .continuously_delete_expired(tokio::time::Duration::from_secs(60*60*24))
     });
 
     // cookie のセッションの設定
@@ -93,6 +97,10 @@ async fn main() -> Result<(), anyhow::Error> {
         crate::auth::ClientToken {
             client_id: facebook_client_id.clone(),
             client_secret: facebook_client_secret.clone(),
+        },
+        crate::auth::ClientToken {
+            client_id: duxca_client_id.clone(),
+            client_secret: duxca_client_secret.clone(),
         },
         redirect_url,
     );

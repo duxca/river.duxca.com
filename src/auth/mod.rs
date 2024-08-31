@@ -21,6 +21,7 @@ pub enum OAuthProvider {
     Local,
     Github,
     Facebook,
+    Duxca,
 }
 impl std::str::FromStr for OAuthProvider {
     type Err = anyhow::Error;
@@ -29,6 +30,7 @@ impl std::str::FromStr for OAuthProvider {
             "local" => Ok(Self::Local),
             "github" => Ok(Self::Github),
             "facebook" => Ok(Self::Facebook),
+            "duxca" => Ok(Self::Duxca),
             _ => Err(anyhow::anyhow!("invalid OAuth provider: {}", s)),
         }
     }
@@ -39,6 +41,7 @@ impl std::fmt::Display for OAuthProvider {
             Self::Local => write!(f, "local"),
             Self::Github => write!(f, "github"),
             Self::Facebook => write!(f, "facebook"),
+            Self::Duxca => write!(f, "duxca"),
         }
     }
 }
@@ -49,9 +52,11 @@ pub struct BackendError(#[from] pub anyhow::Error);
 
 #[derive(Debug, Clone)]
 pub struct Backend {
+    db: sqlx::SqlitePool,
     local: crate::auth::github::Backend,
     github: crate::auth::github::Backend,
     facebook: crate::auth::facebook::Backend,
+    duxca: crate::auth::github::Backend,
 }
 
 impl Backend {
@@ -60,9 +65,11 @@ impl Backend {
         local: crate::auth::ClientToken,
         github: crate::auth::ClientToken,
         facebook: crate::auth::ClientToken,
+        duxca: crate::auth::ClientToken,
         redirect_url: oauth2::RedirectUrl,
     ) -> Self {
         Self {
+            db: db.clone(),
             local: crate::auth::github::Backend::new(
                 db.clone(),
                 local,
@@ -75,6 +82,11 @@ impl Backend {
                 facebook,
                 redirect_url.clone(),
             ),
+            duxca: crate::auth::github::Backend::new(
+                db.clone(),
+                duxca,
+                oauth2::RedirectUrl::new("https://river.duxca.com/oauth/callback".to_string()).unwrap(),
+            ),
         }
     }
 
@@ -83,6 +95,7 @@ impl Backend {
             OAuthProvider::Local => self.local.authorize_url(),
             OAuthProvider::Github => self.github.authorize_url(),
             OAuthProvider::Facebook => self.facebook.authorize_url(),
+            OAuthProvider::Duxca => self.duxca.authorize_url(),
         }
     }
 }
@@ -101,6 +114,7 @@ impl axum_login::AuthnBackend for Backend {
             OAuthProvider::Local => self.local.authenticate(creds).await,
             OAuthProvider::Github => self.github.authenticate(creds).await,
             OAuthProvider::Facebook => self.facebook.authenticate(creds).await,
+            OAuthProvider::Duxca => self.duxca.authenticate(creds).await,
         }
     }
 
@@ -108,7 +122,8 @@ impl axum_login::AuthnBackend for Backend {
         &self,
         user_id: &axum_login::UserId<Self>,
     ) -> Result<Option<Self::User>, Self::Error> {
-        let user = self.github.get_user(user_id).await?;
+        let user = crate::db::user::get_user(&self.db, *user_id).await?;
+        dbg!(&user);
         Ok(user)
     }
 }
