@@ -1,7 +1,9 @@
+mod api;
+mod components;
+
 use crate::components::map_component::{City, MapComponent, Point};
 use gloo::console::log;
 use yew::prelude::*;
-mod components;
 
 #[derive(PartialEq, Clone)]
 pub struct Cities {
@@ -10,6 +12,7 @@ pub struct Cities {
 
 #[function_component(App)]
 fn app() -> Html {
+    let loggedin = use_state(|| false);
     let cities = Cities {
         list: vec![City {
             name: "Fuji".to_string(),
@@ -38,33 +41,49 @@ fn app() -> Html {
             }
         })
         .collect::<Html>();
-    use_effect(|| {
-        wasm_bindgen_futures::spawn_local(async move {
-            use gloo::utils::format::JsValueSerdeExt;
-            let txt = wasm_bindgen::JsValue::from_serde(&serde_json::json!({})).unwrap();
-            let res = gloo::net::http::Request::post("/api")
-                .body(txt)
-                .unwrap()
-                .send()
-                .await
-                .unwrap();
-            let res = res.json::<serde_json::Value>().await.unwrap();
-            log!("Response: {:?}", wasm_bindgen::JsValue::from_serde(&res).unwrap());
-        });
-        || log!("App unmounted")
+    // use_effect_with((), ...) で最初のみ実行
+    use_effect_with((), {
+        let loggedin = loggedin.clone();
+        move |()| {
+            wasm_bindgen_futures::spawn_local(async move {
+                let res = crate::api::get_me().await;
+                if let Ok(res) = res {
+                    if let Some(_user) = res.user {
+                        loggedin.set(true);
+                    }
+                }
+            });
+        }
+    });
+    use_effect_with(loggedin.clone(), {
+        move |loggedin| {
+            if **loggedin {
+                wasm_bindgen_futures::spawn_local(async move {
+                    use gloo::utils::format::JsValueSerdeExt;
+                    let res = crate::api::call::<model::api::list_rivers::Response>(model::api::list_rivers::Request {offset:None, limit:None}).await.unwrap();
+                    log!("Rivers: {:?}", wasm_bindgen::JsValue::from_serde(&res).unwrap());
+                });
+            }
+        }
     });
     html! {
         <>
-            <MapComponent city={&*city}  />
-            <div class="control">
+            if *loggedin {
+                <MapComponent city={&*city}  />
+                <div class="control">
+                    <form method="post" action="/logout">
+                        <input type="submit" value="Logout" />
+                    </form>
+                    <div>
+                        {elms}
+                    </div>
+                </div>
+            }else{
                 <form method="post" action="/login">
                     <input type="submit" value="GitHub Login" />
                     <input type="hidden" name="provider" value="github" />
                 </form>
-                <div>
-                    {elms}
-                </div>
-            </div>
+            }
         </>
     }
 }

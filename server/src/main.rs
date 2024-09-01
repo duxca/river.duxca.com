@@ -15,6 +15,7 @@ struct Config {
     local_client_id: oauth2::ClientId,
     local_client_secret: oauth2::ClientSecret,
     local_redirect_url: oauth2::RedirectUrl,
+    local_dist_path: String,
 }
 
 #[tokio::main(flavor = "current_thread")]
@@ -30,6 +31,7 @@ async fn main() -> Result<(), anyhow::Error> {
         .with_thread_ids(true)
         .init();
     let config = envy::from_env::<Config>()?;
+    log::debug!("config: {:#?}", config);
     use std::str::FromStr;
     let opt = sqlx::sqlite::SqliteConnectOptions::from_str(&config.database_url)?
         .foreign_keys(true)
@@ -113,7 +115,14 @@ async fn main() -> Result<(), anyhow::Error> {
                                                             // .allow_methods(tower_http::cors::Any)
                                                             // .allow_origin(tower_http::cors::Any),
         )
-        .nest_service("/", tower_http::services::ServeDir::new("dist"))
+        .nest_service(
+            "/",
+            if cfg!(feature = "local") {
+                tower_http::services::ServeDir::new(config.local_dist_path)
+            } else {
+                tower_http::services::ServeDir::new("dist")
+            },
+        )
         .layer(tower_http::trace::TraceLayer::new_for_http())
         .layer(tower_http::compression::CompressionLayer::new())
         .with_state(st);
@@ -138,8 +147,16 @@ async fn main() -> Result<(), anyhow::Error> {
         .with_graceful_shutdown(async move {
             // これすると sqlite の中のセッションが永続化しないので開発時のみ使う
             tokio::select! {
-                _ = ctrl_c => { deletion_task_abort_handle.abort() },
-                _ = terminate => { deletion_task_abort_handle.abort() },
+                _ = ctrl_c => { 
+                    if cfg!(feature = "local") {
+                        deletion_task_abort_handle.abort()
+                    }
+                },
+                _ = terminate => {
+                    if cfg!(feature = "local") {
+                        deletion_task_abort_handle.abort()
+                    }
+                },
             }
         })
         .await?;

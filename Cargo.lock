@@ -346,6 +346,7 @@ checksum = "cfa8873f51c92e232f9bac4065cddef41b714152812bfc5f7672ba16d6ef8cd9"
 name = "browser"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "gloo 0.11.0",
  "gloo-net 0.6.0",
  "implicit-clone 0.5.0",

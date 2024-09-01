@@ -7,6 +7,7 @@ version = "0.1.0"
 local = []
 
 [dependencies]
+anyhow = "1.0"
 gloo = {version = "0.11.0", features = ["futures"]}
 gloo-net = {version = "0.6.0", features = ["json"]}
 implicit-clone = "0.5.0"
