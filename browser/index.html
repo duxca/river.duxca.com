@@ -4,8 +4,13 @@
 <head>
   <script data-trunk src="./node_modules/leaflet/dist/leaflet.js"></script>
   <link data-trunk rel="css" href="./node_modules/leaflet/dist/leaflet.css" />
-  <link data-trunk rel="scss" href="./scss/style.scss" />
+  <link data-trunk rel="copy-file" href="./node_modules/leaflet/dist/images/layers-2x.png" data-target-path="images"/>
+  <link data-trunk rel="copy-file" href="./node_modules/leaflet/dist/images/layers.png" data-target-path="images"/>
+  <link data-trunk rel="copy-file" href="./node_modules/leaflet/dist/images/marker-icon-2x.png" data-target-path="images"/>
+  <link data-trunk rel="copy-file" href="./node_modules/leaflet/dist/images/marker-icon.png" data-target-path="images"/>
+  <link data-trunk rel="copy-file" href="./node_modules/leaflet/dist/images/marker-shadow.png" data-target-path="images"/>
   <link data-trunk rel="copy-file" href="assets/marker-red.png" />
+  <link data-trunk rel="scss" href="./scss/style.scss" />
   <!-- Google tag (gtag.js) -->
   <!-- <script async src="https://www.googletagmanager.com/gtag/js?id=G-G0Q0S4SG88"></script>
   <script>
