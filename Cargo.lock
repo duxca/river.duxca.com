@@ -1788,7 +1788,7 @@ dependencies = [
 [[package]]
 name = "leaflet"
 version = "0.4.1"
-source = "git+https://github.com/legokichi/leaflet-rs#e8900574d37b40be367c384c3178a37fdea08dc1"
+source = "git+https://github.com/legokichi/leaflet-rs?branch=add-control-layers#1343caef6f7e53565535fdc364da7c80a525515f"
 dependencies = [
  "js-sys",
  "paste",

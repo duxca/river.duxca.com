@@ -34,23 +34,58 @@ pub fn map_component(Props { forcus, points }: &Props) -> Html {
             let div = node_ref.cast::<HtmlDivElement>().unwrap();
             let map = Map::new_with_element(&div, &MapOptions::default());
             map.set_view(&LatLng::new(forcus.latitude, forcus.longitude), 11.0); // Fuji
-            let opt = &leaflet::TileLayerOptions::new();
+            let opt = leaflet::TileLayerOptions::new();
             opt.set_attribution("<a href='https://maps.gsi.go.jp/development/ichiran.html' target='_blank'>地理院タイル</a>".to_string());
             let gsi = TileLayer::new_options(
                 "https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png",
-                opt,
+                &opt,
             );
-            let opt = &leaflet::TileLayerOptions::new();
-            opt.set_attribution(r#"attribution: '© <a href="http://osm.org/copyright">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>',"#.to_string());
+            let opt = leaflet::TileLayerOptions::new();
+            opt.set_attribution(r#"© <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>"#.to_string());
             let osm =
-                TileLayer::new_options("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", opt);
+                TileLayer::new_options("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", &opt);
             gsi.add_to(&map);
+            let opt = leaflet::TileLayerOptions::new();
+            opt.set_attribution("<a href='https://maps.gsi.go.jp/development/ichiran.html' target='_blank'>地理院タイル</a>".to_string());
+            let hillshademap = TileLayer::new_options(
+                "https://cyberjapandata.gsi.go.jp/xyz/hillshademap/{z}/{x}/{y}.png",
+                &opt,
+            );
+            let opt = leaflet::TileLayerOptions::new();
+            opt.set_attribution("<a href='https://maps.gsi.go.jp/development/ichiran.html' target='_blank'>地理院タイル</a>".to_string());
+            let blank = TileLayer::new_options(
+                "https://cyberjapandata.gsi.go.jp/xyz/blank/{z}/{x}/{y}.png",
+                &opt,
+            );
+            let opt = leaflet::TileLayerOptions::new();
+            opt.set_attribution("<a href='https://maps.gsi.go.jp/development/ichiran.html' target='_blank'>地理院タイル</a>".to_string());
+            let anaglyphmap_color = TileLayer::new_options(
+                "https://cyberjapandata.gsi.go.jp/xyz/anaglyphmap_color/{z}/{x}/{y}.png",
+                &opt,
+            );
+            let opt = leaflet::TileLayerOptions::new();
+            opt.set_attribution("<a href='https://maps.gsi.go.jp/development/ichiran.html' target='_blank'>地理院タイル</a>".to_string());
+            let seamlessphoto = TileLayer::new_options(
+                "https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg",
+                &opt,
+            );
 
             let opt = js_sys::Object::new();
             js_sys::Reflect::set(&opt, &JsValue::from("OpenStreetMap"), &JsValue::from(osm))
                 .unwrap();
             js_sys::Reflect::set(&opt, &JsValue::from("地理院タイル"), &JsValue::from(gsi))
                 .unwrap();
+            js_sys::Reflect::set(&opt, &JsValue::from("航空写真"), &JsValue::from(seamlessphoto))
+                .unwrap();
+            js_sys::Reflect::set(&opt, &JsValue::from("陰影起伏図"), &JsValue::from(hillshademap))
+                .unwrap();
+            js_sys::Reflect::set(&opt, &JsValue::from("白地図"), &JsValue::from(blank)).unwrap();
+            js_sys::Reflect::set(
+                &opt,
+                &JsValue::from("立体地図（カラー）"),
+                &JsValue::from(anaglyphmap_color),
+            )
+            .unwrap();
 
             let control = leaflet::LayersControl::new(&opt);
             control.add_to(&map);
