@@ -4,10 +4,11 @@
 #[tracing::instrument(level = "trace", skip(conn))]
 pub fn list_users<'a, 'c>(
     conn: impl sqlx::Acquire<'c, Database = sqlx::Sqlite> + Send + 'a,
-    offset: Option<u32>,
-    limit: Option<u32>,
-) -> impl std::future::Future<Output = Result<(Vec<model::user::User>, u32), anyhow::Error>> + Send + 'a
-{
+    offset: Option<i64>,
+    limit: Option<i64>,
+) -> impl std::future::Future<Output = Result<(Vec<model::user::User>, i64, i64), anyhow::Error>>
+       + Send
+       + 'a {
     async move {
         let mut conn = conn.acquire().await?;
         let limit = limit.unwrap_or(20);
@@ -15,25 +16,34 @@ pub fn list_users<'a, 'c>(
         let rows = sqlx::query_as!(
             model::user::User,
             r#"
-        SELECT
-            users.user_id AS user_id,
-            github.github_id AS "github_id?",
-            facebook.facebook_id AS "facebook_id?",
-            users.created_at AS created_at,
-            users.updated_at AS updated_at
-        FROM users
-        LEFT OUTER JOIN github ON users.user_id = github.user_id
-        LEFT OUTER JOIN facebook ON users.user_id = facebook.user_id
-        ORDER BY user_id ASC
-        LIMIT ?1 OFFSET ?2
-        "#,
+            SELECT
+                users.user_id AS user_id,
+                github.github_id AS "github_id?",
+                facebook.facebook_id AS "facebook_id?",
+                users.created_at AS created_at,
+                users.updated_at AS updated_at
+            FROM users
+            LEFT OUTER JOIN github ON users.user_id = github.user_id
+            LEFT OUTER JOIN facebook ON users.user_id = facebook.user_id
+            ORDER BY user_id ASC
+            LIMIT ?1 OFFSET ?2
+            "#,
             limit,
             offset
         )
         .fetch_all(&mut *conn)
         .await?;
-        let next_offset = offset + rows.len() as u32;
-        Ok((rows, next_offset))
+        let next_offset = offset + rows.len() as i64;
+        let row = sqlx::query!(
+            r#"
+            SELECT
+                COUNT(*) AS total
+            FROM users
+            "#
+        )
+        .fetch_one(&mut *conn)
+        .await?;
+        Ok((rows, next_offset, row.total))
     }
 }
 
@@ -199,11 +209,11 @@ pub fn update_user<'a, 'c>(
                 OAuthProvider::Github(github_id, login) => {
                     sqlx::query!(
                         r#"
-                    INSERT INTO github ( user_id, github_id, login )
-                    VALUES ( ?1, ?2, ?3 )
-                    ON CONFLICT ( user_id )
-                    DO UPDATE SET github_id = ?2, login = ?3, updated_at = strftime('%s', 'now')
-                    "#,
+                        INSERT INTO github ( user_id, github_id, login )
+                        VALUES ( ?1, ?2, ?3 )
+                        ON CONFLICT ( user_id )
+                        DO UPDATE SET github_id = ?2, login = ?3, updated_at = strftime('%s', 'now')
+                        "#,
                         user_id,
                         github_id,
                         login
@@ -214,11 +224,11 @@ pub fn update_user<'a, 'c>(
                 OAuthProvider::Facebook(facebook_id, name) => {
                     sqlx::query!(
                         r#"
-                    INSERT INTO facebook ( user_id, facebook_id, name )
-                    VALUES ( ?1, ?2, ?3 )
-                    ON CONFLICT ( user_id )
-                    DO UPDATE SET facebook_id = ?2, name = ?3, updated_at = strftime('%s', 'now')
-                    "#,
+                        INSERT INTO facebook ( user_id, facebook_id, name )
+                        VALUES ( ?1, ?2, ?3 )
+                        ON CONFLICT ( user_id )
+                        DO UPDATE SET facebook_id = ?2, name = ?3, updated_at = strftime('%s', 'now')
+                        "#,
                         user_id,
                         facebook_id,
                         name
@@ -245,17 +255,17 @@ pub fn get_user<'a, 'c>(
         let row = sqlx::query_as!(
             model::user::User,
             r#"
-        SELECT 
-            users.user_id AS user_id,
-            github.github_id AS "github_id?",
-            facebook.facebook_id AS "facebook_id?",
-            users.created_at AS created_at,
-            users.updated_at AS updated_at
-        FROM users 
-        LEFT OUTER JOIN github ON users.user_id = github.user_id
-        LEFT OUTER JOIN facebook ON users.user_id = facebook.user_id
-        WHERE users.user_id = ?1
-        "#,
+            SELECT 
+                users.user_id AS user_id,
+                github.github_id AS "github_id?",
+                facebook.facebook_id AS "facebook_id?",
+                users.created_at AS created_at,
+                users.updated_at AS updated_at
+            FROM users 
+            LEFT OUTER JOIN github ON users.user_id = github.user_id
+            LEFT OUTER JOIN facebook ON users.user_id = facebook.user_id
+            WHERE users.user_id = ?1
+            "#,
             id
         )
         .fetch_optional(&mut *conn)
@@ -350,9 +360,9 @@ pub fn add_access_log<'a, 'c>(
 pub fn list_access_logs<'a, 'c>(
     conn: impl sqlx::Acquire<'c, Database = sqlx::Sqlite> + Send + 'a,
     user_id: Option<i64>,
-    offset: Option<u32>,
-    limit: Option<u32>,
-) -> impl std::future::Future<Output = Result<(Vec<model::user::AccessLog>, u32), anyhow::Error>>
+    offset: Option<i64>,
+    limit: Option<i64>,
+) -> impl std::future::Future<Output = Result<(Vec<model::user::AccessLog>, i64, i64), anyhow::Error>>
        + Send
        + 'a {
     async move {
@@ -363,44 +373,64 @@ pub fn list_access_logs<'a, 'c>(
             let rows = sqlx::query_as!(
                 model::user::AccessLog,
                 r#"
-        SELECT
-            access_logs.access_log_id AS access_log_id,
-            access_logs.user_id AS user_id,
-            access_logs.request AS request,
-            access_logs.created_at AS created_at
-        FROM access_logs
-        WHERE access_logs.user_id = ?3
-        ORDER BY access_log_id ASC
-        LIMIT ?1 OFFSET ?2
-        "#,
+                SELECT
+                    access_logs.access_log_id AS access_log_id,
+                    access_logs.user_id AS user_id,
+                    access_logs.request AS request,
+                    access_logs.created_at AS created_at
+                FROM access_logs
+                WHERE access_logs.user_id = ?3
+                ORDER BY access_log_id ASC
+                LIMIT ?1 OFFSET ?2
+                "#,
                 limit,
                 offset,
                 user_id,
             )
             .fetch_all(&mut *conn)
             .await?;
-            let next_offset = offset + rows.len() as u32;
-            Ok((rows, next_offset as u32))
+            let next_offset = offset + rows.len() as i64;
+            let row = sqlx::query!(
+                r#"
+                SELECT
+                    COUNT(*) AS total
+                FROM access_logs
+                WHERE user_id = ?1
+                "#,
+                user_id
+            )
+            .fetch_one(&mut *conn)
+            .await?;
+            Ok((rows, next_offset, row.total))
         } else {
             let rows = sqlx::query_as!(
                 model::user::AccessLog,
                 r#"
-            SELECT
-                access_logs.access_log_id AS access_log_id,
-                access_logs.user_id AS user_id,
-                access_logs.request AS request,
-                access_logs.created_at AS created_at
-            FROM access_logs
-            ORDER BY access_log_id ASC
-            LIMIT ?1 OFFSET ?2
-            "#,
+                SELECT
+                    access_logs.access_log_id AS access_log_id,
+                    access_logs.user_id AS user_id,
+                    access_logs.request AS request,
+                    access_logs.created_at AS created_at
+                FROM access_logs
+                ORDER BY access_log_id ASC
+                LIMIT ?1 OFFSET ?2
+                "#,
                 limit,
                 offset
             )
             .fetch_all(&mut *conn)
             .await?;
-            let next_offset = offset + rows.len() as u32;
-            Ok((rows, next_offset as u32))
+            let next_offset = offset + rows.len() as i64;
+            let row = sqlx::query!(
+                r#"
+                SELECT
+                    COUNT(*) AS total
+                FROM access_logs
+                "#
+            )
+            .fetch_one(&mut *conn)
+            .await?;
+            Ok((rows, next_offset, row.total))
         }
     }
 }
