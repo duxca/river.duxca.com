@@ -6,6 +6,6 @@ pub async fn list_rivers(
     Ok(model::api::list_rivers::Response {
         rivers,
         next,
-        total
+        total,
     })
 }

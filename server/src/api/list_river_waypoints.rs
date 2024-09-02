@@ -11,6 +11,6 @@ pub async fn list_river_waypoints(
     Ok(model::api::list_river_waypoints::Response {
         river_waypoints,
         next,
-        total
+        total,
     })
 }

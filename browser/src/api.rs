@@ -1,6 +1,11 @@
 use gloo::console;
 
-pub async fn call<T: TryFrom<model::api::Response, Error=impl core::fmt::Debug + Sync + Send + std::error::Error + 'static> + core::fmt::Debug>(
+pub async fn call<
+    T: TryFrom<
+            model::api::Response,
+            Error = impl core::fmt::Debug + Sync + Send + std::error::Error + 'static,
+        > + core::fmt::Debug,
+>(
     req: impl Into<model::api::Request>,
 ) -> Result<T, anyhow::Error> {
     let req = Into::<model::api::Request>::into(req);

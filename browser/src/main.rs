@@ -3,16 +3,19 @@ mod components;
 
 use crate::components::map_component::{MapComponent, Point};
 use gloo::console;
-use wasm_bindgen::prelude::*;
 use gloo::utils::format::JsValueSerdeExt;
+use wasm_bindgen::prelude::*;
 use yew::prelude::*;
 
 #[function_component(App)]
 fn app() -> Html {
     let loggedin = use_state(|| false);
     let forcus = use_state(|| {
-        Point{latitude: 35.3622222, longitude: 138.7313889}// Fuji
-    }); 
+        Point {
+            latitude: 35.3622222,
+            longitude: 138.7313889,
+        } // Fuji
+    });
     let selected_river_id = use_state(|| None);
     let rivers = use_state(|| Vec::<model::river::River>::new());
     let river_waypoints = use_state(|| Vec::<model::river::RiverWaypoint>::new());
@@ -98,19 +101,18 @@ fn app() -> Html {
                 wasm_bindgen_futures::spawn_local({
                     let selected_river_id = *selected_river_id;
                     async move {
-                        let res =
-                            crate::api::call::<model::api::list_river_waypoints::Response>(
-                                model::api::list_river_waypoints::Request {
-                                    offset: None,
-                                    limit: Some(1),
-                                    river_id: selected_river_id,
-                                },
-                            )
-                            .await
-                            .unwrap();
+                        let res = crate::api::call::<model::api::list_river_waypoints::Response>(
+                            model::api::list_river_waypoints::Request {
+                                offset: None,
+                                limit: Some(1),
+                                river_id: selected_river_id,
+                            },
+                        )
+                        .await
+                        .unwrap();
                         if !res.river_waypoints.is_empty() {
                             console::log!(&JsValue::from_serde(&res.river_waypoints[0]).unwrap());
-                            forcus.set(Point{
+                            forcus.set(Point {
                                 latitude: res.river_waypoints[0].latitude,
                                 longitude: res.river_waypoints[0].longitude,
                             });
@@ -120,11 +122,17 @@ fn app() -> Html {
             }
         }
     });
-
+    let points = river_waypoints
+        .iter()
+        .map(|p| Point {
+            latitude: p.latitude,
+            longitude: p.longitude,
+        })
+        .collect::<Vec<_>>();
     html! {
         <>
             if *loggedin {
-                <MapComponent forcus={&*forcus} />
+                <MapComponent forcus={&*forcus} points={points} />
                 <div class="control">
                     <form method="post" action="/logout">
                         <input type="submit" value="Logout" />

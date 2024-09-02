@@ -147,7 +147,7 @@ async fn main() -> Result<(), anyhow::Error> {
         .with_graceful_shutdown(async move {
             // これすると sqlite の中のセッションが永続化しないので開発時のみ使う
             tokio::select! {
-                _ = ctrl_c => { 
+                _ = ctrl_c => {
                     if cfg!(feature = "local") {
                         deletion_task_abort_handle.abort()
                     }

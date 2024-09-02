@@ -18,10 +18,11 @@ impl ImplicitClone for Point {}
 #[derive(PartialEq, Properties, Clone)]
 pub struct Props {
     pub forcus: Point,
+    pub points: Vec<Point>,
 }
 
 #[function_component(MapComponent)]
-pub fn map_component(Props { forcus }: &Props) -> Html {
+pub fn map_component(Props { forcus, points }: &Props) -> Html {
     let node_ref = NodeRef::default();
     let map_state = use_state(|| None);
     use_effect_with((), {
@@ -45,12 +46,40 @@ pub fn map_component(Props { forcus }: &Props) -> Html {
             map_state.set(Some(map));
         }
     });
-
+    use_effect({
+        let points = points.clone();
+        let map_state = map_state.clone();
+        move || {
+            if let Some(map) = map_state.as_ref() {
+                for point in points {
+                    // var myIcon = L.icon({
+                    //     iconUrl: 'marker-red.png',  // 画像のURI
+                    //     iconSize: [25, 41],         // 画像のサイズ設定
+                    //     iconAnchor: [12, 40],       // 画像の位置設定
+                    //     popupAnchor: [0, -40]       //　　ポップアップの表示を開始する位置設定
+                    // });
+                    let opt = leaflet::IconOptions::new();
+                    opt.set_icon_url("marker-red.png".to_string());
+                    opt.set_icon_size(leaflet::Point::new(25.0, 41.0));
+                    opt.set_icon_anchor(leaflet::Point::new(12.0, 40.0));
+                    opt.set_popup_anchor(leaflet::Point::new(0.0, -40.0));
+                    let my_icon = leaflet::Icon::new(&opt);
+                    let opt = leaflet::MarkerOptions::new();
+                    opt.set_icon(my_icon);
+                    leaflet::Marker::new_with_options(
+                        // leaflet::Marker::new(
+                        &LatLng::new(point.latitude, point.longitude),
+                        &opt,
+                    )
+                    .add_to(map);
+                }
+            }
+        }
+    });
     use_effect({
         let forcus = forcus.clone();
         let map_state = map_state.clone();
         move || {
-            console::log!(forcus.latitude, forcus.longitude);
             if let Some(map) = map_state.as_ref() {
                 map.set_view(&LatLng::new(forcus.latitude, forcus.longitude), 11.0);
             }

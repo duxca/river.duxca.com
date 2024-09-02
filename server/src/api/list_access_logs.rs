@@ -11,6 +11,6 @@ pub async fn list_access_logs(
     Ok(model::api::list_access_logs::Response {
         access_logs,
         next,
-        total
+        total,
     })
 }
