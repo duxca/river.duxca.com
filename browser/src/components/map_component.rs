@@ -1,46 +1,64 @@
+use gloo::console;
 use gloo::utils::document;
+use gloo::utils::format::JsValueSerdeExt;
 use leaflet::{LatLng, Map, MapOptions, TileLayer};
-use wasm_bindgen::JsCast;
-use web_sys::{Element, HtmlElement, Node};
-use yew::{html::ImplicitClone, prelude::*};
+use wasm_bindgen::prelude::*;
+use web_sys::{Element, HtmlDivElement, HtmlElement, Node};
+use yew::html::ImplicitClone;
+use yew::prelude::*;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
-pub struct Point(pub f64, pub f64);
-
-#[derive(PartialEq, Clone, Debug)]
-pub struct City {
-    pub name: String,
-    pub lat: Point,
+pub struct Point {
+    pub longitude: f64,
+    pub latitude: f64,
 }
 
-impl ImplicitClone for City {}
+impl ImplicitClone for Point {}
 
 #[derive(PartialEq, Properties, Clone)]
 pub struct Props {
-    pub city: City,
-}
-
-fn add_tile_layer(map: &Map) {
-    TileLayer::new("https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png").add_to(map);
-    // TileLayer::new("https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.png").add_to(map);
-    // TileLayer::new("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").add_to(map);
+    pub forcus: Point,
 }
 
 #[function_component(MapComponent)]
-pub fn map_component(Props { city }: &Props) -> Html {
-    let container: Element = document().create_element("div").unwrap();
-    let container: HtmlElement = container.dyn_into().unwrap();
-    container.set_id("map");
-    let map = Map::new_with_element(&container, &MapOptions::default());
-    let lat = use_state(|| city.lat);
-    use_effect(move || {
-        map.set_view(&LatLng::new(lat.0, lat.1), 11.0);
-        add_tile_layer(&map);
-        || {}
+pub fn map_component(Props { forcus }: &Props) -> Html {
+    let node_ref = NodeRef::default();
+    let map_state = use_state(|| None);
+    use_effect_with((), {
+        let node_ref = node_ref.clone();
+        let map_state = map_state.clone();
+        let forcus = forcus.clone();
+        move |()| {
+            let div = node_ref.cast::<HtmlDivElement>().unwrap();
+            let map = Map::new_with_element(&div, &MapOptions::default());
+            console::log!("fuji");
+            map.set_view(&LatLng::new(forcus.latitude, forcus.longitude), 11.0); // Fuji
+            let opt = &leaflet::TileLayerOptions::new();
+            opt.set_attribution("<a href='https://maps.gsi.go.jp/development/ichiran.html' target='_blank'>地理院タイル</a>".to_string());
+            TileLayer::new_options(
+                "https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png",
+                // "https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.png",
+                // "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                opt,
+            )
+            .add_to(&map);
+            map_state.set(Some(map));
+        }
     });
-    let node: &Node = &container.clone().into();
-    let elm = Html::VRef(node.clone());
+
+    use_effect({
+        let forcus = forcus.clone();
+        let map_state = map_state.clone();
+        move || {
+            console::log!(forcus.latitude, forcus.longitude);
+            if let Some(map) = map_state.as_ref() {
+                map.set_view(&LatLng::new(forcus.latitude, forcus.longitude), 11.0);
+            }
+        }
+    });
+    console::log!("aaa", forcus.latitude, forcus.longitude);
     html! {
-        {elm}
+        <div id="map" ref={node_ref}>
+        </div>
     }
 }
