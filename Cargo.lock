@@ -354,6 +354,7 @@ dependencies = [
  "leaflet",
  "model",
  "serde",
+ "serde-wasm-bindgen 0.6.5",
  "serde_json",
  "wasm-bindgen",
  "wasm-bindgen-futures",
@@ -1787,8 +1788,7 @@ dependencies = [
 [[package]]
 name = "leaflet"
 version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "365807eb9e73da9377d2e313e5863af3d64e02b770ec31972d76feda3a271d17"
+source = "git+https://github.com/legokichi/leaflet-rs#351f6e3e48e473b2579f0e7d49d1f84b232a0948"
 dependencies = [
  "js-sys",
  "paste",

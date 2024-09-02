@@ -12,10 +12,11 @@ gloo = {version = "0.11.0", features = ["futures"]}
 gloo-net = {version = "0.6.0", features = ["json"]}
 implicit-clone = "0.5.0"
 js-sys = "0.3"
-leaflet = "0.4"
+leaflet = {git="https://github.com/legokichi/leaflet-rs"}
 model = {path = "../model"}
 serde = {version = "1.0", features = ["derive"]}
 serde_json = "1.0"
+serde-wasm-bindgen = "0.6.5"
 wasm-bindgen = "0.2"
 wasm-bindgen-futures = "0.4"
 web-sys = {version = "0.3", features = ["console", "HtmlElement", "MouseEvent", "DomRect", "HtmlAnchorElement", "console", "Window", "Document", "HtmlSelectElement", "HtmlDivElement"]}

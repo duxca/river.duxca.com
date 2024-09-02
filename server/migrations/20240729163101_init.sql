@@ -43,5 +43,5 @@ CREATE TABLE access_logs (
 
 INSERT INTO roles (role_name) VALUES ('default');
 INSERT INTO roles (role_name) VALUES ('admin');
-INSERT INTO users (role_id) VALUES (2); -- admin user
-INSERT INTO github (github_id, user_id, login) VALUES (2429307, 1, 'legokichi');
+-- INSERT INTO users (role_id) VALUES (2); -- admin user
+-- INSERT INTO github (github_id, user_id, login) VALUES (2429307, 1, 'legokichi');
