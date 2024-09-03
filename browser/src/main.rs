@@ -163,5 +163,6 @@ fn app() -> Html {
 }
 
 fn main() {
+    shadow_rs::shadow!(build);
     yew::Renderer::<App>::new().render();
 }

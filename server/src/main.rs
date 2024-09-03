@@ -20,6 +20,7 @@ struct Config {
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), anyhow::Error> {
+    shadow_rs::shadow!(build);
     dotenvy::dotenv().ok();
     //env_logger::init();
     tracing_subscriber::fmt()
