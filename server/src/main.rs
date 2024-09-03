@@ -101,8 +101,11 @@ async fn main() -> Result<(), anyhow::Error> {
     let backend = crate::auth::Backend::new(pool.clone(), tokens);
     // 一般のリクエストで DB にアクセスするための State
     let st = crate::web::State::from_pool(pool)?;
-
     let app = axum::Router::new()
+        .route(
+            "/version",
+            axum::routing::get(|| async { build::CLAP_LONG_VERSION }),
+        )
         .route("/api", axum::routing::post(crate::web::api::api))
         .route("/login", axum::routing::post(crate::web::login::login))
         .route("/logout", axum::routing::post(crate::web::login::logout))
