@@ -41,7 +41,10 @@ pub fn map_component(Props { forcus, points }: &Props) -> Html {
                 &opt,
             );
             let opt = leaflet::TileLayerOptions::new();
-            opt.set_attribution(r#"© <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>"#.to_string());
+            opt.set_attribution(
+                r#"© <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>"#
+                    .to_string(),
+            );
             let osm =
                 TileLayer::new_options("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", &opt);
             gsi.add_to(&map);
@@ -75,10 +78,18 @@ pub fn map_component(Props { forcus, points }: &Props) -> Html {
                 .unwrap();
             js_sys::Reflect::set(&opt, &JsValue::from("地理院タイル"), &JsValue::from(gsi))
                 .unwrap();
-            js_sys::Reflect::set(&opt, &JsValue::from("航空写真"), &JsValue::from(seamlessphoto))
-                .unwrap();
-            js_sys::Reflect::set(&opt, &JsValue::from("陰影起伏図"), &JsValue::from(hillshademap))
-                .unwrap();
+            js_sys::Reflect::set(
+                &opt,
+                &JsValue::from("航空写真"),
+                &JsValue::from(seamlessphoto),
+            )
+            .unwrap();
+            js_sys::Reflect::set(
+                &opt,
+                &JsValue::from("陰影起伏図"),
+                &JsValue::from(hillshademap),
+            )
+            .unwrap();
             js_sys::Reflect::set(&opt, &JsValue::from("白地図"), &JsValue::from(blank)).unwrap();
             js_sys::Reflect::set(
                 &opt,

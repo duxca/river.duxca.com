@@ -1,9 +1,5 @@
 [workspace]
-members = [
-    "browser",
-    "server",
-    "model"
-]
+members = ["browser", "server", "model"]
 resolver = "2"
 
 [profile.release]
