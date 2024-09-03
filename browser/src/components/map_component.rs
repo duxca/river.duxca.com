@@ -1,3 +1,4 @@
+#![allow(unused_imports)]
 use gloo::console;
 use gloo::utils::document;
 use gloo::utils::format::JsValueSerdeExt;
@@ -29,7 +30,7 @@ pub fn map_component(Props { forcus, points }: &Props) -> Html {
     use_effect_with((), {
         let node_ref = node_ref.clone();
         let map_state = map_state.clone();
-        let forcus = forcus.clone();
+        let forcus = *forcus;
         move |()| {
             let div = node_ref.cast::<HtmlDivElement>().unwrap();
             let map = Map::new_with_element(&div, &MapOptions::default());
@@ -129,7 +130,7 @@ pub fn map_component(Props { forcus, points }: &Props) -> Html {
         }
     });
     // forcusが変化したら再描画
-    use_effect_with(forcus.clone(), {
+    use_effect_with(*forcus, {
         let map_state = map_state.clone();
         move |forcus| {
             if let Some(map) = map_state.as_ref() {

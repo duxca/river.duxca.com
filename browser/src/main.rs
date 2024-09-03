@@ -8,6 +8,7 @@ use wasm_bindgen::prelude::*;
 use yew::prelude::*;
 
 #[function_component(App)]
+#[allow(clippy::redundant_closure)]
 fn app() -> Html {
     let loggedin = use_state(|| false);
     let forcus = use_state(|| {
