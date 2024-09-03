@@ -58,7 +58,9 @@ pub struct BackendSettings {
     pub facebook: ClientToken,
     pub redirect_url: oauth2::RedirectUrl,
 }
+
 impl Backend {
+    #[tracing::instrument(level = "trace", skip(db))]
     pub fn new(db: sqlx::SqlitePool, settings: BackendSettings) -> Self {
         Self {
             db: db.clone(),
@@ -75,6 +77,7 @@ impl Backend {
         }
     }
 
+    #[tracing::instrument(level = "trace")]
     pub fn authorize_url(&self, provider: OAuthProvider) -> (oauth2::url::Url, oauth2::CsrfToken) {
         match provider {
             OAuthProvider::Github => self.github.authorize_url(),
@@ -89,6 +92,7 @@ impl axum_login::AuthnBackend for Backend {
     type Credentials = Credentials;
     type Error = BackendError;
 
+    #[tracing::instrument(level = "trace")]
     async fn authenticate(
         &self,
         creds: Self::Credentials,
@@ -99,6 +103,7 @@ impl axum_login::AuthnBackend for Backend {
         }
     }
 
+    #[tracing::instrument(level = "trace")]
     async fn get_user(
         &self,
         user_id: &axum_login::UserId<Self>,

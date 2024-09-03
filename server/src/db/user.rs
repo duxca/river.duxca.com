@@ -17,14 +17,8 @@ pub fn list_users<'a, 'c>(
             model::user::User,
             r#"
             SELECT
-                users.user_id AS user_id,
-                github.github_id AS "github_id?",
-                facebook.facebook_id AS "facebook_id?",
-                users.created_at AS created_at,
-                users.updated_at AS updated_at
+                users.user_id AS user_id
             FROM users
-            LEFT OUTER JOIN github ON users.user_id = github.user_id
-            LEFT OUTER JOIN facebook ON users.user_id = facebook.user_id
             ORDER BY user_id ASC
             LIMIT ?1 OFFSET ?2
             "#,
@@ -62,49 +56,33 @@ pub fn create_user<'a, 'c>(
         use sqlx::Connection;
         let mut conn = conn.acquire().await?;
         let mut tx = conn.begin().await?;
-        let res = match provider {
-            OAuthProvider::Github(github_id, login) => {
-                create_user_by_github(&mut tx, github_id, login).await
-            }
+        let (identifier, username, identity_provider_name) = match provider {
+            OAuthProvider::Github(github_id, login) => (github_id.to_string(), login, "github"),
             OAuthProvider::Facebook(facebook_id, name) => {
-                create_user_by_facebook(&mut tx, facebook_id, name).await
+                (facebook_id.to_string(), name, "facebook")
             }
         };
-        tx.commit().await?;
-        res
-    }
-}
-
-#[tracing::instrument(level = "trace", skip(conn))]
-fn create_user_by_github<'a, 'c>(
-    conn: impl sqlx::Acquire<'c, Database = sqlx::Sqlite> + Send + 'a,
-    github_id: i64,
-    login: String,
-) -> impl std::future::Future<Output = Result<model::user::User, anyhow::Error>> + Send + 'a {
-    async move {
-        use sqlx::Connection;
-        let mut conn = conn.acquire().await?;
-        let mut tx = conn.begin().await?;
-        let user = sqlx::query_as!(
-            model::user::User,
+        let identities = sqlx::query_as!(
+            model::user::UserIdentity,
             r#"
             SELECT
-                users.user_id AS user_id,
-                github.github_id AS github_id,
-                facebook.facebook_id AS facebook_id,
-                users.created_at AS created_at,
-                users.updated_at AS updated_at
-            FROM users
-            LEFT OUTER JOIN github ON github.user_id = users.user_id
-            LEFT OUTER JOIN facebook ON facebook.user_id = users.user_id
-            WHERE github.github_id = ?1
+                user_id,
+                identifier,
+                username,
+                identity_provider_name
+            FROM user_auths_with_identity_providers
+            WHERE 
+                user_auths_with_identity_providers.identity_provider_name = ?1
+            AND user_auths_with_identity_providers.identifier = ?2
             "#,
-            github_id
+            identity_provider_name,
+            identifier
         )
-        .fetch_optional(&mut *tx)
+        .fetch_all(&mut *tx)
         .await?;
-        if let Some(user) = user {
-            // 既に github アカウントで登録済みの場合はそのまま返す
+        if let Some(ident) = identities.first() {
+            let user = get_user(&mut *tx, ident.user_id).await?.unwrap();
+            // 既に登録済みの場合はそのまま返す
             return Ok(user);
         }
         // 新規登録
@@ -116,74 +94,27 @@ fn create_user_by_github<'a, 'c>(
         )
         .fetch_one(&mut *tx)
         .await?;
+        let identity_provider_id = sqlx::query!(
+            r#"
+            SELECT identity_provider_id
+            FROM identity_providers
+            WHERE identity_provider_name = ?1
+            "#,
+            identity_provider_name
+        )
+        .fetch_one(&mut *tx)
+        .await?
+        .identity_provider_id;
         // アカウント情報を登録
         sqlx::query!(
             r#"
-            INSERT INTO github ( user_id, github_id, login )
-            VALUES ( ?1, ?2, ?3 )
+            INSERT INTO user_auths (user_id, identity_provider_id, identifier, username)
+            VALUES (?1, ?2, ?3, ?4);
             "#,
             user.user_id,
-            github_id,
-            login
-        )
-        .execute(&mut *tx)
-        .await?;
-        let user = get_user(&mut tx, user.user_id).await?.unwrap();
-        tx.commit().await?;
-        Ok(user)
-    }
-}
-
-#[tracing::instrument(level = "trace", skip(conn))]
-fn create_user_by_facebook<'a, 'c>(
-    conn: impl sqlx::Acquire<'c, Database = sqlx::Sqlite> + Send + 'a,
-    facebook_id: i64,
-    name: String,
-) -> impl std::future::Future<Output = Result<model::user::User, anyhow::Error>> + Send + 'a {
-    async move {
-        use sqlx::Connection;
-        let mut conn = conn.acquire().await?;
-        let mut tx = conn.begin().await?;
-        let user = sqlx::query_as!(
-            model::user::User,
-            r#"
-            SELECT
-                users.user_id AS user_id,
-                github.github_id AS github_id,
-                facebook.facebook_id AS facebook_id,
-                users.created_at AS created_at,
-                users.updated_at AS updated_at
-            FROM users
-            LEFT OUTER JOIN github ON github.user_id = users.user_id
-            LEFT OUTER JOIN facebook ON facebook.user_id = users.user_id
-            WHERE facebook.facebook_id = ?1
-            "#,
-            facebook_id
-        )
-        .fetch_optional(&mut *tx)
-        .await?;
-        if let Some(user) = user {
-            // 既に facebook アカウントで登録済みの場合はそのまま返す
-            return Ok(user);
-        }
-        // 新規登録
-        let user = sqlx::query!(
-            r#"
-            INSERT INTO users DEFAULT VALUES
-            RETURNING user_id
-            "#
-        )
-        .fetch_one(&mut *tx)
-        .await?;
-        // facebook アカウント情報を登録
-        sqlx::query!(
-            r#"
-            INSERT INTO facebook ( user_id, facebook_id, name )
-            VALUES ( ?1, ?2, ?3 )
-            "#,
-            user.user_id,
-            facebook_id,
-            name
+            identity_provider_id,
+            identifier,
+            username
         )
         .execute(&mut *tx)
         .await?;
@@ -205,38 +136,58 @@ pub fn update_user<'a, 'c>(
         let mut conn = conn.acquire().await?;
         let mut tx = conn.begin().await?;
         if let Some(provider) = provider {
-            match provider {
-                OAuthProvider::Github(github_id, login) => {
-                    sqlx::query!(
-                        r#"
-                        INSERT INTO github ( user_id, github_id, login )
-                        VALUES ( ?1, ?2, ?3 )
-                        ON CONFLICT ( user_id )
-                        DO UPDATE SET github_id = ?2, login = ?3, updated_at = strftime('%s', 'now')
-                        "#,
-                        user_id,
-                        github_id,
-                        login
-                    )
-                    .execute(&mut *tx)
-                    .await?;
-                }
+            let (identifier, username, identity_provider_name) = match provider {
+                OAuthProvider::Github(github_id, login) => (github_id.to_string(), login, "github"),
                 OAuthProvider::Facebook(facebook_id, name) => {
-                    sqlx::query!(
-                        r#"
-                        INSERT INTO facebook ( user_id, facebook_id, name )
-                        VALUES ( ?1, ?2, ?3 )
-                        ON CONFLICT ( user_id )
-                        DO UPDATE SET facebook_id = ?2, name = ?3, updated_at = strftime('%s', 'now')
-                        "#,
-                        user_id,
-                        facebook_id,
-                        name
-                    )
-                    .execute(&mut *tx)
-                    .await?;
+                    (facebook_id.to_string(), name, "facebook")
                 }
+            };
+            let identities = sqlx::query_as!(
+                model::user::UserIdentity,
+                r#"
+                SELECT
+                    user_id,
+                    identifier,
+                    username,
+                    identity_provider_name
+                FROM user_auths_with_identity_providers
+                WHERE 
+                    user_auths_with_identity_providers.identity_provider_name = ?1
+                AND user_auths_with_identity_providers.identifier = ?2
+                "#,
+                identity_provider_name,
+                identifier
+            )
+            .fetch_all(&mut *tx)
+            .await?;
+            if let Some(ident) = identities.first() {
+                let user = get_user(&mut *tx, ident.user_id).await?.unwrap();
+                // 既に登録済みの場合はそのまま返す
+                return Ok(user);
             }
+            let identity_provider_id = sqlx::query!(
+                r#"
+                SELECT identity_provider_id
+                FROM identity_providers
+                WHERE identity_provider_name = ?1
+                "#,
+                identity_provider_name
+            )
+            .fetch_one(&mut *tx)
+            .await?
+            .identity_provider_id;
+            sqlx::query!(
+                r#"
+                INSERT INTO user_auths (user_id, identity_provider_id, identifier, username)
+                VALUES (?1, ?2, ?3, ?4);
+                "#,
+                user_id,
+                identity_provider_id,
+                identifier,
+                username
+            )
+            .execute(&mut *tx)
+            .await?;
         }
         let user = get_user(&mut tx, user_id).await?.unwrap();
         tx.commit().await?;
@@ -256,14 +207,8 @@ pub fn get_user<'a, 'c>(
             model::user::User,
             r#"
             SELECT 
-                users.user_id AS user_id,
-                github.github_id AS "github_id?",
-                facebook.facebook_id AS "facebook_id?",
-                users.created_at AS created_at,
-                users.updated_at AS updated_at
-            FROM users 
-            LEFT OUTER JOIN github ON users.user_id = github.user_id
-            LEFT OUTER JOIN facebook ON users.user_id = facebook.user_id
+                users.user_id AS user_id
+            FROM users
             WHERE users.user_id = ?1
             "#,
             id

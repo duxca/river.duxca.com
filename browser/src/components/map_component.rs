@@ -20,10 +20,17 @@ impl ImplicitClone for Point {}
 pub struct Props {
     pub forcus: Point,
     pub points: Vec<Point>,
+    pub init_cb: Callback<Map>,
 }
 
 #[function_component(MapComponent)]
-pub fn map_component(Props { forcus, points }: &Props) -> Html {
+pub fn map_component(
+    Props {
+        forcus,
+        points,
+        init_cb
+    }: &Props,
+) -> Html {
     let node_ref = NodeRef::default();
     let map_state = use_state(|| None);
     // 初回のみ
@@ -31,6 +38,7 @@ pub fn map_component(Props { forcus, points }: &Props) -> Html {
         let node_ref = node_ref.clone();
         let map_state = map_state.clone();
         let forcus = *forcus;
+        let init_cb = init_cb.clone();
         move |()| {
             let div = node_ref.cast::<HtmlDivElement>().unwrap();
             let map = Map::new_with_element(&div, &MapOptions::default());
@@ -102,6 +110,20 @@ pub fn map_component(Props { forcus, points }: &Props) -> Html {
             let control = leaflet::LayersControl::new(&opt);
             control.add_to(&map);
 
+            // let cb = Closure::<_>::new({
+            //     let map = map.clone();
+            //     move |_| {
+            //         let latlng = map.get_center();
+            //         // centor.set(Point {
+            //         //     latitude: latlng.lat(),
+            //         //     longitude: latlng.lng(),
+            //         // });
+            //     }
+            // });
+            // map.add_event_listener("move", &cb);
+            // cb.forget();
+
+            init_cb.emit(map.clone());
             map_state.set(Some(map));
         }
     });
@@ -140,7 +162,11 @@ pub fn map_component(Props { forcus, points }: &Props) -> Html {
     });
     // この VDOM に変化なければ再描画されない
     html! {
-        <div id="map" ref={node_ref}>
-        </div>
+        <>
+            <div id="map" ref={node_ref}>
+            </div>
+            <div class="crosshair">
+            </div>
+        </>
     }
 }

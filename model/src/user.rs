@@ -2,11 +2,17 @@
 #[cfg_attr(feature = "sql", derive(sqlx::FromRow))]
 #[serde(rename_all = "camelCase")]
 pub struct User {
+    pub user_id: i64
+}
+
+#[derive(Clone, serde::Serialize, serde::Deserialize, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "sql", derive(sqlx::FromRow))]
+#[serde(rename_all = "camelCase")]
+pub struct UserIdentity {
     pub user_id: i64,
-    pub github_id: Option<i64>,
-    pub facebook_id: Option<i64>,
-    pub created_at: i64,
-    pub updated_at: i64,
+    pub identifier: String,
+    pub username: String,
+    pub identity_provider_name: String,
 }
 
 #[cfg(feature = "login")]

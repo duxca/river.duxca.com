@@ -356,12 +356,12 @@ dependencies = [
  "serde",
  "serde-wasm-bindgen 0.6.5",
  "serde_json",
- "shadow-rs",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
  "yew 0.21.0 (git+https://github.com/yewstack/yew/)",
  "yew-hooks",
+ "yew-router",
 ]
 
 [[package]]
@@ -2709,6 +2709,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "route-recognizer"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "afab94fb28594581f62d981211a9a4d53cc8130bbcbbb89a0440d9b8e81a7746"
+
+[[package]]
 name = "rsa"
 version = "0.9.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4611,6 +4617,34 @@ dependencies = [
  "once_cell",
  "prettyplease",
  "proc-macro-error",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.77",
+]
+
+[[package]]
+name = "yew-router"
+version = "0.18.0"
+source = "git+https://github.com/yewstack/yew/#e9d80ae47a96a2a4c0efa2545aa00514ee2d45c1"
+dependencies = [
+ "gloo 0.11.0",
+ "js-sys",
+ "route-recognizer",
+ "serde",
+ "serde_urlencoded",
+ "tracing",
+ "urlencoding",
+ "wasm-bindgen",
+ "web-sys",
+ "yew 0.21.0 (git+https://github.com/yewstack/yew/)",
+ "yew-router-macro",
+]
+
+[[package]]
+name = "yew-router-macro"
+version = "0.18.0"
+source = "git+https://github.com/yewstack/yew/#e9d80ae47a96a2a4c0efa2545aa00514ee2d45c1"
+dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.77",

@@ -1,11 +1,12 @@
-mod api;
-mod components;
-
+#![allow(unused_imports)]
 use crate::components::map_component::{MapComponent, Point};
 use gloo::console;
 use gloo::utils::format::JsValueSerdeExt;
 use wasm_bindgen::prelude::*;
 use yew::prelude::*;
+
+mod api;
+mod components;
 
 #[function_component(App)]
 #[allow(clippy::redundant_closure)]
@@ -29,11 +30,38 @@ fn app() -> Html {
                 .dyn_into::<web_sys::HtmlSelectElement>()
                 .unwrap()
                 .value();
-            console::log!(&val);
+            // console::log!(&val);
             let river_id = val.parse::<i64>().unwrap();
             selected_river_id.set(Some(river_id));
         }
     });
+    let map_state = use_state(|| None);
+    let init_cb = Callback::from({
+        let map_state = map_state.clone();
+        move |map: leaflet::Map| {
+            map_state.set(Some(map));
+        }
+    });
+    let onclick_cb = Callback::from({
+        let map_state = map_state.clone();
+        move |_: MouseEvent| {
+            if let Some(map) = map_state.as_ref() {
+                let latlng = map.get_center();
+                let pt = Point {
+                    latitude: latlng.lat(),
+                    longitude: latlng.lng(),
+                };
+                console::log!(pt.latitude, pt.longitude);
+            }
+        }
+    });
+    let points = river_waypoints
+        .iter()
+        .map(|p| Point {
+            latitude: p.latitude,
+            longitude: p.longitude,
+        })
+        .collect::<Vec<_>>();
     // 初回のみログインチェック
     use_effect_with((), {
         let loggedin = loggedin.clone();
@@ -112,7 +140,7 @@ fn app() -> Html {
                         .await
                         .unwrap();
                         if !res.river_waypoints.is_empty() {
-                            console::log!(&JsValue::from_serde(&res.river_waypoints[0]).unwrap());
+                            // console::log!(&JsValue::from_serde(&res.river_waypoints[0]).unwrap());
                             forcus.set(Point {
                                 latitude: res.river_waypoints[0].latitude,
                                 longitude: res.river_waypoints[0].longitude,
@@ -123,22 +151,15 @@ fn app() -> Html {
             }
         }
     });
-    let points = river_waypoints
-        .iter()
-        .map(|p| Point {
-            latitude: p.latitude,
-            longitude: p.longitude,
-        })
-        .collect::<Vec<_>>();
+
     html! {
         <>
             if *loggedin {
-                <MapComponent forcus={&*forcus} points={points} />
+                <MapComponent forcus={&*forcus} points={points} init_cb={init_cb} />
                 <div class="control">
                     <form method="post" action="/logout">
                         <input type="submit" value="Logout" />
                     </form>
-
                     <label>
                         {"川:"}
                         <select name="river" size="1" onchange={select_river_cb}>
@@ -152,11 +173,16 @@ fn app() -> Html {
                             }
                         </select>
                     </label>
+                    <button onclick={onclick_cb}>{"centor"}</button>
                 </div>
             }else{
                 <form method="post" action="/login">
                     <input type="submit" value="GitHub Login" />
                     <input type="hidden" name="provider" value="github" />
+                </form>
+                <form method="post" action="/login">
+                    <input type="submit" value="Facebook Login" />
+                    <input type="hidden" name="provider" value="facebook" />
                 </form>
             }
         </>
@@ -164,6 +190,5 @@ fn app() -> Html {
 }
 
 fn main() {
-    shadow_rs::shadow!(build);
     yew::Renderer::<App>::new().render();
 }

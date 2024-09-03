@@ -39,6 +39,7 @@ impl axum_login::AuthnBackend for Backend {
     type User = model::user::User;
     type Credentials = super::Credentials;
     type Error = super::BackendError;
+    
     #[tracing::instrument]
     async fn authenticate(
         &self,
@@ -91,10 +92,6 @@ impl axum_login::AuthnBackend for Backend {
         let facebook_id = user_info.id.parse::<i64>().map_err(anyhow::Error::from)?;
         let mut db = self.db.acquire().await.unwrap();
         if let Some(user) = creds.user {
-            if user.facebook_id.is_some() {
-                log::info!("login: {:?} {:?}", user, user_info);
-                return Ok(Some(user));
-            }
             log::info!("update account: {:?}", user_info);
             crate::db::user::update_user(
                 &mut *db,

@@ -39,6 +39,7 @@ impl axum_login::AuthnBackend for Backend {
     type Credentials = super::Credentials;
     type Error = super::BackendError;
 
+    #[tracing::instrument]
     async fn authenticate(
         &self,
         creds: Self::Credentials,
@@ -93,10 +94,6 @@ impl axum_login::AuthnBackend for Backend {
 
         let mut db = self.db.acquire().await.map_err(anyhow::Error::from)?;
         if let Some(user) = creds.user {
-            if user.github_id.is_some() {
-                log::info!("login: {:?} {:?}", user, user_info);
-                return Ok(Some(user));
-            }
             log::info!("update account: {:?}", user_info);
             crate::db::user::update_user(
                 &mut *db,
@@ -122,6 +119,7 @@ impl axum_login::AuthnBackend for Backend {
         }
     }
 
+    #[tracing::instrument]
     async fn get_user(
         &self,
         user_id: &axum_login::UserId<Self>,

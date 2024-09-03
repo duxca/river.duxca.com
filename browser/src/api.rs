@@ -1,3 +1,4 @@
+#![allow(unused_imports)]
 use gloo::console;
 
 pub async fn call<
@@ -8,7 +9,7 @@ pub async fn call<
 ) -> Result<T, anyhow::Error> {
     let req = Into::<model::api::Request>::into(req);
     let txt = serde_json::to_string(&req)?;
-    console::log!("Request: {}", &txt);
+    // console::log!("Request: {}", &txt);
     let res: gloo::net::http::Response = gloo::net::http::Request::post("/api")
         .credentials(web_sys::RequestCredentials::Include)
         .mode(web_sys::RequestMode::Cors)
@@ -19,11 +20,11 @@ pub async fn call<
         .await?;
     if res.status() != 200 {
         let res = res.text().await?;
-        console::log!("Error: {}", &res);
+        // console::log!("Error: {}", &res);
         return Err(anyhow::anyhow!("{}", res));
     };
     let res = res.text().await?;
-    console::log!("Response: {}", &res);
+    // console::log!("Response: {}", &res);
     let res = serde_json::from_str::<model::api::Response>(&res)?;
     if let model::api::Response::Error(e) = res {
         return Err(anyhow::anyhow!("{:?}", e));
