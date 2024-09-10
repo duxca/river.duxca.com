@@ -39,7 +39,7 @@ impl axum_login::AuthnBackend for Backend {
     type User = model::user::User;
     type Credentials = super::Credentials;
     type Error = super::BackendError;
-    
+
     #[tracing::instrument]
     async fn authenticate(
         &self,

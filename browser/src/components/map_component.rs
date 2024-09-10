@@ -18,17 +18,15 @@ impl ImplicitClone for Point {}
 
 #[derive(PartialEq, Properties, Clone)]
 pub struct Props {
-    pub forcus: Point,
-    pub points: Vec<Point>,
-    pub init_cb: Callback<Map>,
+    pub initial_forcus: Point,
+    pub map_ready: Callback<Map>,
 }
 
 #[function_component(MapComponent)]
 pub fn map_component(
     Props {
-        forcus,
-        points,
-        init_cb
+        initial_forcus,
+        map_ready,
     }: &Props,
 ) -> Html {
     let node_ref = NodeRef::default();
@@ -37,12 +35,12 @@ pub fn map_component(
     use_effect_with((), {
         let node_ref = node_ref.clone();
         let map_state = map_state.clone();
-        let forcus = *forcus;
-        let init_cb = init_cb.clone();
+        let initial_forcus = *initial_forcus;
+        let map_ready = map_ready.clone();
         move |()| {
             let div = node_ref.cast::<HtmlDivElement>().unwrap();
             let map = Map::new_with_element(&div, &MapOptions::default());
-            map.set_view(&LatLng::new(forcus.latitude, forcus.longitude), 11.0); // Fuji
+            map.set_view(&LatLng::new(initial_forcus.latitude, initial_forcus.longitude), 11.0);
             let opt = leaflet::TileLayerOptions::new();
             opt.set_attribution("<a href='https://maps.gsi.go.jp/development/ichiran.html' target='_blank'>地理院タイル</a>".to_string());
             let gsi = TileLayer::new_options(
@@ -106,8 +104,11 @@ pub fn map_component(
                 &JsValue::from(anaglyphmap_color),
             )
             .unwrap();
-
             let control = leaflet::LayersControl::new(&opt);
+            control.add_to(&map);
+
+            let opt = Object::new();
+            let control = Scale::new(&opt.unchecked_into());
             control.add_to(&map);
 
             // let cb = Closure::<_>::new({
@@ -123,41 +124,8 @@ pub fn map_component(
             // map.add_event_listener("move", &cb);
             // cb.forget();
 
-            init_cb.emit(map.clone());
+            map_ready.emit(map.clone());
             map_state.set(Some(map));
-        }
-    });
-    // pointsが変化したら再描画
-    use_effect_with(points.clone(), {
-        let map_state = map_state.clone();
-        move |points| {
-            if let Some(map) = map_state.as_ref() {
-                for point in points {
-                    // let opt = leaflet::IconOptions::new();
-                    // opt.set_icon_url("marker-red.png".to_string());
-                    // opt.set_icon_size(leaflet::Point::new(25.0, 41.0));
-                    // opt.set_icon_anchor(leaflet::Point::new(12.0, 40.0));
-                    // opt.set_popup_anchor(leaflet::Point::new(0.0, -40.0));
-                    // let my_icon = leaflet::Icon::new(&opt);
-                    // let opt = leaflet::MarkerOptions::new();
-                    // opt.set_icon(my_icon);
-                    // leaflet::Marker::new_with_options(
-                    leaflet::Marker::new(
-                        &LatLng::new(point.latitude, point.longitude),
-                        // &opt,
-                    )
-                    .add_to(map);
-                }
-            }
-        }
-    });
-    // forcusが変化したら再描画
-    use_effect_with(*forcus, {
-        let map_state = map_state.clone();
-        move |forcus| {
-            if let Some(map) = map_state.as_ref() {
-                map.set_view(&LatLng::new(forcus.latitude, forcus.longitude), 11.0);
-            }
         }
     });
     // この VDOM に変化なければ再描画されない
@@ -168,5 +136,36 @@ pub fn map_component(
             <div class="crosshair">
             </div>
         </>
+    }
+}
+
+
+use js_sys::Object;
+use leaflet::Control;
+#[wasm_bindgen]
+extern "C" {
+    #[derive(Clone, Debug)]
+    #[wasm_bindgen(extends = Control, js_namespace = ["L", "Scale"])]
+    pub type Scale;
+
+    #[wasm_bindgen(js_namespace = ["L", "control"], js_name = "scale")]
+    fn constructor_zoom(options: &ScaleOptions) -> Scale;
+
+    #[wasm_bindgen(extends = Object , js_name = ScaleOptions)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    #[wasm_bindgen(extends = Control)]
+    pub type ScaleOptions;
+}
+
+impl Scale {
+    #[must_use]
+    pub fn new(options: &ScaleOptions) -> Self {
+        constructor_zoom(options)
+    }
+}
+
+impl Default for ScaleOptions {
+    fn default() -> Self {
+        Object::new().unchecked_into()
     }
 }

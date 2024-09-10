@@ -2,7 +2,7 @@
 #[cfg_attr(feature = "sql", derive(sqlx::FromRow))]
 #[serde(rename_all = "camelCase")]
 pub struct User {
-    pub user_id: i64
+    pub user_id: i64,
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize, Debug, PartialEq, Eq)]

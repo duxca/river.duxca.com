@@ -8,19 +8,41 @@ use yew::prelude::*;
 mod api;
 mod components;
 
+#[derive(Debug, PartialEq, Clone)]
+enum EditMode {
+    Home,
+    AddRoute(AddRouteMode),
+    AddWaypoint,
+}
+#[derive(Debug, PartialEq, Clone, Default)]
+struct AddRouteMode {
+    last_point: Option<Point>,
+    distance: f64,
+    layers: Vec<std::rc::Rc<O>>,
+}
+#[derive(Debug, PartialEq, Clone)]
+struct O(leaflet::Layer);
+impl Drop for O {
+    fn drop(&mut self) {
+        console::log!("drop");
+        self.0.remove();
+    }
+}
+
 #[function_component(App)]
 #[allow(clippy::redundant_closure)]
 fn app() -> Html {
     let loggedin = use_state(|| false);
-    let forcus = use_state(|| {
-        Point {
-            latitude: 35.3622222,
-            longitude: 138.7313889,
-        } // Fuji
+    // Fuji
+    let forcus = use_state(|| Point {
+        latitude: 35.3622222,
+        longitude: 138.7313889,
     });
+    let edit_mode = use_state(|| EditMode::Home {});
     let selected_river_id = use_state(|| None);
     let rivers = use_state(|| Vec::<model::river::River>::new());
     let river_waypoints = use_state(|| Vec::<model::river::RiverWaypoint>::new());
+    let map_state = use_state(|| None);
     let select_river_cb = Callback::from({
         let selected_river_id = selected_river_id.clone();
         move |ev: Event| {
@@ -35,8 +57,8 @@ fn app() -> Html {
             selected_river_id.set(Some(river_id));
         }
     });
-    let map_state = use_state(|| None);
-    let init_cb = Callback::from({
+    // let last_point = use_state(|| None as Option<Point>);
+    let map_ready_cb = Callback::from({
         let map_state = map_state.clone();
         move |map: leaflet::Map| {
             map_state.set(Some(map));
@@ -44,24 +66,40 @@ fn app() -> Html {
     });
     let onclick_cb = Callback::from({
         let map_state = map_state.clone();
+        let edit_mode = edit_mode.clone();
         move |_: MouseEvent| {
             if let Some(map) = map_state.as_ref() {
-                let latlng = map.get_center();
-                let pt = Point {
-                    latitude: latlng.lat(),
-                    longitude: latlng.lng(),
-                };
-                console::log!(pt.latitude, pt.longitude);
+                if let EditMode::AddRoute(ref mut o) = (*edit_mode).clone() {
+                    let latlng = map.get_center();
+                    let pt = Point {
+                        latitude: latlng.lat(),
+                        longitude: latlng.lng(),
+                    };
+                    console::log!(pt.latitude, pt.longitude);
+                    let mark = leaflet::Marker::new(
+                        &leaflet::LatLng::new(pt.latitude, pt.longitude),
+                        // &opt,
+                    ).add_to(map);
+                    o.layers.push(std::rc::Rc::new(O(mark)));
+                    if let Some(pt_old) = o.last_point.as_ref() {
+                        use wasm_bindgen::JsCast;
+                        let a = leaflet::LatLng::new(pt_old.latitude, pt_old.longitude);
+                        let b = leaflet::LatLng::new(pt.latitude, pt.longitude);
+                        let arr = &[&a, &b]
+                            .into_iter()
+                            .map(JsValue::from)
+                            .collect::<js_sys::Array>();
+                        let line = leaflet::Polyline::new(&arr).add_to(map);
+                        o.layers.push(std::rc::Rc::new(O(line)));
+                        console::log!(map.distance(&a, &b));
+                        o.distance = o.distance + map.distance(&a, &b);
+                    }
+                    o.last_point = Some(pt);
+                    edit_mode.set(EditMode::AddRoute(o.clone()));
+                }
             }
         }
     });
-    let points = river_waypoints
-        .iter()
-        .map(|p| Point {
-            latitude: p.latitude,
-            longitude: p.longitude,
-        })
-        .collect::<Vec<_>>();
     // 初回のみログインチェック
     use_effect_with((), {
         let loggedin = loggedin.clone();
@@ -98,6 +136,7 @@ fn app() -> Html {
             }
         }
     });
+    // 川の一覧が取得できたら川のウェイポイントを取得
     use_effect_with(rivers.clone(), {
         let river_waypoints = river_waypoints.clone();
         move |rivers| {
@@ -123,6 +162,7 @@ fn app() -> Html {
             });
         }
     });
+    // 選択された川が変化したら川のウェイポイントを取得してフォーカスする
     use_effect_with(selected_river_id.clone(), {
         let forcus = forcus.clone();
         move |selected_river_id| {
@@ -152,28 +192,124 @@ fn app() -> Html {
         }
     });
 
+    // pointsが変化したら再描画
+    use_effect_with(river_waypoints, {
+        let map_state = map_state.clone();
+        move |river_waypoints| {
+            let points = river_waypoints
+                .iter()
+                .map(|p| Point {
+                    latitude: p.latitude,
+                    longitude: p.longitude,
+                })
+                .collect::<Vec<_>>();
+            // TODO marker の重複排除
+            if let Some(map) = map_state.as_ref() {
+                for point in points {
+                    // let opt = leaflet::IconOptions::new();
+                    // opt.set_icon_url("marker-red.png".to_string());
+                    // opt.set_icon_size(leaflet::Point::new(25.0, 41.0));
+                    // opt.set_icon_anchor(leaflet::Point::new(12.0, 40.0));
+                    // opt.set_popup_anchor(leaflet::Point::new(0.0, -40.0));
+                    // let my_icon = leaflet::Icon::new(&opt);
+                    // let opt = leaflet::MarkerOptions::new();
+                    // opt.set_icon(my_icon);
+                    // leaflet::Marker::new_with_options(
+                    leaflet::Marker::new(
+                        &leaflet::LatLng::new(point.latitude, point.longitude),
+                        // &opt,
+                    )
+                    .add_to(map);
+                }
+            }
+        }
+    });
+    // forcusが変化したら再描画
+    use_effect_with(*forcus, {
+        let map_state = map_state.clone();
+        move |forcus| {
+            if let Some(map) = map_state.as_ref() {
+                map.set_view(
+                    &leaflet::LatLng::new(forcus.latitude, forcus.longitude),
+                    11.0,
+                );
+            }
+        }
+    });
+
     html! {
         <>
             if *loggedin {
-                <MapComponent forcus={&*forcus} points={points} init_cb={init_cb} />
+                <MapComponent
+                    initial_forcus={*forcus}
+                    map_ready={map_ready_cb} />
                 <div class="control">
-                    <form method="post" action="/logout">
-                        <input type="submit" value="Logout" />
-                    </form>
-                    <label>
-                        {"川:"}
-                        <select name="river" size="1" onchange={select_river_cb}>
-                            <option value="0">{"---"}</option>
-                            {
-                                rivers.iter().map(|river|{
-                                    html!{
-                                        <option value={river.river_id.to_string()}>{&river.name}</option>
-                                    }
-                                }).collect::<Html>()
-                            }
-                        </select>
-                    </label>
-                    <button onclick={onclick_cb}>{"centor"}</button>
+                    <fieldset>
+                        <legend>{"Account"}</legend>
+                        <form method="post" action="/logout">
+                            <input type="submit" value="Logout" />
+                        </form>
+                    </fieldset>
+                    <fieldset>
+                        <legend>{"Edit Mode"}</legend>
+                        <div>
+                            <button onclick={Callback::from({
+                                let edit_mode = edit_mode.clone();
+                                move |_| edit_mode.set(EditMode::Home{})}
+                            )}>
+                                {"Home"}
+                            </button>
+                        </div>
+                        <div>
+                            <button onclick={Callback::from({
+                                let edit_mode = edit_mode.clone();
+                                move |_| edit_mode.set(EditMode::AddRoute(AddRouteMode::default()))
+                            })}>
+                                {"Route"}
+                            </button>
+                        </div>
+                        <div>
+                            <button
+                                onclick={Callback::from({
+                                    let edit_mode = edit_mode.clone();
+                                    move |_| edit_mode.set(EditMode::AddWaypoint{
+                                    })
+                                })}
+                            >
+                                {"Waypoint"}
+                            </button>
+                        </div>
+                    </fieldset>
+                    if let EditMode::Home{} = *edit_mode {
+                        <fieldset>
+                            <legend>{"Home"}</legend>
+                            <div>
+                                <label>
+                                    {"川:"}
+                                    <select name="river" size="1" onchange={select_river_cb}>
+                                        <option value="0">{"---"}</option>
+                                        {
+                                            rivers.iter().map(|river|{
+                                                html!{
+                                                    <option value={river.river_id.to_string()}>{&river.name}</option>
+                                                }
+                                            }).collect::<Html>()
+                                        }
+                                    </select>
+                                </label>
+                            </div>
+                        </fieldset>
+                    } else if let EditMode::AddRoute(ref o) = *edit_mode {
+                        <fieldset>
+                            <legend>{"addRoute"}</legend>
+                            <div><button onclick={onclick_cb}>{"add point"}</button></div>
+                            <div>{format!("distance: {} m", o.distance.round() as i64)}</div>
+                        </fieldset>
+                    } else if let EditMode::AddWaypoint{} = *edit_mode {
+                        <fieldset>
+                            <legend>{"AddWaypoint"}</legend>
+                        </fieldset>
+                    }
                 </div>
             }else{
                 <form method="post" action="/login">
