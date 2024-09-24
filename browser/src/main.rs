@@ -2,7 +2,9 @@
 use crate::components::map_component::{MapComponent, Point};
 use gloo::console;
 use gloo::utils::format::JsValueSerdeExt;
+use model::river::RiverWaypoint;
 use wasm_bindgen::prelude::*;
+use web_sys::HtmlInputElement;
 use yew::prelude::*;
 
 mod api;
@@ -13,12 +15,17 @@ enum EditMode {
     Home,
     AddRoute(AddRouteMode),
     AddWaypoint,
+    RemoveWaypoint(RemoveWaypointMode),
 }
 #[derive(Debug, PartialEq, Clone, Default)]
 struct AddRouteMode {
     last_point: Option<Point>,
     distance: f64,
     layers: Vec<std::rc::Rc<O>>,
+}
+#[derive(Debug, PartialEq, Clone, Default)]
+struct RemoveWaypointMode {
+    target: Option<Point>,
 }
 #[derive(Debug, PartialEq, Clone)]
 struct O(leaflet::Layer);
@@ -43,6 +50,7 @@ fn app() -> Html {
     let rivers = use_state(|| Vec::<model::river::River>::new());
     let river_waypoints = use_state(|| Vec::<model::river::RiverWaypoint>::new());
     let map_state = use_state(|| None);
+
     let select_river_cb = Callback::from({
         let selected_river_id = selected_river_id.clone();
         move |ev: Event| {
@@ -64,7 +72,36 @@ fn app() -> Html {
             map_state.set(Some(map));
         }
     });
-    let onclick_cb = Callback::from({
+    let onclick_add_waypoint_cb = Callback::from({
+        let map_state = map_state.clone();
+        move |_: MouseEvent| {
+            if let Some(map) = map_state.as_ref() {
+                let title = web_sys::window()
+                    .unwrap()
+                    .document()
+                    .unwrap()
+                    .get_element_by_id("waypoint_name")
+                    .unwrap()
+                    .dyn_ref::<HtmlInputElement>()
+                    .unwrap()
+                    .value();
+                let latlng = map.get_center();
+                let pt = Point {
+                    latitude: latlng.lat(),
+                    longitude: latlng.lng(),
+                };
+                console::log!(&title, pt.latitude, pt.longitude);
+                let p = leaflet::Popup::new(&leaflet::PopupOptions::default(), None);
+                p.set_content(&JsValue::from_serde(&serde_json::json!(title)).unwrap());
+                leaflet::Marker::new(&leaflet::LatLng::new(pt.latitude, pt.longitude))
+                    .bind_popup(&p)
+                    .open_popup()
+                    .add_to(map);
+                // TODO マーカーのグループ化 ex. LayerGroup
+            }
+        }
+    });
+    let onclick_add_route_cb = Callback::from({
         let map_state = map_state.clone();
         let edit_mode = edit_mode.clone();
         move |_: MouseEvent| {
@@ -76,13 +113,11 @@ fn app() -> Html {
                         longitude: latlng.lng(),
                     };
                     console::log!(pt.latitude, pt.longitude);
-                    let mark = leaflet::Marker::new(
-                        &leaflet::LatLng::new(pt.latitude, pt.longitude),
-                        // &opt,
-                    ).add_to(map);
+                    let mark =
+                        leaflet::Marker::new(&leaflet::LatLng::new(pt.latitude, pt.longitude))
+                            .add_to(map);
                     o.layers.push(std::rc::Rc::new(O(mark)));
                     if let Some(pt_old) = o.last_point.as_ref() {
-                        use wasm_bindgen::JsCast;
                         let a = leaflet::LatLng::new(pt_old.latitude, pt_old.longitude);
                         let b = leaflet::LatLng::new(pt.latitude, pt.longitude);
                         let arr = &[&a, &b]
@@ -196,16 +231,9 @@ fn app() -> Html {
     use_effect_with(river_waypoints, {
         let map_state = map_state.clone();
         move |river_waypoints| {
-            let points = river_waypoints
-                .iter()
-                .map(|p| Point {
-                    latitude: p.latitude,
-                    longitude: p.longitude,
-                })
-                .collect::<Vec<_>>();
             // TODO marker の重複排除
             if let Some(map) = map_state.as_ref() {
-                for point in points {
+                for waypoint in river_waypoints.iter() {
                     // let opt = leaflet::IconOptions::new();
                     // opt.set_icon_url("marker-red.png".to_string());
                     // opt.set_icon_size(leaflet::Point::new(25.0, 41.0));
@@ -215,10 +243,14 @@ fn app() -> Html {
                     // let opt = leaflet::MarkerOptions::new();
                     // opt.set_icon(my_icon);
                     // leaflet::Marker::new_with_options(
-                    leaflet::Marker::new(
-                        &leaflet::LatLng::new(point.latitude, point.longitude),
-                        // &opt,
-                    )
+                    let p = leaflet::Popup::new(&leaflet::PopupOptions::default(), None);
+                    p.set_content(&JsValue::from_serde(&serde_json::json!(waypoint.name)).unwrap());
+                    leaflet::Marker::new(&leaflet::LatLng::new(
+                        waypoint.latitude,
+                        waypoint.longitude,
+                    ))
+                    .bind_popup(&p)
+                    .open_popup()
                     .add_to(map);
                 }
             }
@@ -302,12 +334,23 @@ fn app() -> Html {
                     } else if let EditMode::AddRoute(ref o) = *edit_mode {
                         <fieldset>
                             <legend>{"addRoute"}</legend>
-                            <div><button onclick={onclick_cb}>{"add point"}</button></div>
+                            <div><button onclick={onclick_add_route_cb}>{"add point"}</button></div>
                             <div>{format!("distance: {} m", o.distance.round() as i64)}</div>
                         </fieldset>
                     } else if let EditMode::AddWaypoint{} = *edit_mode {
                         <fieldset>
                             <legend>{"AddWaypoint"}</legend>
+                            <input type={"text"} id={"waypoint_name"} />
+                            <div><button onclick={onclick_add_waypoint_cb}>{"add point"}</button></div>
+                        </fieldset>
+                    } else if let EditMode::RemoveWaypoint(ref o) = *edit_mode {
+                        <fieldset>
+                            <legend>{"RemoveWaypoint"}</legend>
+                            if let Some(target) = o.target {
+                                <div>{"Select Waypoint"}</div>
+                            } else {
+                                <div>{"Remove Waypoint"}</div>
+                            }
                         </fieldset>
                     }
                 </div>

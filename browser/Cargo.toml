@@ -12,14 +12,15 @@ gloo = { version = "0.11.0", features = ["futures"] }
 gloo-net = { version = "0.6.0", features = ["json"] }
 implicit-clone = "0.5.0"
 js-sys = "0.3"
-leaflet = { git = "https://github.com/legokichi/leaflet-rs", branch = "add-control-layers" }
+# leaflet = { git = "https://github.com/legokichi/leaflet-rs", branch = "add-control-layers" }
+leaflet = "0.4.1"
 model = { path = "../model" }
 serde = { version = "1.0", features = ["derive"] }
 serde-wasm-bindgen = "0.6.5"
 serde_json = "1.0"
 wasm-bindgen = "0.2"
 wasm-bindgen-futures = "0.4"
-web-sys = { version = "0.3", features = ["console", "HtmlElement", "MouseEvent", "DomRect", "HtmlAnchorElement", "console", "Window", "Document", "HtmlSelectElement", "HtmlDivElement"] }
-yew = { git = "https://github.com/yewstack/yew.git",  features = ["csr"], branch = "master" }
+web-sys = { version = "0.3", features = ["console", "HtmlElement", "MouseEvent", "DomRect", "HtmlAnchorElement", "console", "Window", "Document", "HtmlSelectElement", "HtmlDivElement", "HtmlInputElement"] }
+yew = { git = "https://github.com/yewstack/yew.git", features = ["csr"], branch = "master" }
 yew-hooks = "0.3.2"
-yew-router = { git = "https://github.com/yewstack/yew.git", branch = "master"  }
+yew-router = { git = "https://github.com/yewstack/yew.git", branch = "master" }

@@ -43,12 +43,14 @@ pub async fn callback(
     use axum::response::IntoResponse;
     // セッションがない場合はエラー
     let Some(old_state) = session.get(CSRF_STATE_KEY).await? else {
+        log::error!("cannot find csrf state");
         return Ok((axum::http::StatusCode::BAD_REQUEST, "session expired").into_response());
     };
     let Some(provider) = session
         .get::<crate::auth::OAuthProvider>(PROVIDER_KEY)
         .await?
     else {
+        log::error!("cannot find provider");
         return Ok((axum::http::StatusCode::BAD_REQUEST, "session expired").into_response());
     };
     let creds = crate::auth::Credentials {

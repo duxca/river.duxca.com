@@ -40,7 +40,10 @@ pub fn map_component(
         move |()| {
             let div = node_ref.cast::<HtmlDivElement>().unwrap();
             let map = Map::new_with_element(&div, &MapOptions::default());
-            map.set_view(&LatLng::new(initial_forcus.latitude, initial_forcus.longitude), 11.0);
+            map.set_view(
+                &LatLng::new(initial_forcus.latitude, initial_forcus.longitude),
+                11.0,
+            );
             let opt = leaflet::TileLayerOptions::new();
             opt.set_attribution("<a href='https://maps.gsi.go.jp/development/ichiran.html' target='_blank'>地理院タイル</a>".to_string());
             let gsi = TileLayer::new_options(
@@ -104,11 +107,11 @@ pub fn map_component(
                 &JsValue::from(anaglyphmap_color),
             )
             .unwrap();
-            let control = leaflet::LayersControl::new(&opt);
+            let control = LayersControl::new(&opt);
             control.add_to(&map);
 
             let opt = Object::new();
-            let control = Scale::new(&opt.unchecked_into());
+            let control = ScaleControl::new(&opt.unchecked_into());
             control.add_to(&map);
 
             // let cb = Closure::<_>::new({
@@ -139,17 +142,16 @@ pub fn map_component(
     }
 }
 
-
 use js_sys::Object;
 use leaflet::Control;
 #[wasm_bindgen]
 extern "C" {
     #[derive(Clone, Debug)]
     #[wasm_bindgen(extends = Control, js_namespace = ["L", "Scale"])]
-    pub type Scale;
+    pub type ScaleControl;
 
     #[wasm_bindgen(js_namespace = ["L", "control"], js_name = "scale")]
-    fn constructor_zoom(options: &ScaleOptions) -> Scale;
+    fn constructor_scale(options: &ScaleOptions) -> ScaleControl;
 
     #[wasm_bindgen(extends = Object , js_name = ScaleOptions)]
     #[derive(Debug, Clone, PartialEq, Eq)]
@@ -157,15 +159,32 @@ extern "C" {
     pub type ScaleOptions;
 }
 
-impl Scale {
+impl ScaleControl {
     #[must_use]
     pub fn new(options: &ScaleOptions) -> Self {
-        constructor_zoom(options)
+        constructor_scale(options)
     }
 }
 
 impl Default for ScaleOptions {
     fn default() -> Self {
         Object::new().unchecked_into()
+    }
+}
+
+#[wasm_bindgen]
+extern "C" {
+    #[derive(Debug, Clone)]
+    #[wasm_bindgen(extends = Control, js_namespace = ["L", "Control"])]
+    pub type LayersControl;
+
+    #[wasm_bindgen(js_namespace = ["L", "control"], js_name = "layers")]
+    fn constructor_layers(options: &Object) -> LayersControl;
+}
+
+impl LayersControl {
+    #[must_use]
+    pub fn new(options: &Object) -> Self {
+        constructor_layers(options)
     }
 }

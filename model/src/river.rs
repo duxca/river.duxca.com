@@ -23,3 +23,40 @@ pub struct RiverWaypoint {
     // pub created_at: i64,
     // pub updated_at: i64,
 }
+
+#[derive(Debug, serde::Deserialize)]
+pub struct RiverCsv {
+    pub field_name: String,
+    pub point_name: String,
+    pub latitude: f64,
+    pub longitude: f64,
+    pub kind: Option<RiverKind>,
+}
+
+#[derive(Debug, serde::Deserialize)]
+pub enum RiverKind {
+    Port,
+    Bridge,
+    Rapids,
+    Flow,
+    Station,
+    Parking,
+    Toilet,
+    RoadsideStation,
+    Other,
+}
+
+#[test]
+fn csv() {
+    let mut rdr = csv::ReaderBuilder::new()
+        .delimiter(b',')
+        .quote(b'"')
+        .has_headers(false)
+        .trim(csv::Trim::All)
+        .from_path("../server/rivers.csv")
+        .unwrap();
+    for result in rdr.deserialize::<RiverCsv>() {
+        let record = result.unwrap();
+        println!("{:?}", record);
+    }
+}

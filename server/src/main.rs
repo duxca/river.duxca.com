@@ -52,6 +52,26 @@ async fn main() -> Result<(), anyhow::Error> {
     // セッションテーブルの作成
     session_store.migrate().await?;
 
+    let mut rdr = csv::ReaderBuilder::new()
+        .delimiter(b',')
+        .quote(b'"')
+        .has_headers(false)
+        .trim(csv::Trim::All)
+        .from_path("../server/rivers.csv")?;
+    for result in rdr.deserialize::<model::river::RiverCsv>() {
+        let river = result?;
+        let mut conn = pool.acquire().await?;
+        println!("{:?}", river);
+        crate::db::river::upsert_river_waypoint(
+            &mut *conn,
+            river.field_name,
+            river.point_name,
+            river.longitude,
+            river.latitude,
+        )
+        .await?;
+    }
+
     // セッションの定期削除タスク
     // tokio::task::spawn を rt=current_thread で使うと single thread で動く
     let deletion_task = tokio::task::spawn({
