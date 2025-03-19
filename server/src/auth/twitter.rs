@@ -4,7 +4,6 @@ const TOKEN_URL: &str = "https://api.x.com/oauth/access_token";
 // https://docs.x.com/x-api/users/lookup/quickstart/authenticated-lookup
 const USER_URL: &str = "https://api.x.com/2/users/me";
 
-
 #[derive(Debug, serde::Deserialize)]
 pub struct UserInfo {
     id: i64,
@@ -64,7 +63,8 @@ fn login<'a, 'c>(
             dbg!(&user);
             Ok(Some(user))
         }
-    }.boxed()
+    }
+    .boxed()
 }
 
 #[derive(Clone)]

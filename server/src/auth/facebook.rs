@@ -53,8 +53,7 @@ fn login<'a, 'c>(
                     user_info.name,
                 )),
             )
-            .await
-            .map_err(anyhow::Error::from)?;
+            .await?;
             Ok(Some(user))
         } else {
             log::info!("signup: {:?}", user_info);
@@ -62,8 +61,7 @@ fn login<'a, 'c>(
                 &mut *db,
                 crate::db::user::OAuthProvider::Facebook(facebook_id, user_info.name),
             )
-            .await
-            .map_err(anyhow::Error::from)?;
+            .await?;
             Ok(Some(user))
         }
     }

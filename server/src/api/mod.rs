@@ -35,10 +35,9 @@ pub async fn handler(
         model::api::Request::ListRiverWaypoints(req) => {
             let res = crate::api::list_field_spots::list_field_spots(&st.db, req).await?;
             Ok(res.into())
-        }
-        // model::api::Request::CreateRiverWaypoint(req) => {
-        //     let res = crate::api::create_river_waypoint::create_river_waypoint(&st.db, req).await?;
-        //     Ok(res.into())
-        // }
+        } // model::api::Request::CreateRiverWaypoint(req) => {
+          //     let res = crate::api::create_river_waypoint::create_river_waypoint(&st.db, req).await?;
+          //     Ok(res.into())
+          // }
     }
 }

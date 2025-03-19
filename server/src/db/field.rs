@@ -81,9 +81,8 @@ pub fn list_field_spots<'a, 'c>(
     field_id: i64,
     offset: Option<i64>,
     limit: Option<i64>,
-) -> impl std::future::Future<
-    Output = Result<(Vec<model::field::FieldSpot>, i64, i64), anyhow::Error>,
-> + Send
+) -> impl std::future::Future<Output = Result<(Vec<model::field::FieldSpot>, i64, i64), anyhow::Error>>
+       + Send
        + 'a {
     async move {
         let mut conn = conn.acquire().await?;
