@@ -2,7 +2,7 @@
 use crate::components::map_component::{MapComponent, Point};
 use gloo::console;
 use gloo::utils::format::JsValueSerdeExt;
-use model::river::RiverWaypoint;
+use model::field::FieldSpot;
 use wasm_bindgen::prelude::*;
 use web_sys::HtmlInputElement;
 use yew::prelude::*;
@@ -47,8 +47,8 @@ fn app() -> Html {
     });
     let edit_mode = use_state(|| EditMode::Home {});
     let selected_river_id = use_state(|| None);
-    let rivers = use_state(|| Vec::<model::river::River>::new());
-    let river_waypoints = use_state(|| Vec::<model::river::RiverWaypoint>::new());
+    let rivers = use_state(|| Vec::<model::field::Field>::new());
+    let river_waypoints = use_state(|| Vec::<model::field::FieldSpot>::new());
     let map_state = use_state(|| None);
 
     let select_river_cb = Callback::from({
@@ -158,8 +158,8 @@ fn app() -> Html {
         move |loggedin| {
             if **loggedin {
                 wasm_bindgen_futures::spawn_local(async move {
-                    let res = crate::api::call::<model::api::list_rivers::Response>(
-                        model::api::list_rivers::Request {
+                    let res = crate::api::call::<model::api::list_fields::Response>(
+                        model::api::list_fields::Request {
                             offset: None,
                             limit: Some(10000),
                         },
@@ -181,8 +181,8 @@ fn app() -> Html {
                     let mut list = vec![];
                     for river in &**rivers {
                         let mut res =
-                            crate::api::call::<model::api::list_river_waypoints::Response>(
-                                model::api::list_river_waypoints::Request {
+                            crate::api::call::<model::api::list_field_spots::Response>(
+                                model::api::list_field_spots::Request {
                                     offset: None,
                                     limit: Some(10000),
                                     river_id: river.river_id,
@@ -205,8 +205,8 @@ fn app() -> Html {
                 wasm_bindgen_futures::spawn_local({
                     let selected_river_id = *selected_river_id;
                     async move {
-                        let res = crate::api::call::<model::api::list_river_waypoints::Response>(
-                            model::api::list_river_waypoints::Request {
+                        let res = crate::api::call::<model::api::list_field_spots::Response>(
+                            model::api::list_field_spots::Request {
                                 offset: None,
                                 limit: Some(1),
                                 river_id: selected_river_id,

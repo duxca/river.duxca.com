@@ -8,6 +8,6 @@ pub async fn create_river_waypoint(
     }: model::api::create_river_waypoint::Request,
 ) -> Result<model::api::create_river_waypoint::Response, anyhow::Error> {
     let river_waypoint_id =
-        crate::db::river::create_river_waypoint(pool, river_id, name, longitude, latitude).await?;
+        crate::db::field::create_river_waypoint(pool, river_id, name, longitude, latitude).await?;
     Ok(model::api::create_river_waypoint::Response { river_waypoint_id })
 }

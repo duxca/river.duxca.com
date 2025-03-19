@@ -11,6 +11,8 @@ struct Config {
     github_client_secret: oauth2::ClientSecret,
     facebook_client_id: oauth2::ClientId,
     facebook_client_secret: oauth2::ClientSecret,
+    twitter_client_id: oauth2::ClientId,
+    twitter_client_secret: oauth2::ClientSecret,
     redirect_url: oauth2::RedirectUrl,
     local_client_id: oauth2::ClientId,
     local_client_secret: oauth2::ClientSecret,
@@ -57,32 +59,23 @@ async fn main() -> Result<(), anyhow::Error> {
         .quote(b'"')
         .has_headers(false)
         .trim(csv::Trim::All)
-        .from_path("../server/rivers.csv")?;
-    for result in rdr.deserialize::<model::river::RiverCsv>() {
-        let river = result?;
+        .from_path("./rivers.csv")?;
+    for result in rdr.deserialize::<model::field::FieldSpotCsv>() {
+        let spot = result?;
         let mut conn = pool.acquire().await?;
-        println!("{:?}", river);
-        crate::db::river::upsert_river_waypoint(
+        println!("{:?}", spot);
+        crate::db::field::upsert_field_spot(
             &mut *conn,
-            river.field_name,
-            river.point_name,
-            river.longitude,
-            river.latitude,
+            spot.field_name,
+            spot.spot_name,
+            spot.longitude,
+            spot.latitude,
         )
         .await?;
     }
 
-    // セッションの定期削除タスク
-    // tokio::task::spawn を rt=current_thread で使うと single thread で動く
-    let deletion_task = tokio::task::spawn({
-        use tower_sessions::ExpiredDeletion;
-        session_store
-            .clone()
-            .continuously_delete_expired(tokio::time::Duration::from_secs(60 * 60 * 24))
-    });
-
     // cookie のセッションの設定
-    let mut session_layer = tower_sessions::SessionManagerLayer::new(session_store)
+    let mut session_layer = tower_sessions::SessionManagerLayer::new(session_store.clone())
         // oauth でリダイレクトするときにStrict だとエラーになる
         //.with_same_site(tower_sessions::cookie::SameSite::Lax)
         .with_same_site(tower_sessions::cookie::SameSite::Strict)
@@ -99,6 +92,10 @@ async fn main() -> Result<(), anyhow::Error> {
                 client_id: config.local_client_id.clone(),
                 client_secret: config.local_client_secret.clone(),
             },
+            twitter: crate::auth::ClientToken {
+                client_id: config.twitter_client_id.clone(),
+                client_secret: config.twitter_client_secret.clone(),
+            },
             facebook: crate::auth::ClientToken {
                 client_id: config.facebook_client_id.clone(),
                 client_secret: config.facebook_client_secret.clone(),
@@ -110,6 +107,10 @@ async fn main() -> Result<(), anyhow::Error> {
             github: crate::auth::ClientToken {
                 client_id: config.github_client_id.clone(),
                 client_secret: config.github_client_secret.clone(),
+            },
+            twitter: crate::auth::ClientToken {
+                client_id: config.twitter_client_id.clone(),
+                client_secret: config.twitter_client_secret.clone(),
             },
             facebook: crate::auth::ClientToken {
                 client_id: config.facebook_client_id.clone(),
@@ -135,9 +136,10 @@ async fn main() -> Result<(), anyhow::Error> {
         )
         .layer(axum_login::AuthManagerLayerBuilder::new(backend, session_layer).build())
         .layer(
-            tower_http::cors::CorsLayer::very_permissive(), // .allow_credentials(true)
-                                                            // .allow_methods(tower_http::cors::Any)
-                                                            // .allow_origin(tower_http::cors::Any),
+            tower_http::cors::CorsLayer::very_permissive()
+                .allow_credentials(true)
+                .allow_methods(tower_http::cors::Any)
+                .allow_origin(tower_http::cors::Any),
         )
         .nest_service(
             "/",
@@ -151,24 +153,28 @@ async fn main() -> Result<(), anyhow::Error> {
         .layer(tower_http::compression::CompressionLayer::new())
         .with_state(st);
 
-    let ctrl_c = async {
-        tokio::signal::ctrl_c()
-            .await
-            .expect("failed to install Ctrl+C handler");
-    };
-
-    let terminate = async {
-        tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
-            .expect("failed to install signal handler")
-            .recv()
-            .await;
-    };
-    let deletion_task_abort_handle = deletion_task.abort_handle();
-
     let listener = tokio::net::TcpListener::bind(config.host_addr).await?;
-
+    // セッションの定期削除タスク
+    // tokio::task::spawn を rt=current_thread で使うと single thread で動く
+    let deletion_task = tokio::task::spawn({
+        use tower_sessions::ExpiredDeletion;
+        let oneday = std::time::Duration::from_secs(60 * 60 * 24);
+        session_store.continuously_delete_expired(oneday)
+    });
+    let deletion_task_abort_handle = deletion_task.abort_handle();
     axum::serve(listener, app)
         .with_graceful_shutdown(async move {
+            let ctrl_c = async {
+                tokio::signal::ctrl_c()
+                    .await
+                    .expect("failed to install Ctrl+C handler");
+            };
+            let terminate = async {
+                tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+                    .expect("failed to install signal handler")
+                    .recv()
+                    .await;
+            };
             // これすると sqlite の中のセッションが永続化しないので開発時のみ使う
             tokio::select! {
                 _ = ctrl_c => {

@@ -1,10 +1,10 @@
 pub mod get_me;
 pub mod list_access_logs;
-pub mod list_river_waypoints;
-pub mod list_rivers;
+pub mod list_field_spots;
+pub mod list_fields;
 pub mod list_users;
 // pub mod update_river_waypoint;
-pub mod create_river_waypoint;
+// pub mod create_river_waypoint;
 
 #[derive(
     Debug,
@@ -18,12 +18,12 @@ pub mod create_river_waypoint;
 #[serde(tag = "type")]
 #[serde(rename_all = "PascalCase")]
 pub enum Request {
-    CreateRiverWaypoint(crate::api::create_river_waypoint::Request),
+    // CreateRiverWaypoint(crate::api::create_river_waypoint::Request),
     GetMe(crate::api::get_me::Request),
     ListUsers(crate::api::list_users::Request),
     ListAccessLogs(crate::api::list_access_logs::Request),
-    ListRivers(crate::api::list_rivers::Request),
-    ListRiverWaypoints(crate::api::list_river_waypoints::Request),
+    ListRivers(crate::api::list_fields::Request),
+    ListRiverWaypoints(crate::api::list_field_spots::Request),
     // UpdateRiverWaypoint(crate::api::update_river_waypoint::Request),
 }
 
@@ -39,12 +39,12 @@ pub enum Request {
 #[serde(tag = "type")]
 #[serde(rename_all = "PascalCase")]
 pub enum Response {
-    CreateRiverWaypoint(crate::api::create_river_waypoint::Response),
+    // CreateRiverWaypoint(crate::api::create_river_waypoint::Response),
     GetMe(crate::api::get_me::Response),
     ListUser(crate::api::list_users::Response),
     ListAccessLogs(crate::api::list_access_logs::Response),
-    ListRivers(crate::api::list_rivers::Response),
-    ListRiverWaypoints(crate::api::list_river_waypoints::Response),
+    ListFieild(crate::api::list_fields::Response),
+    ListFieildSpot(crate::api::list_field_spots::Response),
     // UpdateRiverWaypoint(crate::api::update_river_waypoint::Response),
     Error(ErrorKind),
 }

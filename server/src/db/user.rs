@@ -45,6 +45,7 @@ pub fn list_users<'a, 'c>(
 pub enum OAuthProvider {
     Github(i64, String),
     Facebook(i64, String),
+    Twitter(i64, String),
 }
 
 #[tracing::instrument(level = "trace", skip(conn))]
@@ -60,6 +61,9 @@ pub fn create_user<'a, 'c>(
             OAuthProvider::Github(github_id, login) => (github_id.to_string(), login, "github"),
             OAuthProvider::Facebook(facebook_id, name) => {
                 (facebook_id.to_string(), name, "facebook")
+            }
+            OAuthProvider::Twitter(twitter_id, screen_name) => {
+                (twitter_id.to_string(), screen_name, "twitter")
             }
         };
         let identities = sqlx::query_as!(
@@ -140,6 +144,9 @@ pub fn update_user<'a, 'c>(
                 OAuthProvider::Github(github_id, login) => (github_id.to_string(), login, "github"),
                 OAuthProvider::Facebook(facebook_id, name) => {
                     (facebook_id.to_string(), name, "facebook")
+                }
+                OAuthProvider::Twitter(twitter_id, screen_name) => {
+                    (twitter_id.to_string(), screen_name, "twitter")
                 }
             };
             let identities = sqlx::query_as!(
@@ -270,7 +277,7 @@ pub fn check_permission<'a, 'c>(
                 model::api::Request::ListAccessLogs(..) => false,
                 model::api::Request::ListRivers(..) => true,
                 model::api::Request::ListRiverWaypoints(..) => true,
-                model::api::Request::CreateRiverWaypoint(..) => false,
+                // model::api::Request::CreateRiverWaypoint(..) => false,
             };
             return Ok(flag);
         }

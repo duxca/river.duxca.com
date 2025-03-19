@@ -1,5 +1,6 @@
 pub mod facebook;
 pub mod github;
+pub mod twitter;
 
 #[derive(Debug, Clone)]
 pub struct ClientToken {
@@ -20,6 +21,7 @@ pub struct Credentials {
 #[serde(rename_all = "lowercase")]
 pub enum OAuthProvider {
     Github,
+    Twitter,
     Facebook,
 }
 impl std::str::FromStr for OAuthProvider {
@@ -27,6 +29,7 @@ impl std::str::FromStr for OAuthProvider {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "github" => Ok(Self::Github),
+            "twitter" => Ok(Self::Twitter),
             "facebook" => Ok(Self::Facebook),
             _ => Err(anyhow::anyhow!("invalid OAuth provider: {}", s)),
         }
@@ -36,6 +39,7 @@ impl std::fmt::Display for OAuthProvider {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Github => write!(f, "github"),
+            Self::Twitter => write!(f, "twitter"),
             Self::Facebook => write!(f, "facebook"),
         }
     }
@@ -45,28 +49,35 @@ impl std::fmt::Display for OAuthProvider {
 #[error(transparent)]
 pub struct BackendError(#[from] pub anyhow::Error);
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Backend {
     db: sqlx::SqlitePool,
     github: github::Backend,
+    twitter: twitter::Backend,
     facebook: facebook::Backend,
 }
 
 #[derive(Debug, Clone)]
 pub struct BackendSettings {
     pub github: ClientToken,
+    pub twitter: ClientToken,
     pub facebook: ClientToken,
     pub redirect_url: oauth2::RedirectUrl,
 }
 
 impl Backend {
-    #[tracing::instrument(level = "trace", skip(db))]
+    // #[tracing::instrument(level = "trace", skip(db))]
     pub fn new(db: sqlx::SqlitePool, settings: BackendSettings) -> Self {
         Self {
             db: db.clone(),
             github: github::Backend::new(
                 db.clone(),
                 settings.github,
+                settings.redirect_url.clone(),
+            ),
+            twitter: twitter::Backend::new(
+                db.clone(),
+                settings.twitter,
                 settings.redirect_url.clone(),
             ),
             facebook: facebook::Backend::new(
@@ -77,10 +88,11 @@ impl Backend {
         }
     }
 
-    #[tracing::instrument(level = "trace")]
+    // #[tracing::instrument(level = "trace")]
     pub fn authorize_url(&self, provider: OAuthProvider) -> (oauth2::url::Url, oauth2::CsrfToken) {
         match provider {
             OAuthProvider::Github => self.github.authorize_url(),
+            OAuthProvider::Twitter => self.twitter.authorize_url(),
             OAuthProvider::Facebook => self.facebook.authorize_url(),
         }
     }
@@ -92,18 +104,19 @@ impl axum_login::AuthnBackend for Backend {
     type Credentials = Credentials;
     type Error = BackendError;
 
-    #[tracing::instrument(level = "trace")]
+    // #[tracing::instrument(level = "trace")]
     async fn authenticate(
         &self,
         creds: Self::Credentials,
     ) -> Result<Option<Self::User>, Self::Error> {
         match creds.provider {
             OAuthProvider::Github => self.github.authenticate(creds).await,
+            OAuthProvider::Twitter => self.twitter.authenticate(creds).await,
             OAuthProvider::Facebook => self.facebook.authenticate(creds).await,
         }
     }
 
-    #[tracing::instrument(level = "trace")]
+    // #[tracing::instrument(level = "trace")]
     async fn get_user(
         &self,
         user_id: &axum_login::UserId<Self>,

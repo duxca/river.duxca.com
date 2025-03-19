@@ -11,7 +11,7 @@ pub struct Request {
 #[derive(Debug, serde::Deserialize, serde::Serialize, Clone, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Response {
-    pub river_waypoints: Vec<crate::river::RiverWaypoint>,
+    pub river_waypoints: Vec<crate::field::FieldSpot>,
     pub next: i64,
     pub total: i64,
 }

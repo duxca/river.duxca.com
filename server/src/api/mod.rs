@@ -1,8 +1,8 @@
-pub mod create_river_waypoint;
+// pub mod create_river_waypoint;
 pub mod get_me;
 pub mod list_access_logs;
-pub mod list_river_waypoints;
-pub mod list_rivers;
+pub mod list_field_spots;
+pub mod list_fields;
 pub mod list_users;
 
 pub async fn handler(
@@ -29,16 +29,16 @@ pub async fn handler(
             Ok(res.into())
         }
         model::api::Request::ListRivers(req) => {
-            let res = crate::api::list_rivers::list_rivers(&st.db, req).await?;
+            let res = crate::api::list_fields::list_fields(&st.db, req).await?;
             Ok(res.into())
         }
         model::api::Request::ListRiverWaypoints(req) => {
-            let res = crate::api::list_river_waypoints::list_river_waypoints(&st.db, req).await?;
+            let res = crate::api::list_field_spots::list_field_spots(&st.db, req).await?;
             Ok(res.into())
         }
-        model::api::Request::CreateRiverWaypoint(req) => {
-            let res = crate::api::create_river_waypoint::create_river_waypoint(&st.db, req).await?;
-            Ok(res.into())
-        }
+        // model::api::Request::CreateRiverWaypoint(req) => {
+        //     let res = crate::api::create_river_waypoint::create_river_waypoint(&st.db, req).await?;
+        //     Ok(res.into())
+        // }
     }
 }

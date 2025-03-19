@@ -1,5 +1,5 @@
 #!/bin/bash
-set -euxo pipefail
+set -euxvo pipefail
 pushd server
 sqlx database reset -y
 popd

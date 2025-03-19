@@ -7,7 +7,7 @@ pub struct LoginForm {
 }
 
 /// POST /login
-#[tracing::instrument(level = "trace")]
+// #[tracing::instrument(level = "trace")]
 pub async fn login(
     auth_session: axum_login::AuthSession<crate::auth::Backend>,
     session: tower_sessions::Session,
@@ -31,7 +31,7 @@ pub struct AuthzRequestQuery {
 }
 
 /// GET /oauth/callback
-#[tracing::instrument(level = "trace")]
+// #[tracing::instrument(level = "trace")]
 pub async fn callback(
     mut auth_session: axum_login::AuthSession<crate::auth::Backend>,
     session: tower_sessions::Session,
@@ -74,7 +74,7 @@ pub async fn callback(
 }
 
 /// POST /logout
-#[tracing::instrument(level = "trace")]
+// #[tracing::instrument(level = "trace")]
 pub async fn logout(
     mut auth_session: axum_login::AuthSession<crate::auth::Backend>,
     axum::Form(()): axum::Form<()>,

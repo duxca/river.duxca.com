@@ -1,14 +1,15 @@
-const AUTH_URL: &str = "https://github.com/login/oauth/authorize";
-const TOKEN_URL: &str = "https://github.com/login/oauth/access_token";
-const USER_URL: &str = "https://api.github.com/user";
+// https://developer.x.com/ja/docs/authentication/api-reference/authorize
+const AUTH_URL: &str = "https://api.x.com/oauth/authorize";
+const TOKEN_URL: &str = "https://api.x.com/oauth/access_token";
+// https://docs.x.com/x-api/users/lookup/quickstart/authenticated-lookup
+const USER_URL: &str = "https://api.x.com/2/users/me";
 
-// https://docs.github.com/ja/rest/users/users?apiVersion=2022-11-28#get-the-authenticated-user
+
 #[derive(Debug, serde::Deserialize)]
-struct UserInfo {
-    // legokichi
-    login: String,
-    // github unique id
+pub struct UserInfo {
     id: i64,
+    name: String,
+    username: String,
 }
 
 async fn get_me(access_token: &str) -> Result<UserInfo, anyhow::Error> {
@@ -44,9 +45,9 @@ fn login<'a, 'c>(
             crate::db::user::update_user(
                 &mut *db,
                 user.user_id,
-                Some(crate::db::user::OAuthProvider::Github(
+                Some(crate::db::user::OAuthProvider::Twitter(
                     user_info.id,
-                    user_info.login,
+                    user_info.name,
                 )),
             )
             .await
@@ -56,18 +57,17 @@ fn login<'a, 'c>(
             log::info!("signup: {:?}", user_info);
             let user = crate::db::user::create_user(
                 &mut *db,
-                crate::db::user::OAuthProvider::Github(user_info.id, user_info.login),
+                crate::db::user::OAuthProvider::Twitter(user_info.id, user_info.name),
             )
             .await
             .map_err(|o| dbg!(o))?;
             dbg!(&user);
             Ok(Some(user))
         }
-    }
-    .boxed()
+    }.boxed()
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Backend {
     db: sqlx::SqlitePool,
     client_token: super::ClientToken,

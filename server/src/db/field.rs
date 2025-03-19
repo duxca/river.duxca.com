@@ -2,11 +2,11 @@
 #![allow(clippy::manual_async_fn)]
 
 #[tracing::instrument(level = "trace", skip(conn))]
-pub fn list_rivers<'a, 'c>(
+pub fn list_fields<'a, 'c>(
     conn: impl sqlx::Acquire<'c, Database = sqlx::Sqlite> + Send + 'a,
     offset: Option<i64>,
     limit: Option<i64>,
-) -> impl std::future::Future<Output = Result<(Vec<model::river::River>, i64, i64), anyhow::Error>>
+) -> impl std::future::Future<Output = Result<(Vec<model::field::Field>, i64, i64), anyhow::Error>>
        + Send
        + 'a {
     async move {
@@ -14,13 +14,17 @@ pub fn list_rivers<'a, 'c>(
         let limit = limit.unwrap_or(20);
         let offset = offset.unwrap_or(0);
         let rows = sqlx::query_as!(
-            model::river::River,
+            model::field::Field,
             r#"
             SELECT
-                river_id,
-                name
-            FROM rivers
-            ORDER BY river_id ASC
+                field_id,
+                field_name,
+                description,
+                route,
+                created_at,
+                updated_at
+            FROM fields
+            ORDER BY field_id ASC
             LIMIT ?1
             OFFSET ?2
             "#,
@@ -34,7 +38,7 @@ pub fn list_rivers<'a, 'c>(
             r#"
             SELECT
                 COUNT(*) AS total
-            FROM rivers
+            FROM fields
             "#
         )
         .fetch_one(&mut *conn)
@@ -43,23 +47,27 @@ pub fn list_rivers<'a, 'c>(
     }
 }
 
-pub fn serach_river<'a, 'c>(
+pub fn search_field<'a, 'c>(
     conn: impl sqlx::Acquire<'c, Database = sqlx::Sqlite> + Send + 'a,
-    river_name: String,
-) -> impl std::future::Future<Output = Result<Option<model::river::River>, anyhow::Error>> + Send + 'a
+    field_name: String,
+) -> impl std::future::Future<Output = Result<Option<model::field::Field>, anyhow::Error>> + Send + 'a
 {
     async move {
         let mut conn = conn.acquire().await?;
         let row = sqlx::query_as!(
-            model::river::River,
+            model::field::Field,
             r#"
             SELECT
-                river_id,
-                name
-            FROM rivers
-            WHERE name LIKE ?1
+                field_id,
+                field_name,
+                description,
+                route,
+                created_at,
+                updated_at
+            FROM fields
+            WHERE field_name LIKE ?1
             "#,
-            river_name,
+            field_name,
         )
         .fetch_optional(&mut *conn)
         .await?;
@@ -68,13 +76,13 @@ pub fn serach_river<'a, 'c>(
 }
 
 #[tracing::instrument(level = "trace", skip(conn))]
-pub fn list_river_waypoints<'a, 'c>(
+pub fn list_field_spots<'a, 'c>(
     conn: impl sqlx::Acquire<'c, Database = sqlx::Sqlite> + Send + 'a,
-    river_id: i64,
+    field_id: i64,
     offset: Option<i64>,
     limit: Option<i64>,
 ) -> impl std::future::Future<
-    Output = Result<(Vec<model::river::RiverWaypoint>, i64, i64), anyhow::Error>,
+    Output = Result<(Vec<model::field::FieldSpot>, i64, i64), anyhow::Error>,
 > + Send
        + 'a {
     async move {
@@ -82,20 +90,24 @@ pub fn list_river_waypoints<'a, 'c>(
         let limit = limit.unwrap_or(20);
         let offset = offset.unwrap_or(0);
         let rows = sqlx::query_as!(
-            model::river::RiverWaypoint,
+            model::field::FieldSpot,
             r#"
             SELECT
-                river_id,
-                river_waypoint_id,
-                name,
+                field_spot_id,
+                field_id,
+                spot_name,
+                spot_type,
+                description,
                 latitude,
-                longitude
-            FROM river_waypoints
-            WHERE river_id = ?1
-            ORDER BY river_waypoint_id ASC
+                longitude,
+                created_at,
+                updated_at
+            FROM field_spots
+            WHERE field_id = ?1
+            ORDER BY field_spot_id ASC
             LIMIT ?2
             OFFSET ?3"#,
-            river_id,
+            field_id,
             limit,
             offset
         )
@@ -106,10 +118,10 @@ pub fn list_river_waypoints<'a, 'c>(
             r#"
             SELECT
                 COUNT(*) AS total
-            FROM river_waypoints
-            WHERE river_id = ?1
+            FROM field_spots
+            WHERE field_id = ?1
             "#,
-            river_id
+            field_id
         )
         .fetch_one(&mut *conn)
         .await?;
@@ -118,10 +130,10 @@ pub fn list_river_waypoints<'a, 'c>(
 }
 
 #[tracing::instrument(level = "trace", skip(conn))]
-pub fn create_river_waypoint<'a, 'c>(
+pub fn create_field_spot<'a, 'c>(
     conn: impl sqlx::Acquire<'c, Database = sqlx::Sqlite> + Send + 'a,
-    river_id: i64,
-    name: String,
+    field_id: i64,
+    spot_name: String,
     longitude: f64,
     latitude: f64,
 ) -> impl std::future::Future<Output = Result<i64, anyhow::Error>> + Send + 'a {
@@ -129,27 +141,27 @@ pub fn create_river_waypoint<'a, 'c>(
         let mut conn = conn.acquire().await?;
         let row = sqlx::query!(
             r#"
-            INSERT INTO river_waypoints (river_id, name, longitude, latitude)
+            INSERT INTO field_spots (field_id, spot_name, longitude, latitude)
             VALUES (?1, ?2, ?3, ?4)
-            RETURNING river_waypoint_id;
+            RETURNING field_spot_id;
             "#,
-            river_id,
-            name,
+            field_id,
+            spot_name,
             longitude,
             latitude
         )
         .fetch_one(&mut *conn)
         .await?;
-        let river_waypoint_id = row.river_waypoint_id;
-        Ok(river_waypoint_id)
+        let field_spot_id = row.field_spot_id;
+        Ok(field_spot_id)
     }
 }
 
 #[tracing::instrument(level = "trace", skip(conn))]
-pub fn upsert_river_waypoint<'a, 'c>(
+pub fn upsert_field_spot<'a, 'c>(
     conn: impl sqlx::Acquire<'c, Database = sqlx::Sqlite> + Send + 'a,
-    river_name: String,
-    point_name: String,
+    field_name: String,
+    spot_name: String,
     // 経度
     latitude: f64,
     // 緯度
@@ -157,33 +169,31 @@ pub fn upsert_river_waypoint<'a, 'c>(
 ) -> impl std::future::Future<Output = Result<(), anyhow::Error>> + Send + 'a {
     async move {
         let mut conn = conn.acquire().await?;
-        let river_id = {
-            // if let Some(river) = serach_river(&mut *conn, river_name.clone()).await? {
-            //     river.river_id
-            // } else {
+        let field_id = {
+            // upserting
             let row = sqlx::query!(
                 r#"
-                INSERT INTO rivers (name)
+                INSERT INTO fields (field_name)
                 VALUES (?1)
-                ON CONFLICT (name)
-                DO UPDATE SET name = (?1)
-                RETURNING river_id;
+                ON CONFLICT (field_name)
+                DO UPDATE SET field_name = (?1)
+                RETURNING field_id;
                 "#,
-                river_name
+                field_name
             )
             .fetch_one(&mut *conn)
             .await?;
-            row.river_id
+            row.field_id
         };
         sqlx::query!(
             r#"
-            INSERT INTO river_waypoints (river_id, name, longitude, latitude)
+            INSERT INTO field_spots (field_id, spot_name, longitude, latitude)
             VALUES (?1, ?2, ?3, ?4)
-            ON CONFLICT (river_id, name, description, latitude, longitude)
+            ON CONFLICT (field_id, spot_name, latitude, longitude)
             DO NOTHING;
             "#,
-            river_id,
-            point_name,
+            field_id,
+            spot_name,
             longitude,
             latitude,
         )
