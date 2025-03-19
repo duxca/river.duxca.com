@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM rust:1.80.1-bookworm AS builder
+FROM rust:1.85.1-bookworm AS builder
 
 WORKDIR /app
 
@@ -71,7 +71,7 @@ COPY --from=builder /app/server/key.json /app/key.json
 COPY --from=builder /app/server/litestream.yml /app/litestream.yml
 COPY --from=builder /app/server/cli/run.bash /app/run.bash
 COPY --from=builder /app/server/.env /app/.env
-COPY --from=builder /app/server/rivers.csv /app/rivers.csv
+#COPY --from=builder /app/server/rivers.csv /app/rivers.csv
 COPY --from=builder /app/target/release/server /app/server
 COPY --from=builder /app/browser/dist /app/dist
 

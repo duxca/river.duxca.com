@@ -54,25 +54,25 @@ async fn main() -> Result<(), anyhow::Error> {
     // セッションテーブルの作成
     session_store.migrate().await?;
 
-    let mut rdr = csv::ReaderBuilder::new()
-        .delimiter(b',')
-        .quote(b'"')
-        .has_headers(false)
-        .trim(csv::Trim::All)
-        .from_path("./rivers.csv")?;
-    for result in rdr.deserialize::<model::field::FieldSpotCsv>() {
-        let spot = result?;
-        let mut conn = pool.acquire().await?;
-        println!("{:?}", spot);
-        crate::db::field::upsert_field_spot(
-            &mut *conn,
-            spot.field_name,
-            spot.spot_name,
-            spot.longitude,
-            spot.latitude,
-        )
-        .await?;
-    }
+    //let mut rdr = csv::ReaderBuilder::new()
+    //    .delimiter(b',')
+    //    .quote(b'"')
+    //    .has_headers(false)
+    //    .trim(csv::Trim::All)
+    //    .from_path("./rivers.csv")?;
+    //for result in rdr.deserialize::<model::field::FieldSpotCsv>() {
+    //    let spot = result?;
+    //    let mut conn = pool.acquire().await?;
+    //    println!("{:?}", spot);
+    //    crate::db::field::upsert_field_spot(
+    //        &mut *conn,
+    //        spot.field_name,
+    //        spot.spot_name,
+    //        spot.longitude,
+    //        spot.latitude,
+    //    )
+    //    .await?;
+    //}
 
     // cookie のセッションの設定
     let mut session_layer = tower_sessions::SessionManagerLayer::new(session_store.clone())

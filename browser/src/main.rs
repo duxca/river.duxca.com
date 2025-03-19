@@ -180,16 +180,15 @@ fn app() -> Html {
                 async move {
                     let mut list = vec![];
                     for river in &**rivers {
-                        let mut res =
-                            crate::api::call::<model::api::list_field_spots::Response>(
-                                model::api::list_field_spots::Request {
-                                    offset: None,
-                                    limit: Some(10000),
-                                    river_id: river.river_id,
-                                },
-                            )
-                            .await
-                            .unwrap();
+                        let mut res = crate::api::call::<model::api::list_field_spots::Response>(
+                            model::api::list_field_spots::Request {
+                                offset: None,
+                                limit: Some(10000),
+                                river_id: river.field_id,
+                            },
+                        )
+                        .await
+                        .unwrap();
                         list.append(&mut res.river_waypoints);
                     }
                     river_waypoints.set(list);
@@ -244,7 +243,9 @@ fn app() -> Html {
                     // opt.set_icon(my_icon);
                     // leaflet::Marker::new_with_options(
                     let p = leaflet::Popup::new(&leaflet::PopupOptions::default(), None);
-                    p.set_content(&JsValue::from_serde(&serde_json::json!(waypoint.name)).unwrap());
+                    p.set_content(
+                        &JsValue::from_serde(&serde_json::json!(waypoint.spot_name)).unwrap(),
+                    );
                     leaflet::Marker::new(&leaflet::LatLng::new(
                         waypoint.latitude,
                         waypoint.longitude,
@@ -323,7 +324,7 @@ fn app() -> Html {
                                         {
                                             rivers.iter().map(|river|{
                                                 html!{
-                                                    <option value={river.river_id.to_string()}>{&river.name}</option>
+                                                    <option value={river.field_id.to_string()}>{&river.field_name}</option>
                                                 }
                                             }).collect::<Html>()
                                         }
@@ -362,6 +363,10 @@ fn app() -> Html {
                 <form method="post" action="/login">
                     <input type="submit" value="Facebook Login" />
                     <input type="hidden" name="provider" value="facebook" />
+                </form>
+                <form method="post" action="/login">
+                    <input type="submit" value="twitter Login" />
+                    <input type="hidden" name="provider" value="twitter" />
                 </form>
             }
         </>
