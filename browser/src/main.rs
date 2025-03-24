@@ -356,15 +356,15 @@ fn app() -> Html {
                     }
                 </div>
             }else{
-                <form method="post" action="/login">
+                <form method="post" action="/login/github">
                     <input type="submit" value="GitHub Login" />
                     <input type="hidden" name="provider" value="github" />
                 </form>
-                <form method="post" action="/login">
+                <form method="post" action="/login/facebook">
                     <input type="submit" value="Facebook Login" />
                     <input type="hidden" name="provider" value="facebook" />
                 </form>
-                <form method="post" action="/login">
+                <form method="post" action="/login/twitter">
                     <input type="submit" value="twitter Login" />
                     <input type="hidden" name="provider" value="twitter" />
                 </form>

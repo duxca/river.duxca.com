@@ -41,7 +41,7 @@ RUN \
   cargo fetch --locked
 
 RUN \
-  # --mount=type=cache,target=./target \
+  #--mount=type=cache,target=./target \
   --mount=type=cache,target=/var/cache/cargo \
   --mount=type=cache,target=/var/cache/sccache \
   cd browser && /var/cache/cargo/bin/trunk build --release --public-url ./
@@ -49,7 +49,7 @@ RUN \
 # RUN cargo sqlx migrate run
 
 RUN \
-  # --mount=type=cache,target=./target \
+  #--mount=type=cache,target=./target \
   --mount=type=cache,target=/var/cache/cargo \
   --mount=type=cache,target=/var/cache/sccache \
   cargo build --offline --release -p server

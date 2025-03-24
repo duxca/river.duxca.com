@@ -1,5 +1,4 @@
 mod api;
-mod auth;
 mod db;
 mod web;
 
@@ -13,10 +12,10 @@ struct Config {
     facebook_client_secret: oauth2::ClientSecret,
     twitter_client_id: oauth2::ClientId,
     twitter_client_secret: oauth2::ClientSecret,
-    redirect_url: oauth2::RedirectUrl,
+    base_url: String,
     local_client_id: oauth2::ClientId,
     local_client_secret: oauth2::ClientSecret,
-    local_redirect_url: oauth2::RedirectUrl,
+    local_base_url: String,
     local_dist_path: String,
 }
 
@@ -24,7 +23,7 @@ struct Config {
 async fn main() -> Result<(), anyhow::Error> {
     shadow_rs::shadow!(build);
     dotenvy::dotenv().ok();
-    //env_logger::init();
+    // env_logger::init();
     tracing_subscriber::fmt()
         .with_timer(tracing_subscriber::fmt::time::LocalTime::rfc_3339())
         .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
@@ -35,17 +34,22 @@ async fn main() -> Result<(), anyhow::Error> {
         .init();
     let config = envy::from_env::<Config>()?;
     log::debug!("config: {:#?}", config);
-    use std::str::FromStr;
-    let opt = sqlx::sqlite::SqliteConnectOptions::from_str(&config.database_url)?
-        .foreign_keys(true)
-        // https://litestream.io/tips/#disable-autocheckpoints-for-high-write-load-servers
-        .pragma("wal_autocheckpoint", "0")
-        .journal_mode(sqlx::sqlite::SqliteJournalMode::Wal)
-        // https://litestream.io/tips/#busy-timeout
-        .busy_timeout(std::time::Duration::from_secs(5))
-        // https://litestream.io/tips/#synchronous-pragma
-        .synchronous(sqlx::sqlite::SqliteSynchronous::Normal);
-    let pool = sqlx::sqlite::SqlitePool::connect_with(opt).await?;
+
+    // NOTE: litestream 用の option
+    let pool = sqlx::sqlite::SqlitePool::connect_with({
+        use std::str::FromStr;
+        let opt = sqlx::sqlite::SqliteConnectOptions::from_str(&config.database_url)?
+            .foreign_keys(true)
+            // https://litestream.io/tips/#disable-autocheckpoints-for-high-write-load-servers
+            .pragma("wal_autocheckpoint", "0")
+            .journal_mode(sqlx::sqlite::SqliteJournalMode::Wal)
+            // https://litestream.io/tips/#busy-timeout
+            .busy_timeout(std::time::Duration::from_secs(5))
+            // https://litestream.io/tips/#synchronous-pragma
+            .synchronous(sqlx::sqlite::SqliteSynchronous::Normal);
+        opt
+    })
+    .await?;
 
     // ここで remote db に対して migrate する
     sqlx::migrate!().run(&pool).await?;
@@ -59,7 +63,7 @@ async fn main() -> Result<(), anyhow::Error> {
     //    .quote(b'"')
     //    .has_headers(false)
     //    .trim(csv::Trim::All)
-    //    .from_path("./rivers.csv")?;
+    //    .from_path("./field_spot.csv")?;
     //for result in rdr.deserialize::<model::field::FieldSpotCsv>() {
     //    let spot = result?;
     //    let mut conn = pool.acquire().await?;
@@ -76,50 +80,38 @@ async fn main() -> Result<(), anyhow::Error> {
 
     // cookie のセッションの設定
     let mut session_layer = tower_sessions::SessionManagerLayer::new(session_store.clone())
-        // oauth でリダイレクトするときにStrict だとエラーになる
-        //.with_same_site(tower_sessions::cookie::SameSite::Lax)
-        .with_same_site(tower_sessions::cookie::SameSite::Strict)
+        // NOTE:oauth でリダイレクトするときに　SameSite::Strict だとエラーになる
+        .with_same_site(tower_sessions::cookie::SameSite::Lax)
         .with_expiry(tower_sessions::Expiry::OnInactivity(
-            std::time::Duration::from_secs(600).try_into()?,
+            // 24h
+            std::time::Duration::from_secs(7 * 24 * 60 * 60).try_into()?,
         ));
     if cfg!(not(feature = "local")) {
         // 本番環境で有効にする
         session_layer = session_layer.with_secure(true).with_http_only(true);
     }
-    let tokens = if cfg!(feature = "local") {
-        crate::auth::BackendSettings {
-            github: crate::auth::ClientToken {
-                client_id: config.local_client_id.clone(),
-                client_secret: config.local_client_secret.clone(),
-            },
-            twitter: crate::auth::ClientToken {
-                client_id: config.twitter_client_id.clone(),
-                client_secret: config.twitter_client_secret.clone(),
-            },
-            facebook: crate::auth::ClientToken {
-                client_id: config.facebook_client_id.clone(),
-                client_secret: config.facebook_client_secret.clone(),
-            },
-            redirect_url: config.local_redirect_url,
+    let backend_settings = if cfg!(feature = "local") {
+        crate::web::login::BackendSettings {
+            facebook_client_id: config.facebook_client_id.clone(),
+            facebook_client_secret: config.facebook_client_secret.clone(),
+            twitter_client_id: config.twitter_client_id.clone(),
+            twitter_client_secret: config.twitter_client_secret.clone(),
+            github_client_id: config.local_client_id.clone(),
+            github_client_secret: config.local_client_secret.clone(),
+            base_url: config.local_base_url.clone(),
         }
     } else {
-        crate::auth::BackendSettings {
-            github: crate::auth::ClientToken {
-                client_id: config.github_client_id.clone(),
-                client_secret: config.github_client_secret.clone(),
-            },
-            twitter: crate::auth::ClientToken {
-                client_id: config.twitter_client_id.clone(),
-                client_secret: config.twitter_client_secret.clone(),
-            },
-            facebook: crate::auth::ClientToken {
-                client_id: config.facebook_client_id.clone(),
-                client_secret: config.facebook_client_secret.clone(),
-            },
-            redirect_url: config.redirect_url,
+        crate::web::login::BackendSettings {
+            facebook_client_id: config.facebook_client_id.clone(),
+            facebook_client_secret: config.facebook_client_secret.clone(),
+            twitter_client_id: config.twitter_client_id.clone(),
+            twitter_client_secret: config.twitter_client_secret.clone(),
+            github_client_id: config.github_client_id.clone(),
+            github_client_secret: config.github_client_secret.clone(),
+            base_url: config.base_url.clone(),
         }
     };
-    let backend = crate::auth::Backend::new(pool.clone(), tokens);
+    let backend = crate::web::login::Backend::new(pool.clone(), backend_settings);
     // 一般のリクエストで DB にアクセスするための State
     let st = crate::web::State::from_pool(pool)?;
     let app = axum::Router::new()
@@ -128,38 +120,48 @@ async fn main() -> Result<(), anyhow::Error> {
             axum::routing::get(|| async { build::CLAP_LONG_VERSION }),
         )
         .route("/api", axum::routing::post(crate::web::api::api))
-        .route("/login", axum::routing::post(crate::web::login::login))
-        .route("/logout", axum::routing::post(crate::web::login::logout))
         .route(
-            "/oauth/callback",
-            axum::routing::get(crate::web::login::callback),
+            "/login/github",
+            axum::routing::post(crate::web::login::github::login),
         )
+        .route(
+            "/oauth/callback/github",
+            axum::routing::get(crate::web::login::github::callback),
+        )
+        .route(
+            "/login/twitter",
+            axum::routing::post(crate::web::login::twitter::login),
+        )
+        .route(
+            "/oauth/callback/twitter",
+            axum::routing::get(crate::web::login::twitter::callback),
+        )
+        .route(
+            "/login/facebook",
+            axum::routing::post(crate::web::login::facebook::login),
+        )
+        .route(
+            "/oauth/callback/facebook",
+            axum::routing::get(crate::web::login::facebook::callback),
+        )
+        .route("/logout", axum::routing::post(crate::web::login::logout))
         .layer(axum_login::AuthManagerLayerBuilder::new(backend, session_layer).build())
-        .layer(
-            tower_http::cors::CorsLayer::very_permissive()
-                .allow_credentials(true)
-                .allow_methods(tower_http::cors::Any)
-                .allow_origin(tower_http::cors::Any),
-        )
-        .nest_service(
-            "/",
-            if cfg!(feature = "local") {
-                tower_http::services::ServeDir::new(config.local_dist_path)
-            } else {
-                tower_http::services::ServeDir::new("dist")
-            },
-        )
+        .layer(tower_http::cors::CorsLayer::very_permissive())
+        .fallback_service(if cfg!(feature = "local") {
+            tower_http::services::ServeDir::new(config.local_dist_path)
+        } else {
+            tower_http::services::ServeDir::new("dist")
+        })
         .layer(tower_http::trace::TraceLayer::new_for_http())
         .layer(tower_http::compression::CompressionLayer::new())
         .with_state(st);
 
     let listener = tokio::net::TcpListener::bind(config.host_addr).await?;
     // セッションの定期削除タスク
-    // tokio::task::spawn を rt=current_thread で使うと single thread で動く
+    // NOTE: tokio::task::spawn を rt=current_thread で使うと single thread で動く
     let deletion_task = tokio::task::spawn({
-        use tower_sessions::ExpiredDeletion;
         let oneday = std::time::Duration::from_secs(60 * 60 * 24);
-        session_store.continuously_delete_expired(oneday)
+        tower_sessions_core::ExpiredDeletion::continuously_delete_expired(session_store, oneday)
     });
     let deletion_task_abort_handle = deletion_task.abort_handle();
     axum::serve(listener, app)
