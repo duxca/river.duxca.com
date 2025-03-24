@@ -1,5 +1,3 @@
-use anyhow::Context;
-
 const AUTH_URL: &str = "https://www.facebook.com/v20.0/dialog/oauth";
 const TOKEN_URL: &str = "https://graph.facebook.com/v20.0/oauth/access_token";
 const USER_URL: &str = "https://graph.facebook.com/v20.0/me";
@@ -17,8 +15,8 @@ pub async fn login(
     session: tower_sessions::Session,
     axum::Form(LoginForm {}): axum::Form<LoginForm>,
 ) -> Result<impl axum::response::IntoResponse, crate::web::Ise> {
-    use axum::response::IntoResponse;
     use anyhow::Context;
+    use axum::response::IntoResponse;
     let auth_url = oauth2::AuthUrl::new(AUTH_URL.to_string()).unwrap();
     let token_url = oauth2::TokenUrl::new(TOKEN_URL.to_string()).unwrap();
     let client_id = auth_session.backend.settings.facebook_client_id.clone();
@@ -68,6 +66,7 @@ pub async fn callback(
         state: incomming_state,
     }): axum::extract::Query<AuthzRequestQuery>,
 ) -> Result<impl axum::response::IntoResponse, crate::web::Ise> {
+    use anyhow::Context;
     use axum::response::IntoResponse;
     // セッションがない場合はエラー
     let Some(saved_state) = session
@@ -109,6 +108,7 @@ pub async fn get_access_token(
     auth_code: oauth2::AuthorizationCode,
     base_url: &str,
 ) -> Result<oauth2::AccessToken, anyhow::Error> {
+    use anyhow::Context;
     let auth_url = oauth2::AuthUrl::new(AUTH_URL.to_string()).unwrap();
     let token_url = oauth2::TokenUrl::new(TOKEN_URL.to_string()).unwrap();
     let redirect_url = oauth2::RedirectUrl::new(format!("{}{}", base_url, REDIRECT_PATH)).unwrap();
@@ -139,6 +139,7 @@ pub struct UserInfo {
 
 #[tracing::instrument(level = "trace")]
 pub async fn get_me(access_token: &oauth2::AccessToken) -> Result<UserInfo, anyhow::Error> {
+    use anyhow::Context;
     let access_token = access_token.secret().as_str();
     let res = reqwest::Client::new()
         .get(format!(
@@ -152,7 +153,10 @@ pub async fn get_me(access_token: &oauth2::AccessToken) -> Result<UserInfo, anyh
         .send()
         .await
         .context("Failed to send request to Facebook API")?;
-    let user_info = res.text().await.context("Failed to read Facebook API response")?;
+    let user_info = res
+        .text()
+        .await
+        .context("Failed to read Facebook API response")?;
     log::debug!("{}", user_info);
     let user_info = serde_json::from_str::<UserInfo>(&user_info)
         .context("Failed to parse Facebook user info JSON")?;
@@ -166,11 +170,16 @@ pub fn login_db<'a, 'c>(
     user_info: UserInfo,
 ) -> impl std::future::Future<Output = Result<Option<model::user::User>, anyhow::Error>> + Send + 'a
 {
+    use anyhow::Context;
     use futures::FutureExt;
     async move {
-        let facebook_id = user_info.id.parse::<i64>()
+        let facebook_id = user_info
+            .id
+            .parse::<i64>()
             .context("Failed to parse Facebook ID as i64")?;
-        let mut db = conn.acquire().await
+        let mut db = conn
+            .acquire()
+            .await
             .context("Failed to acquire database connection")?;
         if let Some(user) = session_user {
             log::info!("update account: {:?}", user_info);

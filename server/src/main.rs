@@ -38,7 +38,7 @@ async fn main() -> Result<(), anyhow::Error> {
     // NOTE: litestream 用の option
     let pool = sqlx::sqlite::SqlitePool::connect_with({
         use std::str::FromStr;
-        let opt = sqlx::sqlite::SqliteConnectOptions::from_str(&config.database_url)?
+        sqlx::sqlite::SqliteConnectOptions::from_str(&config.database_url)?
             .foreign_keys(true)
             // https://litestream.io/tips/#disable-autocheckpoints-for-high-write-load-servers
             .pragma("wal_autocheckpoint", "0")
@@ -46,8 +46,7 @@ async fn main() -> Result<(), anyhow::Error> {
             // https://litestream.io/tips/#busy-timeout
             .busy_timeout(std::time::Duration::from_secs(5))
             // https://litestream.io/tips/#synchronous-pragma
-            .synchronous(sqlx::sqlite::SqliteSynchronous::Normal);
-        opt
+            .synchronous(sqlx::sqlite::SqliteSynchronous::Normal)
     })
     .await?;
 
@@ -112,8 +111,6 @@ async fn main() -> Result<(), anyhow::Error> {
         }
     };
     let backend = crate::web::login::Backend::new(pool.clone(), backend_settings);
-    // 一般のリクエストで DB にアクセスするための State
-    let st = crate::web::State::from_pool(pool)?;
     let app = axum::Router::new()
         .route(
             "/version",
@@ -154,7 +151,10 @@ async fn main() -> Result<(), anyhow::Error> {
         })
         .layer(tower_http::trace::TraceLayer::new_for_http())
         .layer(tower_http::compression::CompressionLayer::new())
-        .with_state(st);
+        .with_state({
+            // 一般のリクエストで DB にアクセスするための State
+            crate::web::State::from_pool(pool)?
+        });
 
     let listener = tokio::net::TcpListener::bind(config.host_addr).await?;
     // セッションの定期削除タスク

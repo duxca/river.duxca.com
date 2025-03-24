@@ -1,5 +1,3 @@
-use anyhow::Context;
-
 // https://docs.x.com/resources/fundamentals/authentication/oauth-2-0/user-access-token
 const AUTH_URL: &str = "https://x.com/i/oauth2/authorize";
 const TOKEN_URL: &str = "https://api.x.com/2/oauth2/token";
@@ -21,6 +19,7 @@ pub async fn login(
     session: tower_sessions::Session,
     axum::Form(LoginForm {}): axum::Form<LoginForm>,
 ) -> Result<impl axum::response::IntoResponse, crate::web::Ise> {
+    use anyhow::Context;
     use axum::response::IntoResponse;
     let auth_url = oauth2::AuthUrl::new(AUTH_URL.to_string()).unwrap();
     let token_url = oauth2::TokenUrl::new(TOKEN_URL.to_string()).unwrap();
@@ -42,7 +41,10 @@ pub async fn login(
         .add_scope(oauth2::Scope::new("users.read".to_string()))
         .set_pkce_challenge(pkce_code.clone())
         .url();
-    session.insert(CSRF_STATE_KEY, csrf_state.secret()).await.context("CSRFトークンの保存に失敗")?;
+    session
+        .insert(CSRF_STATE_KEY, csrf_state.secret())
+        .await
+        .context("CSRFトークンの保存に失敗")?;
     session
         .insert(PKCE_CODE_VERIFIER, pkce_verifier.secret())
         .await
@@ -92,6 +94,7 @@ pub async fn callback(
         state: incomming_state,
     }): axum::extract::Query<AuthzRequestQuery>,
 ) -> Result<impl axum::response::IntoResponse, crate::web::Ise> {
+    use anyhow::Context;
     use axum::response::IntoResponse;
     // セッションがない場合はエラー
     let Some(saved_state) = session.get::<oauth2::CsrfToken>(CSRF_STATE_KEY).await? else {
@@ -120,14 +123,21 @@ pub async fn callback(
         // ログイン済みかどうか
         user: auth_session.user.clone(),
     });
-    let Some(user) = auth_session.authenticate(creds).await.context("認証処理に失敗")? else {
+    let Some(user) = auth_session
+        .authenticate(creds)
+        .await
+        .context("認証処理に失敗")?
+    else {
         return Ok((
             axum::http::StatusCode::UNAUTHORIZED,
             "authentication failed",
         )
             .into_response());
     };
-    auth_session.login(&user).await.context("セッションへのユーザーログインに失敗")?;
+    auth_session
+        .login(&user)
+        .await
+        .context("セッションへのユーザーログインに失敗")?;
     Ok(axum::response::Redirect::to("/").into_response())
 }
 
@@ -139,6 +149,7 @@ pub async fn get_access_token(
     pkce_verifier: oauth2::PkceCodeVerifier,
     base_url: &str,
 ) -> Result<oauth2::AccessToken, anyhow::Error> {
+    use anyhow::Context;
     let auth_url = oauth2::AuthUrl::new(AUTH_URL.to_string()).unwrap();
     let token_url = oauth2::TokenUrl::new(TOKEN_URL.to_string()).unwrap();
     let redirect_url = oauth2::RedirectUrl::new(format!("{}{}", base_url, REDIRECT_PATH)).unwrap();
@@ -167,6 +178,7 @@ pub struct UserInfo {
 
 #[tracing::instrument(level = "trace")]
 pub async fn get_me(access_token: &oauth2::AccessToken) -> Result<UserInfo, anyhow::Error> {
+    use anyhow::Context;
     let res = reqwest::Client::new()
         .get(USER_URL)
         .header(
@@ -177,9 +189,13 @@ pub async fn get_me(access_token: &oauth2::AccessToken) -> Result<UserInfo, anyh
         .send()
         .await
         .context("Twitterユーザー情報の取得リクエストに失敗")?;
-    let user_info = res.text().await.context("Twitterユーザー情報のレスポンス取得に失敗")?;
+    let user_info = res
+        .text()
+        .await
+        .context("Twitterユーザー情報のレスポンス取得に失敗")?;
     log::debug!("{}", user_info);
-    let user_info = serde_json::from_str::<UserInfo>(&user_info).context("Twitterユーザー情報のJSONパースに失敗")?;
+    let user_info = serde_json::from_str::<UserInfo>(&user_info)
+        .context("Twitterユーザー情報のJSONパースに失敗")?;
     Ok(user_info)
 }
 
@@ -190,9 +206,13 @@ pub fn login_db<'a, 'c>(
     user_info: UserInfo,
 ) -> impl std::future::Future<Output = Result<Option<model::user::User>, anyhow::Error>> + Send + 'a
 {
+    use anyhow::Context;
     use futures::FutureExt;
     async move {
-        let mut db = conn.acquire().await.context("データベース接続の取得に失敗")?;
+        let mut db = conn
+            .acquire()
+            .await
+            .context("データベース接続の取得に失敗")?;
         if let Some(user) = session_user {
             crate::db::user::update_user(
                 &mut *db,

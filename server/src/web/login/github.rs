@@ -15,6 +15,7 @@ pub async fn login(
     session: tower_sessions::Session,
     axum::Form(LoginForm {}): axum::Form<LoginForm>,
 ) -> Result<impl axum::response::IntoResponse, crate::web::Ise> {
+    use anyhow::Context;
     use axum::response::IntoResponse;
     let auth_url = oauth2::AuthUrl::new(AUTH_URL.to_string()).unwrap();
     let token_url = oauth2::TokenUrl::new(TOKEN_URL.to_string()).unwrap();
@@ -31,8 +32,14 @@ pub async fn login(
         .set_token_uri(token_url)
         .set_redirect_uri(redirect_url);
     let (auth_url, csrf_state) = client.authorize_url(oauth2::CsrfToken::new_random).url();
-    session.insert(CSRF_STATE_KEY, csrf_state.secret()).await?;
-    session.save().await?;
+    session
+        .insert(CSRF_STATE_KEY, csrf_state.secret())
+        .await
+        .context("Failed to insert CSRF state into session")?;
+    session
+        .save()
+        .await
+        .context("Failed to save session after CSRF state insertion")?;
     Ok(axum::response::Redirect::to(auth_url.as_str()).into_response())
 }
 
@@ -59,9 +66,14 @@ pub async fn callback(
         state: incomming_state,
     }): axum::extract::Query<AuthzRequestQuery>,
 ) -> Result<impl axum::response::IntoResponse, crate::web::Ise> {
+    use anyhow::Context;
     use axum::response::IntoResponse;
     // セッションがない場合はエラー
-    let Some(saved_state) = session.get::<oauth2::CsrfToken>(CSRF_STATE_KEY).await? else {
+    let Some(saved_state) = session
+        .get::<oauth2::CsrfToken>(CSRF_STATE_KEY)
+        .await
+        .context("Failed to retrieve CSRF state from session")?
+    else {
         log::error!("cannot find csrf state");
         return Ok((axum::http::StatusCode::BAD_REQUEST, "session expired").into_response());
     };
@@ -78,14 +90,21 @@ pub async fn callback(
         // ログイン済みかどうか
         user: auth_session.user.clone(),
     });
-    let Some(user) = auth_session.authenticate(creds).await? else {
+    let Some(user) = auth_session
+        .authenticate(creds)
+        .await
+        .context("Failed to authenticate user with GitHub credentials")?
+    else {
         return Ok((
             axum::http::StatusCode::UNAUTHORIZED,
             "authentication failed",
         )
             .into_response());
     };
-    auth_session.login(&user).await?;
+    auth_session
+        .login(&user)
+        .await
+        .context("Failed to login user after successful authentication")?;
     Ok(axum::response::Redirect::to("/").into_response())
 }
 
@@ -96,6 +115,7 @@ pub async fn get_access_token(
     auth_code: oauth2::AuthorizationCode,
     base_url: &str,
 ) -> Result<oauth2::AccessToken, anyhow::Error> {
+    use anyhow::Context;
     let auth_url = oauth2::AuthUrl::new(AUTH_URL.to_string()).unwrap();
     let token_url = oauth2::TokenUrl::new(TOKEN_URL.to_string()).unwrap();
     let redirect_url = oauth2::RedirectUrl::new(format!("{}{}", base_url, REDIRECT_PATH)).unwrap();
@@ -108,7 +128,8 @@ pub async fn get_access_token(
     let token_res = client
         .exchange_code(auth_code)
         .request_async(&reqwest::Client::new())
-        .await?;
+        .await
+        .context("Failed to exchange authorization code for access token")?;
     use oauth2::TokenResponse;
     let access_token = token_res.access_token().clone();
     Ok(access_token)
@@ -125,6 +146,7 @@ pub struct UserInfo {
 
 #[tracing::instrument(level = "trace")]
 pub async fn get_me(access_token: &oauth2::AccessToken) -> Result<UserInfo, anyhow::Error> {
+    use anyhow::Context;
     let res = reqwest::Client::new()
         .get(USER_URL)
         .header(
@@ -133,10 +155,15 @@ pub async fn get_me(access_token: &oauth2::AccessToken) -> Result<UserInfo, anyh
         )
         .header(axum::http::header::USER_AGENT.as_str(), "axum-login")
         .send()
-        .await;
-    let user_info = res?.text().await?;
+        .await
+        .context("Failed to send request to GitHub API")?;
+    let user_info = res
+        .text()
+        .await
+        .context("Failed to read GitHub API response")?;
     log::debug!("{}", user_info);
-    let user_info = serde_json::from_str::<UserInfo>(&user_info)?;
+    let user_info = serde_json::from_str::<UserInfo>(&user_info)
+        .context("Failed to parse GitHub user info JSON response")?;
     Ok(user_info)
 }
 
@@ -147,9 +174,13 @@ pub fn login_db<'a, 'c>(
     user_info: UserInfo,
 ) -> impl std::future::Future<Output = Result<Option<model::user::User>, anyhow::Error>> + Send + 'a
 {
+    use anyhow::Context;
     use futures::FutureExt;
     async move {
-        let mut db = conn.acquire().await?;
+        let mut db = conn
+            .acquire()
+            .await
+            .context("Failed to acquire database connection")?;
         if let Some(user) = session_user {
             crate::db::user::update_user(
                 &mut *db,
@@ -160,7 +191,7 @@ pub fn login_db<'a, 'c>(
                 )),
             )
             .await
-            .map_err(|o| dbg!(o))?;
+            .context("Failed to update user with GitHub OAuth info")?;
             Ok(Some(user))
         } else {
             log::info!("signup: {:?}", user_info);
@@ -169,7 +200,7 @@ pub fn login_db<'a, 'c>(
                 crate::db::user::OAuthProvider::Github(user_info.id, user_info.login),
             )
             .await
-            .map_err(|o| dbg!(o))?;
+            .context("Failed to create new user with GitHub OAuth info")?;
             dbg!(&user);
             Ok(Some(user))
         }
