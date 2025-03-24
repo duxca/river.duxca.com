@@ -2,6 +2,7 @@
 const AUTH_URL: &str = "https://x.com/i/oauth2/authorize";
 const TOKEN_URL: &str = "https://api.x.com/2/oauth2/token";
 // https://docs.x.com/x-api/users/lookup/quickstart/authenticated-lookup
+// https://docs.x.com/x-api/users/user-lookup-me
 const USER_URL: &str = "https://api.x.com/2/users/me";
 const CSRF_STATE_KEY: &str = "oauth.csrf-state";
 // https://developer.x.com/en/portal/projects-and-apps
@@ -36,9 +37,12 @@ pub async fn login(
         .set_token_uri(token_url)
         .set_redirect_uri(redirect_url);
     let (pkce_code, pkce_verifier) = oauth2::PkceCodeChallenge::new_random_plain();
+    // https://docs.x.com/resources/fundamentals/authentication/guides/v2-authentication-mapping
     let (auth_url, csrf_state) = client
         .authorize_url(oauth2::CsrfToken::new_random)
         .add_scope(oauth2::Scope::new("users.read".to_string()))
+        .add_scope(oauth2::Scope::new("tweet.read".to_string()))
+        .add_scope(oauth2::Scope::new("follows.write".to_string()))
         .set_pkce_challenge(pkce_code.clone())
         .url();
     session
@@ -171,7 +175,7 @@ pub async fn get_access_token(
 
 #[derive(Debug, serde::Deserialize)]
 pub struct UserInfo {
-    pub id: i64,
+    pub id: String,
     pub name: String,
     pub username: String,
 }
@@ -208,6 +212,7 @@ pub fn login_db<'a, 'c>(
 {
     use anyhow::Context;
     use futures::FutureExt;
+    use std::str::FromStr;
     async move {
         let mut db = conn
             .acquire()
@@ -218,7 +223,7 @@ pub fn login_db<'a, 'c>(
                 &mut *db,
                 user.user_id,
                 Some(crate::db::user::OAuthProvider::Twitter(
-                    user_info.id,
+                    user_info.id.parse().unwrap(),
                     user_info.name,
                 )),
             )
@@ -229,7 +234,10 @@ pub fn login_db<'a, 'c>(
             log::info!("signup: {:?}", user_info.username);
             let user = crate::db::user::create_user(
                 &mut *db,
-                crate::db::user::OAuthProvider::Twitter(user_info.id, user_info.name),
+                crate::db::user::OAuthProvider::Twitter(
+                    user_info.id.parse().unwrap(),
+                    user_info.name,
+                ),
             )
             .await
             .map_err(|o| dbg!(o))?;
