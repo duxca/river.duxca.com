@@ -120,6 +120,10 @@
 - https://developers.facebook.com/docs/instagram-basic-display-api/reference/me?locale=ja_JP
 - https://apidog.com/jp/blog/facebook-oauth-2-auth-process/
 - https://developers.facebook.com/docs/instagram-basic-display-api/reference/user?locale=ja_JP
+- https://zenn.dev/pyhrinezumi/articles/8455f0d61e856f
+- https://developers.play.jp/entry/2024/05/10/162819
+- https://docs.x.com/resources/fundamentals/authentication/oauth-2-0/authorization-code
+- https://zenn.dev/nyancat/articles/20230803-twitter-api-oauth2-pkce
 
 ### gcp
 - https://cloud.google.com/identity-platform/pricing?hl=ja#identity-platform-pricing
@@ -132,7 +136,7 @@
 - https://www.sqlite.org/pragma.html#pragma_auto_vacuum
 - https://blog.jnito.com/entry/2023/05/23/104124
 - https://zenn.dev/sql_geinin/books/9e9fb9492c54f6/viewer/d9c00a
-
+- https://soudai.hatenablog.com/entry/2018/05/01/204442
 
 ```
 $ sqlite3 river.db

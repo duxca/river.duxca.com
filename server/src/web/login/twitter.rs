@@ -172,7 +172,10 @@ pub async fn get_access_token(
     let access_token = token_res.access_token().clone();
     Ok(access_token)
 }
-
+#[derive(Debug, serde::Deserialize)]
+pub struct UserInfoWrapper {
+    pub data: UserInfo,
+}
 #[derive(Debug, serde::Deserialize)]
 pub struct UserInfo {
     pub id: String,
@@ -198,9 +201,9 @@ pub async fn get_me(access_token: &oauth2::AccessToken) -> Result<UserInfo, anyh
         .await
         .context("Twitterユーザー情報のレスポンス取得に失敗")?;
     log::debug!("{}", user_info);
-    let user_info = serde_json::from_str::<UserInfo>(&user_info)
+    let user_info = serde_json::from_str::<UserInfoWrapper>(&user_info)
         .context("Twitterユーザー情報のJSONパースに失敗")?;
-    Ok(user_info)
+    Ok(user_info.data)
 }
 
 #[tracing::instrument(level = "trace", skip(conn))]
