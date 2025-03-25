@@ -7,7 +7,7 @@ pub struct Request {
     pub limit: Option<i64>,
 }
 
-#[derive(Debug, serde::Deserialize, serde::Serialize, Clone, PartialEq, Eq)]
+#[derive(Debug, serde::Deserialize, serde::Serialize, Clone, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Response {
     pub rivers: Vec<crate::river::River>,

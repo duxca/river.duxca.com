@@ -15,9 +15,7 @@ axum-extra = { version = "0.10", features = ["cookie"] }
 axum-jrpc = "0.8.0"
 axum-login = "0.17"
 chrono = { version = "0.4", features = ["serde"] }
-csv = "1.3.0"
 db = { path = "../db" }
-service = { path = "../service" }
 dotenvy = "0.15"
 env_logger = "0.11.5"
 envy = "0.4.2"
@@ -28,6 +26,7 @@ oauth2 = { version = "5.0", features = ["pkce-plain"] }
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+service = { path = "../service" }
 shadow-rs = "1.1.1"
 sqlx = { version = "0.8", features = ["runtime-tokio", "sqlite", "chrono", "json", "uuid", "migrate"] }
 thiserror = "2.0.12"

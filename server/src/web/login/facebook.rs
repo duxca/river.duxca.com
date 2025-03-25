@@ -179,25 +179,15 @@ pub fn login_db<'a, 'c>(
             .context("Failed to acquire database connection")?;
         if let Some(user) = session_user {
             log::info!("update account: {:?}", user_info);
-            db::user::auth_or_add_user_auth(
-                &mut *db,
-                user.user_id,
-                1,
-                &user_info.id,
-            )
-            .await
-            .context("Failed to update user with Facebook credentials")?;
+            db::user::auth_or_add_user_auth(&mut *db, user.user_id, 1, &user_info.id)
+                .await
+                .context("Failed to update user with Facebook credentials")?;
             Ok(Some(user))
         } else {
             log::info!("signup: {:?}", user_info);
-            let user = db::user::auth_or_create_user(
-                &mut *db,
-                1,
-                &user_info.id,
-                &user_info.name,
-            )
-            .await
-            .context("Failed to create new user with Facebook credentials")?;
+            let user = db::user::auth_or_create_user(&mut *db, 1, &user_info.id, &user_info.name)
+                .await
+                .context("Failed to create new user with Facebook credentials")?;
             Ok(Some(user))
         }
     }

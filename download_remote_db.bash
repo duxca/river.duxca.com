@@ -2,8 +2,8 @@
 
 set -euxo pipefail
 
-rm -f ./river.db
+rm -f ./db/river.db
 
 export GOOGLE_APPLICATION_CREDENTIALS=./key.json
-./litestream restore -if-replica-exists -config ./litestream.yml ./river.db
+./litestream restore -if-replica-exists -config ./litestream.yml ./db/river.db
 

@@ -2,7 +2,7 @@
 use crate::components::map_component::{MapComponent, Point};
 use gloo::console;
 use gloo::utils::format::JsValueSerdeExt;
-use model::river::FieldSpot;
+use model::river::RiverWaypoint;
 use wasm_bindgen::prelude::*;
 use web_sys::HtmlInputElement;
 use yew::prelude::*;
@@ -47,8 +47,8 @@ fn app() -> Html {
     });
     let edit_mode = use_state(|| EditMode::Home {});
     let selected_river_id = use_state(|| None);
-    let rivers = use_state(|| Vec::<model::river::Field>::new());
-    let river_waypoints = use_state(|| Vec::<model::river::FieldSpot>::new());
+    let rivers = use_state(|| Vec::<model::river::River>::new());
+    let river_waypoints = use_state(|| Vec::<model::river::RiverWaypoint>::new());
     let map_state = use_state(|| None);
 
     let select_river_cb = Callback::from({
@@ -145,9 +145,7 @@ fn app() -> Html {
                 )
                 .await;
                 if let Ok(res) = res {
-                    if let Some(_user) = res.user {
-                        loggedin.set(true);
-                    }
+                    loggedin.set(true);
                 }
             });
         }
@@ -158,8 +156,8 @@ fn app() -> Html {
         move |loggedin| {
             if **loggedin {
                 wasm_bindgen_futures::spawn_local(async move {
-                    let res = crate::api::call::<model::api::list_fields::Response>(
-                        model::api::list_fields::Request {
+                    let res = crate::api::call::<model::api::list_rivers::Response>(
+                        model::api::list_rivers::Request {
                             offset: None,
                             limit: Some(10000),
                         },
@@ -180,16 +178,14 @@ fn app() -> Html {
                 async move {
                     let mut list = vec![];
                     for river in &**rivers {
-                        let mut res = crate::api::call::<model::api::list_field_spots::Response>(
-                            model::api::list_field_spots::Request {
-                                offset: None,
-                                limit: Some(10000),
-                                river_id: river.field_id,
+                        let mut res = crate::api::call::<model::api::get_river::Response>(
+                            model::api::get_river::Request {
+                                river_id: river.river_id,
                             },
                         )
                         .await
                         .unwrap();
-                        list.append(&mut res.river_waypoints);
+                        list.append(&mut res.waypoints);
                     }
                     river_waypoints.set(list);
                 }
@@ -204,20 +200,22 @@ fn app() -> Html {
                 wasm_bindgen_futures::spawn_local({
                     let selected_river_id = *selected_river_id;
                     async move {
-                        let res = crate::api::call::<model::api::list_field_spots::Response>(
-                            model::api::list_field_spots::Request {
-                                offset: None,
-                                limit: Some(1),
+                        let res = crate::api::call::<model::api::get_river::Response>(
+                            model::api::get_river::Request {
                                 river_id: selected_river_id,
                             },
                         )
                         .await
                         .unwrap();
-                        if !res.river_waypoints.is_empty() {
+                        if !res.waypoints.is_empty() {
                             // console::log!(&JsValue::from_serde(&res.river_waypoints[0]).unwrap());
+                            let (latitude, longitude) = serde_json::from_value::<(f64, f64)>(
+                                res.waypoints[0].waypoint.clone(),
+                            )
+                            .unwrap();
                             forcus.set(Point {
-                                latitude: res.river_waypoints[0].latitude,
-                                longitude: res.river_waypoints[0].longitude,
+                                latitude,
+                                longitude,
                             });
                         }
                     }
@@ -244,15 +242,14 @@ fn app() -> Html {
                     // leaflet::Marker::new_with_options(
                     let p = leaflet::Popup::new(&leaflet::PopupOptions::default(), None);
                     p.set_content(
-                        &JsValue::from_serde(&serde_json::json!(waypoint.spot_name)).unwrap(),
+                        &JsValue::from_serde(&serde_json::json!(waypoint.waypoint_name)).unwrap(),
                     );
-                    leaflet::Marker::new(&leaflet::LatLng::new(
-                        waypoint.latitude,
-                        waypoint.longitude,
-                    ))
-                    .bind_popup(&p)
-                    .open_popup()
-                    .add_to(map);
+                    let (latitude, longitude) =
+                        serde_json::from_value::<(f64, f64)>(waypoint.waypoint.clone()).unwrap();
+                    leaflet::Marker::new(&leaflet::LatLng::new(latitude, longitude))
+                        .bind_popup(&p)
+                        .open_popup()
+                        .add_to(map);
                 }
             }
         }
@@ -277,13 +274,13 @@ fn app() -> Html {
                     initial_forcus={*forcus}
                     map_ready={map_ready_cb} />
                 <div class="control">
-                    <fieldset>
+                    <riverset>
                         <legend>{"Account"}</legend>
                         <form method="post" action="/logout">
                             <input type="submit" value="Logout" />
                         </form>
-                    </fieldset>
-                    <fieldset>
+                    </riverset>
+                    <riverset>
                         <legend>{"Edit Mode"}</legend>
                         <div>
                             <button onclick={Callback::from({
@@ -312,9 +309,9 @@ fn app() -> Html {
                                 {"Waypoint"}
                             </button>
                         </div>
-                    </fieldset>
+                    </riverset>
                     if let EditMode::Home{} = *edit_mode {
-                        <fieldset>
+                        <riverset>
                             <legend>{"Home"}</legend>
                             <div>
                                 <label>
@@ -324,35 +321,35 @@ fn app() -> Html {
                                         {
                                             rivers.iter().map(|river|{
                                                 html!{
-                                                    <option value={river.field_id.to_string()}>{&river.field_name}</option>
+                                                    <option value={river.river_id.to_string()}>{&river.river_name}</option>
                                                 }
                                             }).collect::<Html>()
                                         }
                                     </select>
                                 </label>
                             </div>
-                        </fieldset>
+                        </riverset>
                     } else if let EditMode::AddRoute(ref o) = *edit_mode {
-                        <fieldset>
+                        <riverset>
                             <legend>{"addRoute"}</legend>
                             <div><button onclick={onclick_add_route_cb}>{"add point"}</button></div>
                             <div>{format!("distance: {} m", o.distance.round() as i64)}</div>
-                        </fieldset>
+                        </riverset>
                     } else if let EditMode::AddWaypoint{} = *edit_mode {
-                        <fieldset>
+                        <riverset>
                             <legend>{"AddWaypoint"}</legend>
                             <input type={"text"} id={"waypoint_name"} />
                             <div><button onclick={onclick_add_waypoint_cb}>{"add point"}</button></div>
-                        </fieldset>
+                        </riverset>
                     } else if let EditMode::RemoveWaypoint(ref o) = *edit_mode {
-                        <fieldset>
+                        <riverset>
                             <legend>{"RemoveWaypoint"}</legend>
                             if let Some(target) = o.target {
                                 <div>{"Select Waypoint"}</div>
                             } else {
                                 <div>{"Remove Waypoint"}</div>
                             }
-                        </fieldset>
+                        </riverset>
                     }
                 </div>
             }else{

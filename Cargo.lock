@@ -627,6 +627,7 @@ name = "db"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "csv",
  "env_logger",
  "futures 0.3.31",
  "log",
@@ -2790,7 +2791,6 @@ dependencies = [
  "axum-jrpc",
  "axum-login",
  "chrono",
- "csv",
  "db",
  "dotenvy",
  "env_logger",
@@ -4460,7 +4460,7 @@ dependencies = [
 [[package]]
 name = "yew"
 version = "0.21.0"
-source = "git+https://github.com/yewstack/yew.git?branch=master#cd32e17b1f7422021857f119c3356d92ed67eea8"
+source = "git+https://github.com/yewstack/yew.git?branch=master#e5b2cf361155ab80ae8630e0e4f47f7f0dcee97e"
 dependencies = [
  "console_error_panic_hook",
  "futures 0.3.31",
@@ -4500,7 +4500,7 @@ dependencies = [
 [[package]]
 name = "yew-macro"
 version = "0.21.0"
-source = "git+https://github.com/yewstack/yew.git?branch=master#cd32e17b1f7422021857f119c3356d92ed67eea8"
+source = "git+https://github.com/yewstack/yew.git?branch=master#e5b2cf361155ab80ae8630e0e4f47f7f0dcee97e"
 dependencies = [
  "once_cell",
  "prettyplease",

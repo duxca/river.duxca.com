@@ -19,7 +19,7 @@ pub fn list_rivers<'a, 'c>(
             SELECT
                 river_id,
                 river_name,
-                waypoint,
+                waypoint AS "waypoint!: serde_json::Value",
                 created_at
             FROM rivers
             ORDER BY river_id ASC
@@ -68,7 +68,7 @@ pub fn get_river<'a, 'c>(
             SELECT
                 river_id,
                 river_name,
-                waypoint,
+                waypoint AS "waypoint!: serde_json::Value",
                 created_at
             FROM rivers
             WHERE river_id = ?1
@@ -86,7 +86,7 @@ pub fn get_river<'a, 'c>(
                 user_id,
                 track_name,
                 description,
-                track,
+                track AS "track!: serde_json::Value",
                 created_at,
                 updated_at
             FROM river_tracks
@@ -106,7 +106,7 @@ pub fn get_river<'a, 'c>(
                 user_id,
                 waypoint_name,
                 description,
-                waypoint,
+                waypoint AS "waypoint!: serde_json::Value",
                 created_at,
                 updated_at
             FROM river_waypoints
@@ -226,7 +226,7 @@ pub fn get_river_track<'a, 'c>(
                 user_id,
                 track_name,
                 description,
-                track,
+                track AS "track!: serde_json::Value",
                 created_at,
                 updated_at
             FROM river_tracks
@@ -276,7 +276,10 @@ mod tests {
         assert_eq!(next, 1);
         assert_eq!(total, 1);
         assert_eq!(rivers[0].river_name, "多摩川");
-        assert_eq!(rivers[0].waypoint, "[35.6435548,139.7537994]");
+        assert_eq!(
+            serde_json::to_string(&rivers[0].waypoint).unwrap(),
+            "[35.6435548,139.7537994]"
+        );
 
         // river_track を追加
         let track_id = create_river_track(
@@ -295,7 +298,7 @@ mod tests {
         assert_eq!(tracks[0].river_track_id, track_id);
         assert_eq!(tracks[0].track_name, "多摩川上流");
         assert_eq!(tracks[0].description, "テスト用の川の軌跡");
-        let track: Vec<(f64, f64)> = serde_json::from_str(&tracks[0].track)?;
+        let track: Vec<(f64, f64)> = serde_json::from_value(tracks[0].track.clone())?;
         assert_eq!(
             track,
             vec![(35.6435548, 139.7537994), (35.6436000, 139.7538000)]
@@ -317,13 +320,19 @@ mod tests {
         let river = river.unwrap();
         assert_eq!(river.river_id, river_id);
         assert_eq!(river.river_name, "多摩川");
-        assert_eq!(river.waypoint, "[35.6435548,139.7537994]");
+        assert_eq!(
+            serde_json::to_string(&river.waypoint).unwrap(),
+            "[35.6435548,139.7537994]"
+        );
         assert_eq!(tracks.len(), 1);
         assert_eq!(waypoints.len(), 1);
         assert_eq!(waypoints[0].river_waypoint_id, waypoint_id);
         assert_eq!(waypoints[0].waypoint_name, "二子玉川");
         assert_eq!(waypoints[0].description, "テスト用の川のウェイポイント");
-        assert_eq!(waypoints[0].waypoint, "[35.6436,139.7538]");
+        assert_eq!(
+            serde_json::to_string(&waypoints[0].waypoint).unwrap(),
+            "[35.6436,139.7538]"
+        );
 
         Ok(())
     }

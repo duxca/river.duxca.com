@@ -1,6 +1,7 @@
 browser/node_modules
 browser/target
 browser/dist
+db/target
 server/.env
 target
 .env

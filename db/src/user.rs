@@ -323,13 +323,14 @@ mod tests {
     async fn user_lifecycle_test(conn: sqlx::SqlitePool) -> Result<(), anyhow::Error> {
         env_logger::builder().is_test(true).try_init().ok();
         // ユーザー作成のテスト
-        let user1 = auth_or_create_user(&conn, 0, "github_id_1", "user1")
-            .await?;
+        let user1 = auth_or_create_user(&conn, 0, "github_id_1", "user1").await?;
         assert_eq!(user1.nickname, "user1");
         assert_eq!(user1.role, 1); // デフォルトはuser権限
 
         // ユーザー取得のテスト
-        let user1_get = get_user(&conn, user1.user_id).await?.ok_or_else(|| anyhow::anyhow!("User not found"))?;
+        let user1_get = get_user(&conn, user1.user_id)
+            .await?
+            .ok_or_else(|| anyhow::anyhow!("User not found"))?;
         assert_eq!(user1_get, user1);
 
         // 存在しないユーザーの取得テスト
@@ -337,18 +338,16 @@ mod tests {
         assert!(none_user.is_none());
 
         // 同じidentity_typeとidentifierで再度作成を試みた場合は既存のユーザーが返される
-        let user1_duplicate = auth_or_create_user(&conn, 0, "github_id_1", "user1_new")
-            .await?;
+        let user1_duplicate = auth_or_create_user(&conn, 0, "github_id_1", "user1_new").await?;
         assert_eq!(user1_duplicate, user1);
 
         // 別の認証情報を追加
-        let user1_added_auth = auth_or_add_user_auth(&conn, user1.user_id, 1, "facebook_id_1")
-            .await?;
+        let user1_added_auth =
+            auth_or_add_user_auth(&conn, user1.user_id, 1, "facebook_id_1").await?;
         assert_eq!(user1_added_auth, user1);
 
         // 2人目のユーザーを作成
-        let user2 = auth_or_create_user(&conn, 2, "twitter_id_1", "user2")
-            .await?;
+        let user2 = auth_or_create_user(&conn, 2, "twitter_id_1", "user2").await?;
         assert_eq!(user2.nickname, "user2");
 
         // ユーザーリストのテスト
@@ -362,8 +361,7 @@ mod tests {
         add_access_log(&conn, user1.user_id, &req).await?;
 
         // 特定ユーザーのアクセスログ取得
-        let (logs, _, _) = list_access_logs(&conn, Some(user1.user_id), None, Some(10))
-            .await?;
+        let (logs, _, _) = list_access_logs(&conn, Some(user1.user_id), None, Some(10)).await?;
         assert_eq!(logs.len(), 1);
         assert_eq!(logs[0].user_id, user1.user_id);
 

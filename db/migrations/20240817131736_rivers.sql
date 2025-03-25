@@ -5,7 +5,7 @@ CREATE TABLE rivers (
   river_name TEXT NOT NULL UNIQUE,
   -- 代表点の緯度経度
   -- ex. [35.6895, 139.6917]
-  waypoint TEXT NOT NULL,
+  waypoint JSON NOT NULL,
   created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
 );
 
@@ -19,7 +19,7 @@ CREATE TABLE river_tracks (
   description TEXT NOT NULL,
   -- route is a JSON array of tuple of latitude and longitude: Array<[緯度, 経度]>
   -- ex. [[35.6895, 139.6917], [35.6895, 139.6917], [35.6895, 139.6917]]
-  track TEXT NOT NULL,
+  track JSON NOT NULL,
   created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
   updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
   FOREIGN KEY (river_id) references rivers(river_id) ON DELETE CASCADE,
@@ -34,7 +34,7 @@ CREATE TABLE river_waypoints (
   description TEXT NOT NULL,
   -- 代表点の緯度経度
   -- ex. [35.6895, 139.6917]
-  waypoint TEXT NOT NULL,
+  waypoint JSON NOT NULL,
   created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
   updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
   FOREIGN KEY (river_id) references rivers(river_id) ON DELETE CASCADE,

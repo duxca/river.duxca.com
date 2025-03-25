@@ -221,25 +221,15 @@ pub fn login_db<'a, 'c>(
             .await
             .context("データベース接続の取得に失敗")?;
         if let Some(user) = session_user {
-            db::user::auth_or_add_user_auth(
-                &mut *db,
-                user.user_id,
-                2,
-                &user_info.id,
-            )
-            .await
-            .map_err(|o| dbg!(o))?;
+            db::user::auth_or_add_user_auth(&mut *db, user.user_id, 2, &user_info.id)
+                .await
+                .map_err(|o| dbg!(o))?;
             Ok(Some(user))
         } else {
             log::info!("signup: {:?}", user_info.username);
-            let user = db::user::auth_or_create_user(
-                &mut *db,
-                2,
-                &user_info.id,
-                &user_info.name,
-            )
-            .await
-            .map_err(|o| dbg!(o))?;
+            let user = db::user::auth_or_create_user(&mut *db, 2, &user_info.id, &user_info.name)
+                .await
+                .map_err(|o| dbg!(o))?;
             dbg!(&user);
             Ok(Some(user))
         }
