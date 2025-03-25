@@ -2,7 +2,7 @@
 use crate::components::map_component::{MapComponent, Point};
 use gloo::console;
 use gloo::utils::format::JsValueSerdeExt;
-use model::field::FieldSpot;
+use model::river::FieldSpot;
 use wasm_bindgen::prelude::*;
 use web_sys::HtmlInputElement;
 use yew::prelude::*;
@@ -47,8 +47,8 @@ fn app() -> Html {
     });
     let edit_mode = use_state(|| EditMode::Home {});
     let selected_river_id = use_state(|| None);
-    let rivers = use_state(|| Vec::<model::field::Field>::new());
-    let river_waypoints = use_state(|| Vec::<model::field::FieldSpot>::new());
+    let rivers = use_state(|| Vec::<model::river::Field>::new());
+    let river_waypoints = use_state(|| Vec::<model::river::FieldSpot>::new());
     let map_state = use_state(|| None);
 
     let select_river_cb = Callback::from({

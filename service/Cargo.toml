@@ -1,0 +1,11 @@
+[package]
+name = "service"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1"
+db = { path = "../db" }
+model = { path = "../model" }
+sqlx = { version = "0.8", features = ["sqlite"] }
+

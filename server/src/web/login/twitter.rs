@@ -215,32 +215,28 @@ pub fn login_db<'a, 'c>(
 {
     use anyhow::Context;
     use futures::FutureExt;
-    use std::str::FromStr;
     async move {
         let mut db = conn
             .acquire()
             .await
             .context("データベース接続の取得に失敗")?;
         if let Some(user) = session_user {
-            crate::db::user::update_user(
+            db::user::auth_or_add_user_auth(
                 &mut *db,
                 user.user_id,
-                Some(crate::db::user::OAuthProvider::Twitter(
-                    user_info.id.parse().unwrap(),
-                    user_info.name,
-                )),
+                2,
+                &user_info.id,
             )
             .await
             .map_err(|o| dbg!(o))?;
             Ok(Some(user))
         } else {
             log::info!("signup: {:?}", user_info.username);
-            let user = crate::db::user::create_user(
+            let user = db::user::auth_or_create_user(
                 &mut *db,
-                crate::db::user::OAuthProvider::Twitter(
-                    user_info.id.parse().unwrap(),
-                    user_info.name,
-                ),
+                2,
+                &user_info.id,
+                &user_info.name,
             )
             .await
             .map_err(|o| dbg!(o))?;

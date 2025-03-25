@@ -106,7 +106,7 @@ impl axum_login::AuthnBackend for Backend {
         &self,
         user_id: &axum_login::UserId<Self>,
     ) -> Result<Option<Self::User>, Self::Error> {
-        let user = crate::db::user::get_user(&self.db, *user_id).await?;
+        let user = db::user::get_user(&self.db, *user_id).await?;
         dbg!(&user);
         Ok(user)
     }

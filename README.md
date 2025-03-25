@@ -28,7 +28,6 @@
 - https://river.longseller.org/t/4424.html
 - https://www.river.go.jp/kawabou/mb?zm=11&clat=35.87736716144893&clon=139.6238708496094&mapType=0&viewGrpStg=0&viewRd=1&viewRW=1&viewRiver=1&viewPoint=1&fld=0
 - https://www.river.or.jp/koeki/opendata/index.html
-
 - https://en.wikipedia.org/wiki/International_scale_of_river_difficulty
 - https://gopaddling.info/river-gradings-simple-guide/
 - https://en.wikipedia.org/wiki/Rapids

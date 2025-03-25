@@ -1,5 +1,5 @@
 [workspace]
-members = ["browser", "server", "model"]
+members = ["browser", "server", "model", "db", "service"]
 resolver = "2"
 # exclude = [
 #     "material-yew/build",

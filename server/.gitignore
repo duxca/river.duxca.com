@@ -1,7 +1,0 @@
-target
-*.db
-.env
-key.json
-*.db*
-.*.db*
-litestream

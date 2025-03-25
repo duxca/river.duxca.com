@@ -1,5 +1,3 @@
-mod api;
-mod db;
 mod web;
 
 #[derive(serde::Deserialize, Debug)]
@@ -35,24 +33,7 @@ async fn main() -> Result<(), anyhow::Error> {
     let config = envy::from_env::<Config>()?;
     log::debug!("config: {:#?}", config);
 
-    // NOTE: litestream 用の option
-    let pool = sqlx::sqlite::SqlitePool::connect_with({
-        use std::str::FromStr;
-        sqlx::sqlite::SqliteConnectOptions::from_str(&config.database_url)?
-            .foreign_keys(true)
-            // https://litestream.io/tips/#disable-autocheckpoints-for-high-write-load-servers
-            .pragma("wal_autocheckpoint", "0")
-            .journal_mode(sqlx::sqlite::SqliteJournalMode::Wal)
-            // https://litestream.io/tips/#busy-timeout
-            .busy_timeout(std::time::Duration::from_secs(5))
-            // https://litestream.io/tips/#synchronous-pragma
-            .synchronous(sqlx::sqlite::SqliteSynchronous::Normal)
-    })
-    .await?;
-
-    // ここで remote db に対して migrate する
-    sqlx::migrate!().run(&pool).await?;
-
+    let pool = db::connect(&config.database_url).await?;
     let session_store = tower_sessions_sqlx_store::SqliteStore::new(pool.clone());
     // セッションテーブルの作成
     session_store.migrate().await?;

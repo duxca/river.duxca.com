@@ -182,22 +182,22 @@ pub fn login_db<'a, 'c>(
             .await
             .context("Failed to acquire database connection")?;
         if let Some(user) = session_user {
-            crate::db::user::update_user(
+            db::user::auth_or_add_user_auth(
                 &mut *db,
                 user.user_id,
-                Some(crate::db::user::OAuthProvider::Github(
-                    user_info.id,
-                    user_info.login,
-                )),
+                0,
+                &user_info.id.to_string(),
             )
             .await
             .context("Failed to update user with GitHub OAuth info")?;
             Ok(Some(user))
         } else {
             log::info!("signup: {:?}", user_info);
-            let user = crate::db::user::create_user(
+            let user = db::user::auth_or_create_user(
                 &mut *db,
-                crate::db::user::OAuthProvider::Github(user_info.id, user_info.login),
+                0,
+                &user_info.id.to_string(),
+                &user_info.login,
             )
             .await
             .context("Failed to create new user with GitHub OAuth info")?;

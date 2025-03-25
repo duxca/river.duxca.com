@@ -5,13 +5,12 @@ pub struct Request {
     pub offset: Option<i64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub limit: Option<i64>,
-    pub river_id: i64,
 }
 
-#[derive(Debug, serde::Deserialize, serde::Serialize, Clone, PartialEq)]
+#[derive(Debug, serde::Deserialize, serde::Serialize, Clone, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct Response {
-    pub river_waypoints: Vec<crate::field::FieldSpot>,
+    pub rivers: Vec<crate::river::River>,
     pub next: i64,
     pub total: i64,
 }

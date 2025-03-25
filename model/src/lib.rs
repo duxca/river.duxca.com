@@ -1,5 +1,5 @@
 pub mod api;
-pub mod field;
+pub mod river;
 pub mod user;
 
 #[derive(serde::Deserialize, serde::Serialize, Debug, Clone, PartialEq, Eq)]

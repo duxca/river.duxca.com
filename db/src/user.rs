@@ -7,8 +7,8 @@ pub fn list_users<'a, 'c>(
     offset: Option<i64>,
     limit: Option<i64>,
 ) -> impl std::future::Future<Output = Result<(Vec<model::user::User>, i64, i64), anyhow::Error>>
-       + Send
-       + 'a {
++ Send
++ 'a {
     async move {
         let mut conn = conn.acquire().await?;
         let limit = limit.unwrap_or(20);
@@ -17,7 +17,10 @@ pub fn list_users<'a, 'c>(
             model::user::User,
             r#"
             SELECT
-                users.user_id AS user_id
+                user_id,
+                nickname,
+                role,
+                created_at
             FROM users
             ORDER BY user_id ASC
             LIMIT ?1 OFFSET ?2
@@ -41,45 +44,32 @@ pub fn list_users<'a, 'c>(
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum OAuthProvider {
-    Github(i64, String),
-    Facebook(i64, String),
-    Twitter(i64, String),
-}
-
+// ログインのフロー
 #[tracing::instrument(level = "trace", skip(conn))]
-pub fn create_user<'a, 'c>(
+pub fn auth_or_create_user<'a, 'c>(
     conn: impl sqlx::Acquire<'c, Database = sqlx::Sqlite> + Send + 'a,
-    provider: OAuthProvider,
+    identity_type: i64,
+    identifier: &'a str,
+    nickname: &'a str,
 ) -> impl std::future::Future<Output = Result<model::user::User, anyhow::Error>> + Send + 'a {
     async move {
         use sqlx::Connection;
         let mut conn = conn.acquire().await?;
         let mut tx = conn.begin().await?;
-        let (identifier, username, identity_provider_name) = match provider {
-            OAuthProvider::Github(github_id, login) => (github_id.to_string(), login, "github"),
-            OAuthProvider::Facebook(facebook_id, name) => {
-                (facebook_id.to_string(), name, "facebook")
-            }
-            OAuthProvider::Twitter(twitter_id, screen_name) => {
-                (twitter_id.to_string(), screen_name, "twitter")
-            }
-        };
         let identities = sqlx::query_as!(
-            model::user::UserIdentity,
+            model::user::UserAuth,
             r#"
             SELECT
                 user_id,
+                identity_type,
                 identifier,
-                username,
-                identity_provider_name
-            FROM user_auths_with_identity_providers
-            WHERE 
-                user_auths_with_identity_providers.identity_provider_name = ?1
-            AND user_auths_with_identity_providers.identifier = ?2
+                created_at
+            FROM user_auths
+            WHERE
+                user_auths.identity_type = ?1
+            AND user_auths.identifier = ?2
             "#,
-            identity_provider_name,
+            identity_type,
             identifier
         )
         .fetch_all(&mut *tx)
@@ -92,33 +82,23 @@ pub fn create_user<'a, 'c>(
         // 新規登録
         let user = sqlx::query!(
             r#"
-            INSERT INTO users DEFAULT VALUES
+            INSERT INTO users (nickname)
+            VALUES (?1)
             RETURNING user_id
-            "#
+            "#,
+            nickname
         )
         .fetch_one(&mut *tx)
         .await?;
-        let identity_provider_id = sqlx::query!(
-            r#"
-            SELECT identity_provider_id
-            FROM identity_providers
-            WHERE identity_provider_name = ?1
-            "#,
-            identity_provider_name
-        )
-        .fetch_one(&mut *tx)
-        .await?
-        .identity_provider_id;
         // アカウント情報を登録
         sqlx::query!(
             r#"
-            INSERT INTO user_auths (user_id, identity_provider_id, identifier, username)
-            VALUES (?1, ?2, ?3, ?4);
+            INSERT INTO user_auths (user_id, identity_type, identifier)
+            VALUES (?1, ?2, ?3);
             "#,
             user.user_id,
-            identity_provider_id,
-            identifier,
-            username
+            identity_type,
+            identifier
         )
         .execute(&mut *tx)
         .await?;
@@ -128,74 +108,57 @@ pub fn create_user<'a, 'c>(
     }
 }
 
-// 多重ログイン
+// ログイン済みのユーザーに対して、新しい認証情報を追加する
 #[tracing::instrument(level = "trace", skip(conn))]
-pub fn update_user<'a, 'c>(
+pub fn auth_or_add_user_auth<'a, 'c>(
     conn: impl sqlx::Acquire<'c, Database = sqlx::Sqlite> + Send + 'a,
     user_id: i64,
-    provider: Option<OAuthProvider>,
+    // github: 0, facebook: 1, twitter: 2
+    identity_type: i64,
+    identifier: &'a str,
 ) -> impl std::future::Future<Output = Result<model::user::User, anyhow::Error>> + Send + 'a {
     async move {
         use sqlx::Connection;
         let mut conn = conn.acquire().await?;
         let mut tx = conn.begin().await?;
-        if let Some(provider) = provider {
-            let (identifier, username, identity_provider_name) = match provider {
-                OAuthProvider::Github(github_id, login) => (github_id.to_string(), login, "github"),
-                OAuthProvider::Facebook(facebook_id, name) => {
-                    (facebook_id.to_string(), name, "facebook")
-                }
-                OAuthProvider::Twitter(twitter_id, screen_name) => {
-                    (twitter_id.to_string(), screen_name, "twitter")
-                }
-            };
-            let identities = sqlx::query_as!(
-                model::user::UserIdentity,
-                r#"
+        // その identifier がおるか確認
+        let identities = sqlx::query_as!(
+            model::user::UserAuth,
+            r#"
                 SELECT
                     user_id,
+                    identity_type,
                     identifier,
-                    username,
-                    identity_provider_name
-                FROM user_auths_with_identity_providers
-                WHERE 
-                    user_auths_with_identity_providers.identity_provider_name = ?1
-                AND user_auths_with_identity_providers.identifier = ?2
+                created_at
+                FROM user_auths
+                WHERE
+                    user_auths.user_id = ?1
+                AND user_auths.identity_type = ?2
+                AND user_auths.identifier = ?3
                 "#,
-                identity_provider_name,
-                identifier
-            )
-            .fetch_all(&mut *tx)
-            .await?;
-            if let Some(ident) = identities.first() {
-                let user = get_user(&mut *tx, ident.user_id).await?.unwrap();
-                // 既に登録済みの場合はそのまま返す
-                return Ok(user);
-            }
-            let identity_provider_id = sqlx::query!(
-                r#"
-                SELECT identity_provider_id
-                FROM identity_providers
-                WHERE identity_provider_name = ?1
-                "#,
-                identity_provider_name
-            )
-            .fetch_one(&mut *tx)
-            .await?
-            .identity_provider_id;
-            sqlx::query!(
-                r#"
-                INSERT INTO user_auths (user_id, identity_provider_id, identifier, username)
-                VALUES (?1, ?2, ?3, ?4);
-                "#,
-                user_id,
-                identity_provider_id,
-                identifier,
-                username
-            )
-            .execute(&mut *tx)
-            .await?;
+            user_id,
+            identity_type,
+            identifier
+        )
+        .fetch_all(&mut *tx)
+        .await?;
+        if let Some(ident) = identities.first() {
+            // 既に登録済みの場合はそのまま返す
+            let user = get_user(&mut *tx, ident.user_id).await?.unwrap();
+            return Ok(user);
         }
+        sqlx::query!(
+            r#"
+                INSERT INTO user_auths (user_id, identity_type, identifier)
+                VALUES (?1, ?2, ?3);
+                "#,
+            user_id,
+            identity_type,
+            identifier
+        )
+        .execute(&mut *tx)
+        .await?;
+
         let user = get_user(&mut tx, user_id).await?.unwrap();
         tx.commit().await?;
         Ok(user)
@@ -213,10 +176,13 @@ pub fn get_user<'a, 'c>(
         let row = sqlx::query_as!(
             model::user::User,
             r#"
-            SELECT 
-                users.user_id AS user_id
+            SELECT
+                user_id,
+                nickname,
+                role,
+                created_at
             FROM users
-            WHERE users.user_id = ?1
+            WHERE user_id = ?1
             "#,
             id
         )
@@ -226,62 +192,24 @@ pub fn get_user<'a, 'c>(
     }
 }
 
-//#[tracing::instrument(level="trace", skip(conn))]
-//pub fn delete_user<'a, 'c>(
-//    conn: impl sqlx::Acquire<'c, Database = sqlx::Sqlite> + Send + 'a,
-//    id: i64,
-//) -> impl std::future::Future<Output = Result<(), anyhow::Error>> + Send + 'a {
-//    async move {
-//        let mut conn = conn.acquire().await?;
-//        sqlx::query!(
-//            r#"
-//        DELETE
-//        FROM users
-//        WHERE id = ?1
-//        "#,
-//            id
-//        )
-//        .execute(&mut *conn)
-//        .await?;
-//        Ok(())
-//    }
-//}
-
 #[tracing::instrument(level = "trace", skip(conn))]
-pub fn check_permission<'a, 'c>(
+pub fn delete_user<'a, 'c>(
     conn: impl sqlx::Acquire<'c, Database = sqlx::Sqlite> + Send + 'a,
     user_id: i64,
-    req: &'a model::api::Request,
-) -> impl std::future::Future<Output = Result<bool, anyhow::Error>> + Send + 'a {
+) -> impl std::future::Future<Output = Result<(), anyhow::Error>> + Send + 'a {
     async move {
         let mut conn = conn.acquire().await?;
-        let row = sqlx::query!(
+        sqlx::query!(
             r#"
-            SELECT
-                roles.role_name AS role_name
+            DELETE
             FROM users
-            JOIN roles ON users.role_id = roles.role_id
-            WHERE users.user_id = ?1
+            WHERE user_id = ?1
             "#,
             user_id
         )
-        .fetch_one(&mut *conn)
+        .execute(&mut *conn)
         .await?;
-        if row.role_name == "admin" {
-            return Ok(true);
-        }
-        if row.role_name == "default" {
-            let flag = match req {
-                model::api::Request::GetMe(..) => true,
-                model::api::Request::ListUsers(..) => false,
-                model::api::Request::ListAccessLogs(..) => false,
-                model::api::Request::ListRivers(..) => true,
-                model::api::Request::ListRiverWaypoints(..) => true,
-                // model::api::Request::CreateRiverWaypoint(..) => false,
-            };
-            return Ok(flag);
-        }
-        Ok(false)
+        Ok(())
     }
 }
 
@@ -315,8 +243,8 @@ pub fn list_access_logs<'a, 'c>(
     offset: Option<i64>,
     limit: Option<i64>,
 ) -> impl std::future::Future<Output = Result<(Vec<model::user::AccessLog>, i64, i64), anyhow::Error>>
-       + Send
-       + 'a {
++ Send
++ 'a {
     async move {
         let mut conn = conn.acquire().await?;
         let limit = limit.unwrap_or(20);
@@ -384,5 +312,69 @@ pub fn list_access_logs<'a, 'c>(
             .await?;
             Ok((rows, next_offset, row.total))
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[sqlx::test()]
+    async fn user_lifecycle_test(conn: sqlx::SqlitePool) -> Result<(), anyhow::Error> {
+        env_logger::builder().is_test(true).try_init().ok();
+        // ユーザー作成のテスト
+        let user1 = auth_or_create_user(&conn, 0, "github_id_1", "user1")
+            .await?;
+        assert_eq!(user1.nickname, "user1");
+        assert_eq!(user1.role, 1); // デフォルトはuser権限
+
+        // ユーザー取得のテスト
+        let user1_get = get_user(&conn, user1.user_id).await?.ok_or_else(|| anyhow::anyhow!("User not found"))?;
+        assert_eq!(user1_get, user1);
+
+        // 存在しないユーザーの取得テスト
+        let none_user = get_user(&conn, 9999).await?;
+        assert!(none_user.is_none());
+
+        // 同じidentity_typeとidentifierで再度作成を試みた場合は既存のユーザーが返される
+        let user1_duplicate = auth_or_create_user(&conn, 0, "github_id_1", "user1_new")
+            .await?;
+        assert_eq!(user1_duplicate, user1);
+
+        // 別の認証情報を追加
+        let user1_added_auth = auth_or_add_user_auth(&conn, user1.user_id, 1, "facebook_id_1")
+            .await?;
+        assert_eq!(user1_added_auth, user1);
+
+        // 2人目のユーザーを作成
+        let user2 = auth_or_create_user(&conn, 2, "twitter_id_1", "user2")
+            .await?;
+        assert_eq!(user2.nickname, "user2");
+
+        // ユーザーリストのテスト
+        let (users, next_offset, total) = list_users(&conn, None, Some(10)).await?;
+        assert!(users.len() >= 2); // 初期データの admin + 作成した2ユーザー
+        assert!(next_offset >= 2);
+        assert!(total >= 2);
+
+        // アクセスログのテスト
+        let req = model::api::Request::GetMe(model::api::get_me::Request {});
+        add_access_log(&conn, user1.user_id, &req).await?;
+
+        // 特定ユーザーのアクセスログ取得
+        let (logs, _, _) = list_access_logs(&conn, Some(user1.user_id), None, Some(10))
+            .await?;
+        assert_eq!(logs.len(), 1);
+        assert_eq!(logs[0].user_id, user1.user_id);
+
+        // 全ユーザーのアクセスログ取得
+        let (all_logs, _, _) = list_access_logs(&conn, None, None, Some(10)).await?;
+        assert!(!all_logs.is_empty());
+
+        // ユーザー削除のテスト
+        delete_user(&conn, user2.user_id).await?;
+        let deleted_user = get_user(&conn, user2.user_id).await?;
+        assert!(deleted_user.is_none());
+        Ok(())
     }
 }
