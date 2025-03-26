@@ -1,3 +1,5 @@
+pub mod river_tracks;
+pub mod river_waypoints;
 pub mod rivers;
 pub mod user;
 
@@ -18,6 +20,6 @@ pub async fn connect(database_url: &str) -> Result<sqlx::sqlite::SqlitePool, any
     .await?;
 
     // ここで remote db に対して migrate する
-    sqlx::migrate!().run(&pool).await?;
+    // sqlx::migrate!().run(&pool).await?;
     Ok(pool)
 }

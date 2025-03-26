@@ -31,7 +31,3 @@ CREATE TABLE access_logs (
     created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
-
--- add admin user
-INSERT INTO users (nickname, role) VALUES ('legokichi', 0);
-INSERT INTO user_auths (user_id, identity_type, identifier) VALUES (1, 0, '2429307'); -- github

@@ -38,3 +38,37 @@ pub struct RiverWaypoint {
     pub created_at: i64,
     pub updated_at: i64,
 }
+
+#[derive(serde::Deserialize, serde::Serialize, Debug, Clone, PartialEq)]
+pub struct RiverCsv {
+    pub river_id: i64,
+    pub river_name: String,
+    pub latitude: f64,
+    pub longitude: f64,
+    pub created_at: i64,
+}
+
+#[derive(serde::Deserialize, serde::Serialize, Debug, Clone, PartialEq)]
+pub struct RiverTrackCsv {
+    pub river_track_id: i64,
+    pub river_id: i64,
+    pub user_id: i64,
+    pub track_name: String,
+    pub description: String,
+    pub track_json: String,
+    pub created_at: i64,
+    pub updated_at: i64,
+}
+
+#[derive(serde::Deserialize, serde::Serialize, Debug, Clone, PartialEq)]
+pub struct RiverWaypointCsv {
+    pub river_waypoint_id: i64,
+    pub river_id: i64,
+    pub user_id: i64,
+    pub waypoint_name: String,
+    pub description: String,
+    pub latitude: f64,
+    pub longitude: f64,
+    pub created_at: i64,
+    pub updated_at: i64,
+}

@@ -321,19 +321,21 @@ mod tests {
     #[sqlx::test()]
     async fn user_login_test(conn: sqlx::SqlitePool) -> Result<(), anyhow::Error> {
         env_logger::builder().is_test(true).try_init().ok();
-        
+
         // first login with github
         let user = auth_or_create_user(&conn, 0, "github_id_2", "test_user").await?;
         assert_eq!(user.nickname, "test_user");
         assert_eq!(user.role, 1); // デフォルトはuser権限
 
         // second login with facebook - adding new auth to existing user
-        let user_with_facebook = auth_or_add_user_auth(&conn, user.user_id, 1, "facebook_id_2").await?;
+        let user_with_facebook =
+            auth_or_add_user_auth(&conn, user.user_id, 1, "facebook_id_2").await?;
         assert_eq!(user_with_facebook.user_id, user.user_id);
         assert_eq!(user_with_facebook.nickname, "test_user");
 
         // check - attempt to login with facebook should return the same user
-        let user_facebook_login = auth_or_create_user(&conn, 1, "facebook_id_2", "another_name").await?;
+        let user_facebook_login =
+            auth_or_create_user(&conn, 1, "facebook_id_2", "another_name").await?;
         assert_eq!(user_facebook_login.user_id, user.user_id);
         assert_eq!(user_facebook_login.nickname, "test_user");
 
@@ -386,7 +388,6 @@ mod tests {
         assert_eq!(auths[1].identity_type, 1);
         assert_eq!(auths[1].identifier, "facebook_id_2");
         Ok(())
-
     }
 
     #[sqlx::test()]
@@ -446,4 +447,3 @@ mod tests {
         Ok(())
     }
 }
-

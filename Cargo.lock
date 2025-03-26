@@ -4513,7 +4513,7 @@ dependencies = [
 [[package]]
 name = "yew-router"
 version = "0.18.0"
-source = "git+https://github.com/yewstack/yew.git?branch=master#572f595621cc535a4ace4fdc94669a9f80a8a1c9"
+source = "git+https://github.com/yewstack/yew.git?branch=master#e5b2cf361155ab80ae8630e0e4f47f7f0dcee97e"
 dependencies = [
  "gloo",
  "js-sys",
@@ -4531,7 +4531,7 @@ dependencies = [
 [[package]]
 name = "yew-router-macro"
 version = "0.18.0"
-source = "git+https://github.com/yewstack/yew.git?branch=master#572f595621cc535a4ace4fdc94669a9f80a8a1c9"
+source = "git+https://github.com/yewstack/yew.git?branch=master#e5b2cf361155ab80ae8630e0e4f47f7f0dcee97e"
 dependencies = [
  "proc-macro2",
  "quote",

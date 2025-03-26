@@ -59,8 +59,8 @@ fn main() {
             last_name = record.river_name.clone();
         }
         println!(
-            "INSERT INTO river_waypoints (river_id, user_id, waypoint_name, waypoint, description) VALUES ({}, {}, '{}', json_array({},{}), '{}');",
-            i, 1, record.waypoint_name, record.longitude, record.latitude, ""
+            "INSERT INTO river_waypoints (river_id, user_id, waypoint_name, waypoint, description) VALUES ({}, {}, '{}', json_array({},{}), '');",
+            i, 1, record.waypoint_name, record.longitude, record.latitude
         );
     }
 }
