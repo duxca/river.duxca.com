@@ -1,5 +1,5 @@
 dbs:
-  - path: ./river.db
+  - path: river.db
     replicas:
       - type: gcs
         bucket: duxca-litestream-sandbox

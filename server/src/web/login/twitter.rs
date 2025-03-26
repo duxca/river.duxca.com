@@ -227,7 +227,7 @@ pub fn login_db<'a, 'c>(
             Ok(Some(user))
         } else {
             log::info!("signup: {:?}", user_info.username);
-            let user = db::user::auth_or_create_user(&mut *db, 2, &user_info.id, &user_info.name)
+            let user = db::user::auth_or_create_user(&mut *db, 2, &user_info.id, &user_info.username)
                 .await
                 .map_err(|o| dbg!(o))?;
             dbg!(&user);

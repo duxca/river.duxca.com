@@ -318,6 +318,76 @@ pub fn list_access_logs<'a, 'c>(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[sqlx::test()]
+    async fn user_login_test(conn: sqlx::SqlitePool) -> Result<(), anyhow::Error> {
+        env_logger::builder().is_test(true).try_init().ok();
+        
+        // first login with github
+        let user = auth_or_create_user(&conn, 0, "github_id_2", "test_user").await?;
+        assert_eq!(user.nickname, "test_user");
+        assert_eq!(user.role, 1); // デフォルトはuser権限
+
+        // second login with facebook - adding new auth to existing user
+        let user_with_facebook = auth_or_add_user_auth(&conn, user.user_id, 1, "facebook_id_2").await?;
+        assert_eq!(user_with_facebook.user_id, user.user_id);
+        assert_eq!(user_with_facebook.nickname, "test_user");
+
+        // check - attempt to login with facebook should return the same user
+        let user_facebook_login = auth_or_create_user(&conn, 1, "facebook_id_2", "another_name").await?;
+        assert_eq!(user_facebook_login.user_id, user.user_id);
+        assert_eq!(user_facebook_login.nickname, "test_user");
+
+        // show and check users join user_auths table
+        let auths = sqlx::query_as!(
+            model::user::UserAuth,
+            r#"
+            SELECT
+                user_id,
+                identity_type,
+                identifier,
+                created_at
+            FROM user_auths
+            WHERE user_auths.user_id = ?1
+            "#,
+            user.user_id
+        )
+        .fetch_all(&conn)
+        .await?;
+        assert_eq!(auths.len(), 2);
+        assert_eq!(auths[0].identity_type, 0);
+        assert_eq!(auths[0].identifier, "github_id_2");
+        assert_eq!(auths[1].identity_type, 1);
+        assert_eq!(auths[1].identifier, "facebook_id_2");
+
+        // check - attempt to login with github should return the same user
+        let user = auth_or_create_user(&conn, 0, "github_id_2", "test_user").await?;
+        assert_eq!(user.nickname, "test_user");
+        assert_eq!(user.role, 1); // デフォルトはuser権限
+        assert_eq!(user_facebook_login.user_id, user.user_id);
+
+        let auths = sqlx::query_as!(
+            model::user::UserAuth,
+            r#"
+            SELECT
+                user_id,
+                identity_type,
+                identifier,
+                created_at
+            FROM user_auths
+            WHERE user_auths.user_id = ?1
+            "#,
+            user.user_id
+        )
+        .fetch_all(&conn)
+        .await?;
+        assert_eq!(auths.len(), 2);
+        assert_eq!(auths[0].identity_type, 0);
+        assert_eq!(auths[0].identifier, "github_id_2");
+        assert_eq!(auths[1].identity_type, 1);
+        assert_eq!(auths[1].identifier, "facebook_id_2");
+        Ok(())
+
+    }
 
     #[sqlx::test()]
     async fn user_lifecycle_test(conn: sqlx::SqlitePool) -> Result<(), anyhow::Error> {
@@ -376,3 +446,4 @@ mod tests {
         Ok(())
     }
 }
+

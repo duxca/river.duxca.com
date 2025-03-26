@@ -33,5 +33,5 @@ CREATE TABLE access_logs (
 );
 
 -- add admin user
-INSERT INTO users (nickname, role) VALUES ('legokichi', 1);
-INSERT INTO user_auths (user_id, identity_type, identifier) VALUES (1, 1, '2429307'); -- github
+INSERT INTO users (nickname, role) VALUES ('legokichi', 0);
+INSERT INTO user_auths (user_id, identity_type, identifier) VALUES (1, 0, '2429307'); -- github

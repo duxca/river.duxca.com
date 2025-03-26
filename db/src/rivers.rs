@@ -261,20 +261,17 @@ mod tests {
         .await?;
         let user_id = row.user_id;
 
-        // 最初は川が0件であることを確認
-        let (rivers, next, total) = list_rivers(&conn, None, None).await?;
-        assert!(rivers.is_empty());
-        assert_eq!(next, 0);
-        assert_eq!(total, 0);
+        // 最初は川がn件であることを確認
+        let (_rivers, _offset, first_river_count) = list_rivers(&conn, None, None).await?;
 
         // 川を作成
         let river_id = create_river(&conn, "多摩川", (35.6435548, 139.7537994)).await?;
 
         // 川が1件取得できることを確認
-        let (rivers, next, total) = list_rivers(&conn, None, None).await?;
+        let (rivers, next, total) = list_rivers(&conn, Some(first_river_count), Some(1)).await?;
         assert_eq!(rivers.len(), 1);
-        assert_eq!(next, 1);
-        assert_eq!(total, 1);
+        assert_eq!(next, first_river_count + 1);
+        assert_eq!(total, first_river_count + 1);
         assert_eq!(rivers[0].river_name, "多摩川");
         assert_eq!(
             serde_json::to_string(&rivers[0].waypoint).unwrap(),
