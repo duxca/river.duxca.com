@@ -1,3 +1,7 @@
+
+![workflow](https://github.com/legokichi/river.duxca.com/actions/workflows/rust.yml/badge.svg)
+
+
 ## 初回デプロイ
 
 1. `./cli/reset_remote_db.bash`
