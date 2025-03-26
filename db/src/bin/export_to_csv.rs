@@ -1,7 +1,7 @@
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
-    use model::river::{RiverCsv, RiverTrackCsv, RiverWaypointCsv};
     use csv::Writer;
+    use model::river::{RiverCsv, RiverTrackCsv, RiverWaypointCsv};
 
     let pool = db::connect("river.db").await?;
     let mut conn = pool.acquire().await?;
