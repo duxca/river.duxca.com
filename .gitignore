@@ -2,7 +2,6 @@ browser/node_modules
 browser/target
 browser/dist
 db/target
-db/litestream
 server/.env
 target
 .env
