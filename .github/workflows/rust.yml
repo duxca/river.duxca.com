@@ -6,7 +6,6 @@ env:
   POOL_ID: githubaction
   PROVIDER_ID: github
   PROVIDER_NAME: projects/${{ env.PROJECT_NUMBER }}/locations/global/workloadIdentityPools/${{ env.POOL_ID }}/providers/${{ env.PROVIDER_ID }}
-  principalSet://iam.googleapis.com/projects/93254674393/locations/global/workloadIdentityPools/githubaction/attribute.repository/legokichi/river.duxca.com
   NAME: asia-northeast1-docker.pkg.dev/duxca-298210/cloud-run-source-deploy/litestream-sandbox:latest
 
 on:
