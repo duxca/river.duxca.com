@@ -8,7 +8,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
     // Export rivers
     let rivers = db::rivers::list_rivers_all(&mut conn).await?;
-    let mut wtr = Writer::from_path("rivers.csv")?;
+    let mut wtr = Writer::from_writer(std::io::stdout());
     for river in &rivers {
         let waypoint: Vec<f64> = serde_json::from_value(river.waypoint.clone())?;
         wtr.serialize(RiverCsv {
@@ -20,10 +20,10 @@ async fn main() -> Result<(), anyhow::Error> {
         })?;
     }
     wtr.flush()?;
-    println!("Exported rivers to rivers.csv");
+    eprintln!("Exported rivers to stdout");
 
     // Export river tracks
-    let mut wtr = Writer::from_path("river_tracks.csv")?;
+    let mut wtr = Writer::from_writer(std::io::stdout());
     for river in &rivers {
         let tracks = db::river_tracks::list_river_tracks_all(&mut conn, river.river_id).await?;
         for track in tracks {
@@ -40,10 +40,10 @@ async fn main() -> Result<(), anyhow::Error> {
         }
     }
     wtr.flush()?;
-    println!("Exported river tracks to river_tracks.csv");
+    eprintln!("Exported river tracks to stdout");
 
     // Export river waypoints
-    let mut wtr = Writer::from_path("river_waypoints.csv")?;
+    let mut wtr = Writer::from_writer(std::io::stdout());
     for river in &rivers {
         let waypoints =
             db::river_waypoints::list_river_waypoints_all(&mut conn, river.river_id).await?;
@@ -63,7 +63,7 @@ async fn main() -> Result<(), anyhow::Error> {
         }
     }
     wtr.flush()?;
-    println!("Exported river waypoints to river_waypoints.csv");
+    eprintln!("Exported river waypoints to stdout");
 
     Ok(())
 }

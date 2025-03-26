@@ -1,5 +1,14 @@
 name: Rust
 
+env:
+  PROJECT_ID: duxca-298210
+  PROJECT_NUMBER: 93254674393
+  POOL_ID: githubaction
+  PROVIDER_ID: github
+  PROVIDER_NAME: projects/${{ env.PROJECT_NUMBER }}/locations/global/workloadIdentityPools/${{ env.POOL_ID }}/providers/${{ env.PROVIDER_ID }}
+  principalSet://iam.googleapis.com/projects/93254674393/locations/global/workloadIdentityPools/githubaction/attribute.repository/legokichi/river.duxca.com
+  NAME: asia-northeast1-docker.pkg.dev/duxca-298210/cloud-run-source-deploy/litestream-sandbox:latest
+
 on:
   push:
     branches: [ "main" ]
@@ -8,7 +17,7 @@ on:
 
 jobs:
   fmt:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
     - uses: actions/checkout@v4
     - uses: dtolnay/rust-toolchain@stable
@@ -20,7 +29,7 @@ jobs:
     - run: find . -name Cargo.toml -execdir cargo tomlfmt -d \;
 
   clippy:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
     - uses: actions/checkout@v4
     - uses: dtolnay/rust-toolchain@stable
@@ -31,7 +40,7 @@ jobs:
     - run: cargo clippy --all-targets --all-features -- -Dwarnings
 
   test:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
     - uses: actions/checkout@v4
     - uses: dtolnay/rust-toolchain@stable
@@ -40,7 +49,7 @@ jobs:
     - run: cargo test
 
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
     - uses: actions/checkout@v4
     - uses: dtolnay/rust-toolchain@stable
@@ -49,3 +58,21 @@ jobs:
     - run: cargo install cross --git https://github.com/cross-rs/cross
     - run: CROSS_NO_WARNINGS=0 make all
 
+  deploy:
+    if: ${{ github.ref == 'refs/heads/main' || github.base_ref == 'main' }}
+    needs: [ fmt, clippy, test ]
+    runs-on: ubuntu-24.04
+    steps:
+    - uses: actions/checkout@v4
+    - uses: "google-github-actions/auth@v2"
+      with:
+        workload_identity_provider: ${{ env.PROVIDER_NAME }}
+        project_id: ${{ env.PROJECT_ID }}
+    - uses: google-github-actions/setup-gcloud@v2
+    - run: gcloud auth configure-docker
+    - run: |
+        docker build . --tag=${{ env.NAME }}
+        docker push ${{ env.NAME }}
+    - uses: google-github-actions/deploy-cloudrun@v2
+      with:
+        metadata: assets/metadata.yaml
