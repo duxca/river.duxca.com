@@ -2,27 +2,30 @@
 ![workflow](https://github.com/legokichi/river.duxca.com/actions/workflows/rust.yml/badge.svg)
 
 
-## 初回デプロイ
-
-1. `./cli/reset_remote_db.bash`
-1. `./cli/deploy.bash`
-
-## 運用
-
-1. `./cli/deploy.bash`
-
-
-
-
 ## cloud run 環境作成までの道のり
 
-
 ### サービスアカウントの作成
+- ふたつ作る必要がある
+- cloudrun 実行用のやつ、deployの引数にわたす
+  - https://zenn.dev/nbstsh/scraps/96a5919e94ac2f
+  - `roles/secretmanager.secretAccessor`
+- litestream用のやつ、secret managerでマウントしてファイルで渡す
+  - cloud run 環境内から gcp へアクセスするため
+  - storage access(管理者)が必要
+    - storage.buckets.get
+    - storage.buckets.getIamPolicy
+    - storage.buckets.update
+    - storage.objects.create
+    - storage.objects.delete
+    - storage.objects.get
+    - storage.objects.getIamPolicy
+    - storage.objects.list
+    - storage.objects.update
+    - resourcemanager.projects.get
+    - resourcemanager.projects.list
+    - storage.managedFolders.get
+    - storage.managedFolders.list
 
-- https://zenn.dev/nbstsh/scraps/96a5919e94ac2f
-- cloud run 環境内から gcp へアクセスするため
-- `roles/secretmanager.secretAccessor`
-- storage access
 
 ```
 gcloud iam service-accounts create ...
@@ -36,6 +39,16 @@ gcloud secrets add-iam-policy-binding ...
 
 ```
 gcloud secrets create ...
+```
+
+- cloud run ごとにシークレットは共通状態なので管理はデプロイとは別にしないとけない
+- https://cloud.google.com/run/docs/configuring/services/secrets?hl=ja
+
+```
+gcloud run services update ... \
+  --clear-secrets
+gcloud run services describe ...
+
 ```
 
 ### gar へ docker push するための設定
@@ -121,6 +134,8 @@ gcloud run deploy ... \
 - https://litestream.io/guides/gcs/
 - https://zenn.dev/voluntas/scraps/f4939cbe92525c
 - https://zenn.dev/oubakiou/articles/382839bfc65931
+- https://qiita.com/faable01/items/ac7418d671c6db5b966f
+- https://qiita.com/hide_seki/items/f18a6b4d788738b3f8e4
 
 ### ジオグラフィカ
 - https://note.com/keizi666/

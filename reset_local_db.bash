@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -euxo pipefail
+set -euxvo pipefail
 
 pushd db
 sqlx database reset -y

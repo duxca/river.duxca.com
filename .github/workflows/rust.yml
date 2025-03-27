@@ -57,7 +57,7 @@ jobs:
     - run: CROSS_NO_WARNINGS=0 make all
 
   deploy:
-    if: ${{ github.ref == 'refs/heads/main' || github.base_ref == 'main' }}
+    if: ${{ github.ref == 'refs/heads/production' || github.base_ref == 'production' }}
     needs: [ fmt, clippy, test ]
     runs-on: ubuntu-24.04
     steps:

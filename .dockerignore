@@ -1,3 +1,7 @@
-target/
-web/
-.github
+.github/
+.git/
+.river.db-litestream/
+db/.river.db-litestream/
+db/*.csv
+*.bash
+

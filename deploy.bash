@@ -1,11 +1,11 @@
 #!/bin/bash
-set -euxo pipefail
+set -euxvo pipefail
 
-NAME=asia-northeast1-docker.pkg.dev/duxca-298210/cloud-run-source-deploy/litestream-sandbox:latest
-#docker build . --tag=$NAME
-#docker push $NAME
+
+docker build . --tag=asia-northeast1-docker.pkg.dev/duxca-298210/cloud-run-source-deploy/litestream-sandbox:latest
+docker push asia-northeast1-docker.pkg.dev/duxca-298210/cloud-run-source-deploy/litestream-sandbox:latest
 gcloud run deploy litestream-sandbox\
-  --image=$NAME \
+  --image=asia-northeast1-docker.pkg.dev/duxca-298210/cloud-run-source-deploy/litestream-sandbox:latest \
   --region=asia-northeast1 \
   --execution-environment=gen1 \
   --cpu=1 \
@@ -17,13 +17,13 @@ gcloud run deploy litestream-sandbox\
   --no-cpu-boost \
   --cpu-throttling \
   --service-account river-container@duxca-298210.iam.gserviceaccount.com \
+  --update-secrets=FACEBOOK_CLIENT_ID=FACEBOOK_CLIENT_ID:1 \
+  --update-secrets=FACEBOOK_CLIENT_SECRET=FACEBOOK_CLIENT_SECRET:1 \
+  --update-secrets=GITHUB_CLIENT_ID=GITHUB_CLIENT_ID:1 \
+  --update-secrets=GITHUB_CLIENT_SECRET=GITHUB_CLIENT_SECRET:1 \
+  --update-secrets=TWITTER_CLIENT_ID=TWITTER_CLIENT_ID:1 \
+  --update-secrets=TWITTER_CLIENT_SECRET=TWITTER_CLIENT_SECRET:1 \
+  --update-secrets=/etc/key.json=GOOGLE_APPLICATION_CREDENTIALS:3 \
   --update-env-vars=GOOGLE_APPLICATION_CREDENTIALS=/etc/key.json \
-#  --update-secrets=/etc/key.json=GOOGLE_APPLICATION_CREDENTIALS:1 \
-#  --update-secrets=FACEBOOK_CLIENT_ID=FACEBOOK_CLIENT_ID:1 \
-#  --update-secrets=FACEBOOK_CLIENT_SECRET=FACEBOOK_CLIENT_SECRET:1 \
-#  --update-secrets=GITLAB_CLIENT_ID=GITLAB_CLIENT_ID:1 \
-#  --update-secrets=GITLAB_CLIENT_SECRET=GITLAB_CLIENT_SECRET:1 \
-#  --update-secrets=TWITTER_CLIENT_ID=TWITTER_CLIENT_ID:1 \
-#  --update-secrets=TWITTER_CLIENT_SECRET=TWITTER_CLIENT_SECRET:1
-#  --use-http2 \
   --allow-unauthenticated
+

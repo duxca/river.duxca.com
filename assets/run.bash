@@ -1,9 +1,15 @@
 #!/bin/bash
 
-set -euxo pipefail
+set -euxvo pipefail
 
 rm -f ./river.db
 
-./litestream restore -if-replica-exists -config ./litestream.yml ./river.db
-./litestream replicate -exec ./server -config ./litestream.yml
+env | sort
+cat $GOOGLE_APPLICATION_CREDENTIALS
+cat .env | sort
+export GOOGLE_APPLICATION_CREDENTIALS=./key.json
+cat ./ litestream.yml
+./server
+#./litestream restore -config ./litestream.yml -if-replica-exists ./river.db
+#./litestream replicate -config ./litestream.yml -exec ./server
 

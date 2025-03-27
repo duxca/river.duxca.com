@@ -72,6 +72,25 @@ async fn main() -> Result<(), anyhow::Error> {
         }
     };
     let backend = crate::web::login::Backend::new(pool.clone(), backend_settings);
+
+    let governor_conf = tower_governor::governor::GovernorConfigBuilder::default()
+        .per_second(2)
+        .burst_size(5)
+        .use_headers()
+        .finish()?;
+    let governor_conf = std::sync::Arc::new(governor_conf);
+
+    // tokio::spawn({
+    //     let governor_limiter = governor_conf.limiter().clone();
+    //     async move {
+    //         loop {
+    //             tokio::time::sleep(std::time::Duration::from_secs(60)).await;
+    //             tracing::info!("rate limiting storage size: {}", governor_limiter.len());
+    //             governor_limiter.retain_recent();
+    //         }
+    //     }
+    // });
+
     let app = axum::Router::new()
         .route(
             "/version",

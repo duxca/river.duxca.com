@@ -66,8 +66,9 @@ RUN \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/*
 
+COPY --from=builder /app/db/key.json /app/key.json
+COPY --from=builder /app/db/river.db /app/river.db
 COPY --from=builder /app/db/litestream /app/litestream
-#COPY --from=builder /app/key.json /app/key.json
 COPY --from=builder /app/db/litestream.yml /app/litestream.yml
 COPY --from=builder /app/assets/run.bash /app/run.bash
 COPY --from=builder /app/server/.env /app/.env

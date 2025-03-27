@@ -157,8 +157,7 @@ fn app() -> Html {
             if **loggedin {
                 wasm_bindgen_futures::spawn_local(async move {
                     let res = crate::api::call::<model::api::list_rivers::Response>(
-                        model::api::list_rivers::Request {
-                        },
+                        model::api::list_rivers::Request {},
                     )
                     .await
                     .unwrap();

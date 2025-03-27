@@ -36,6 +36,7 @@ tower-http = { version = "0.6.2", features = ["trace", "compression-zstd", "cors
 tower-sessions = { version = "0.14.0", features = ["signed", ] }
 tower-sessions-core = { version = "0.14.0", features = ["deletion-task"] }
 tower-sessions-sqlx-store = { version = "0.15", features = ["sqlite"] }
+tower_governor = "0.7"
 tracing = "0.1"
 tracing-futures = { version = "0.2.5", features = ["tokio"] }
 tracing-log = "0.2"
