@@ -5,7 +5,7 @@ pub enum UnAuthRequest {}
 pub enum UnAuthResponse {}
 
 /// POST /api
-// #[tracing::instrument(level = "trace", skip(st))]
+#[tracing::instrument(level = "trace", skip(auth_session, st))]
 pub async fn api(
     auth_session: axum_login::AuthSession<crate::web::login::Backend>,
     axum::extract::State(ref st): axum::extract::State<crate::web::State>,

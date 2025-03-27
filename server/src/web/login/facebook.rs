@@ -6,14 +6,16 @@ const CSRF_STATE_KEY: &str = "oauth.csrf-state";
 const REDIRECT_PATH: &str = "/oauth/callback/facebook";
 
 #[derive(Debug, serde::Deserialize)]
-pub struct LoginForm {}
+pub struct LoginForm {
+    pub redirect: Option<String>,
+}
 
 /// POST /login/facebook
 #[tracing::instrument(level = "trace", skip(auth_session, session))]
 pub async fn login(
     auth_session: axum_login::AuthSession<crate::web::login::Backend>,
     session: tower_sessions::Session,
-    axum::Form(LoginForm {}): axum::Form<LoginForm>,
+    axum::Form(LoginForm {redirect}): axum::Form<LoginForm>,
 ) -> Result<impl axum::response::IntoResponse, crate::web::Ise> {
     use anyhow::Context;
     use axum::response::IntoResponse;
@@ -36,6 +38,12 @@ pub async fn login(
         .insert(CSRF_STATE_KEY, csrf_state.secret())
         .await
         .context("Failed to insert CSRF state into session")?;
+    if let Some(redirect) = redirect {
+        session
+            .insert("redirect", redirect)
+            .await
+            .context("Failed to insert redirect into session")?;
+    }
     session
         .save()
         .await
@@ -98,7 +106,12 @@ pub async fn callback(
             .into_response());
     };
     auth_session.login(&user).await?;
-    Ok(axum::response::Redirect::to("/").into_response())
+    let redirect    = session.get::<String>("redirect").await?;
+    if let Some(redirect) = redirect {
+        Ok(axum::response::Redirect::to(&redirect).into_response())
+    } else {
+        Ok(axum::response::Redirect::to("/").into_response())
+    }
 }
 
 #[tracing::instrument(level = "trace")]
@@ -153,11 +166,15 @@ pub async fn get_me(access_token: &oauth2::AccessToken) -> Result<UserInfo, anyh
         .send()
         .await
         .context("Failed to send request to Facebook API")?;
+    let status = res.status();
     let user_info = res
         .text()
         .await
         .context("Failed to read Facebook API response")?;
     log::debug!("{}", user_info);
+    if status != 200 {
+        return Err(anyhow::anyhow!("Failed to get user info from Facebook API"));
+    }
     let user_info = serde_json::from_str::<UserInfo>(&user_info)
         .context("Failed to parse Facebook user info JSON")?;
     Ok(user_info)

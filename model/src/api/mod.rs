@@ -1,8 +1,8 @@
 pub mod get_me;
 pub mod get_river;
-pub mod list_access_logs;
+// pub mod list_access_logs;
 pub mod list_rivers;
-pub mod list_users;
+// pub mod list_users;
 // pub mod update_river_waypoint;
 // pub mod create_river_waypoint;
 
@@ -21,8 +21,8 @@ pub enum Request {
     // CreateRiverWaypoint(crate::api::create_river_waypoint::Request),
     GetMe(crate::api::get_me::Request),
     GetRiver(crate::api::get_river::Request),
-    ListUsers(crate::api::list_users::Request),
-    ListAccessLogs(crate::api::list_access_logs::Request),
+    // ListUsers(crate::api::list_users::Request),
+    // ListAccessLogs(crate::api::list_access_logs::Request),
     ListRivers(crate::api::list_rivers::Request),
     // UpdateRiverWaypoint(crate::api::update_river_waypoint::Request),
 }
@@ -42,8 +42,8 @@ pub enum Response {
     // CreateRiverWaypoint(crate::api::create_river_waypoint::Response),
     GetMe(crate::api::get_me::Response),
     GetRiver(crate::api::get_river::Response),
-    ListUser(crate::api::list_users::Response),
-    ListAccessLogs(crate::api::list_access_logs::Response),
+    // ListUser(crate::api::list_users::Response),
+    // ListAccessLogs(crate::api::list_access_logs::Response),
     ListRivers(crate::api::list_rivers::Response),
     // ListFieildSpot(crate::api::list_river_spots::Response),
     // UpdateRiverWaypoint(crate::api::update_river_waypoint::Response),
@@ -70,8 +70,8 @@ impl Request {
             // default user
             let flag = match self {
                 crate::api::Request::GetMe(..) => true,
-                crate::api::Request::ListUsers(..) => false,
-                crate::api::Request::ListAccessLogs(..) => false,
+                // crate::api::Request::ListUsers(..) => false,
+                // crate::api::Request::ListAccessLogs(..) => false,
                 crate::api::Request::ListRivers(..) => true,
                 crate::api::Request::GetRiver(..) => true,
                 // crate::api::Request::ListRiverWaypoints(..) => true,

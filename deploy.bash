@@ -16,7 +16,6 @@ gcloud run deploy litestream-sandbox\
   --min-instances=0 \
   --no-cpu-boost \
   --cpu-throttling \
-  --service-account river-container@duxca-298210.iam.gserviceaccount.com \
   --update-secrets=FACEBOOK_CLIENT_ID=FACEBOOK_CLIENT_ID:1 \
   --update-secrets=FACEBOOK_CLIENT_SECRET=FACEBOOK_CLIENT_SECRET:1 \
   --update-secrets=GITHUB_CLIENT_ID=GITHUB_CLIENT_ID:1 \
@@ -25,5 +24,5 @@ gcloud run deploy litestream-sandbox\
   --update-secrets=TWITTER_CLIENT_SECRET=TWITTER_CLIENT_SECRET:1 \
   --update-secrets=/etc/key.json=GOOGLE_APPLICATION_CREDENTIALS:3 \
   --update-env-vars=GOOGLE_APPLICATION_CREDENTIALS=/etc/key.json \
+  --service-account river-container@duxca-298210.iam.gserviceaccount.com \
   --allow-unauthenticated
-

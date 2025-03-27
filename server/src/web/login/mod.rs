@@ -55,7 +55,7 @@ impl axum_login::AuthnBackend for Backend {
     type Credentials = Credentials;
     type Error = BackendError;
 
-    // #[tracing::instrument(level = "trace")]
+    #[tracing::instrument(level = "trace", skip(self))]
     async fn authenticate(
         &self,
         creds: Self::Credentials,
@@ -101,7 +101,7 @@ impl axum_login::AuthnBackend for Backend {
         }
     }
 
-    // #[tracing::instrument(level = "trace")]
+    #[tracing::instrument(level = "trace", skip(self))]
     async fn get_user(
         &self,
         user_id: &axum_login::UserId<Self>,

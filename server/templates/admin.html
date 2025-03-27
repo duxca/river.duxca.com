@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>admin</title>
+</head>
+
+<body>
+    <h1>admin</h1>
+    <table>
+        <tr>
+            <td>user_id</td>
+            <td>nickname</td>
+            <td>role</td>
+            <td>created_at</td>
+        </tr>
+        {% for user in users %}
+        <tr>
+            <td>{{user.user_id}}</td>
+            <td>{{user.nickname}}</td>
+            <td>{{user.role}}</td>
+            <td>{{user.created_at}}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    <table>
+        <tr>
+            <th>access_log_id</th>
+            <th>user_id</th>
+            <th>request</th>
+            <th>created_at</th>
+        </tr>
+        {% for access_log in access_logs %}
+        <tr>
+            <td>{{access_log.access_log_id}}</td>
+            <td>{{access_log.user_id}}</td>
+            <td>{{access_log.request}}</td>
+            <td>{{access_log.created_at}}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+
+</html>

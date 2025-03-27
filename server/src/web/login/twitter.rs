@@ -7,18 +7,19 @@ const USER_URL: &str = "https://api.x.com/2/users/me";
 const CSRF_STATE_KEY: &str = "oauth.csrf-state";
 // https://developer.x.com/en/portal/projects-and-apps
 const REDIRECT_PATH: &str = "/oauth/callback/twitter";
-
 const PKCE_CODE_VERIFIER: &str = "PKCE";
 
 #[derive(Debug, serde::Deserialize)]
-pub struct LoginForm {}
+pub struct LoginForm {
+    pub redirect: Option<String>,
+}
 
 /// POST /login/twitter
 #[tracing::instrument(level = "trace", skip(auth_session, session))]
 pub async fn login(
     auth_session: axum_login::AuthSession<crate::web::login::Backend>,
     session: tower_sessions::Session,
-    axum::Form(LoginForm {}): axum::Form<LoginForm>,
+    axum::Form(LoginForm { redirect }): axum::Form<LoginForm>,
 ) -> Result<impl axum::response::IntoResponse, crate::web::Ise> {
     use anyhow::Context;
     use axum::response::IntoResponse;
@@ -53,6 +54,12 @@ pub async fn login(
         .insert(PKCE_CODE_VERIFIER, pkce_verifier.secret())
         .await
         .context("PKCEベリファイアの保存に失敗")?;
+    if let Some(redirect) = redirect {
+        session
+            .insert("redirect", redirect)
+            .await
+            .context("Failed to insert redirect into session")?;
+    }
     session.save().await.context("セッションの保存に失敗")?;
 
     //https://x.com/i/oauth2/authorize?
@@ -142,7 +149,12 @@ pub async fn callback(
         .login(&user)
         .await
         .context("セッションへのユーザーログインに失敗")?;
-    Ok(axum::response::Redirect::to("/").into_response())
+    let redirect    = session.get::<String>("redirect").await?;
+    if let Some(redirect) = redirect {
+        Ok(axum::response::Redirect::to(&redirect).into_response())
+    } else {
+        Ok(axum::response::Redirect::to("/").into_response())
+    }
 }
 
 #[tracing::instrument(level = "trace")]
@@ -172,14 +184,19 @@ pub async fn get_access_token(
     let access_token = token_res.access_token().clone();
     Ok(access_token)
 }
+
 #[derive(Debug, serde::Deserialize)]
 pub struct UserInfoWrapper {
     pub data: UserInfo,
 }
+
 #[derive(Debug, serde::Deserialize)]
 pub struct UserInfo {
     pub id: String,
+    // duxca
+    #[allow(dead_code)]
     pub name: String,
+    // legokichi
     pub username: String,
 }
 
@@ -196,11 +213,15 @@ pub async fn get_me(access_token: &oauth2::AccessToken) -> Result<UserInfo, anyh
         .send()
         .await
         .context("Twitterユーザー情報の取得リクエストに失敗")?;
+    let status = res.status();
     let user_info = res
         .text()
         .await
         .context("Twitterユーザー情報のレスポンス取得に失敗")?;
     log::debug!("{}", user_info);
+    if status != 200 {
+        return Err(anyhow::anyhow!("Twitterユーザー情報の取得に失敗"));
+    }
     let user_info = serde_json::from_str::<UserInfoWrapper>(&user_info)
         .context("Twitterユーザー情報のJSONパースに失敗")?;
     Ok(user_info.data)

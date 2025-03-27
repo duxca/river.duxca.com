@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>ログイン</title>
+    </head>
+    <body>
+        <h1>ログイン</h1>
+        <form method="post" action="/login/github">
+            <input type="submit" value="GitHub Login" />
+            <input type="hidden" name="redirect" value="{{redirect}}" />
+        </form>
+        <form method="post" action="/login/facebook">
+            <input type="submit" value="Facebook Login" />
+            <input type="hidden" name="redirect" value="{{redirect}}" />
+        </form>
+        <form method="post" action="/login/twitter">
+            <input type="submit" value="twitter Login" />
+            <input type="hidden" name="redirect" value="{{redirect}}" />
+        </form>
+    </body>
+</html>

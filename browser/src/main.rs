@@ -15,6 +15,7 @@ enum EditMode {
     Home,
     AddRoute(AddRouteMode),
     AddWaypoint,
+    #[allow(dead_code)]
     RemoveWaypoint(RemoveWaypointMode),
 }
 #[derive(Debug, PartialEq, Clone, Default)]
@@ -124,10 +125,10 @@ fn app() -> Html {
                             .into_iter()
                             .map(JsValue::from)
                             .collect::<js_sys::Array>();
-                        let line = leaflet::Polyline::new(&arr).add_to(map);
+                        let line = leaflet::Polyline::new(arr).add_to(map);
                         o.layers.push(std::rc::Rc::new(O(line)));
                         console::log!(map.distance(&a, &b));
-                        o.distance = o.distance + map.distance(&a, &b);
+                        o.distance += map.distance(&a, &b);
                     }
                     o.last_point = Some(pt);
                     edit_mode.set(EditMode::AddRoute(o.clone()));
@@ -144,7 +145,7 @@ fn app() -> Html {
                     model::api::get_me::Request {},
                 )
                 .await;
-                if let Ok(res) = res {
+                if let Ok(_res) = res {
                     loggedin.set(true);
                 }
             });
@@ -341,7 +342,7 @@ fn app() -> Html {
                     } else if let EditMode::RemoveWaypoint(ref o) = *edit_mode {
                         <riverset>
                             <legend>{"RemoveWaypoint"}</legend>
-                            if let Some(target) = o.target {
+                            if let Some(_target) = o.target {
                                 <div>{"Select Waypoint"}</div>
                             } else {
                                 <div>{"Remove Waypoint"}</div>
@@ -352,15 +353,12 @@ fn app() -> Html {
             }else{
                 <form method="post" action="/login/github">
                     <input type="submit" value="GitHub Login" />
-                    <input type="hidden" name="provider" value="github" />
                 </form>
                 <form method="post" action="/login/facebook">
                     <input type="submit" value="Facebook Login" />
-                    <input type="hidden" name="provider" value="facebook" />
                 </form>
                 <form method="post" action="/login/twitter">
                     <input type="submit" value="twitter Login" />
-                    <input type="hidden" name="provider" value="twitter" />
                 </form>
             }
         </>

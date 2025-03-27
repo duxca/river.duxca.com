@@ -9,6 +9,7 @@ local = []
 
 [dependencies]
 anyhow = "1"
+askama = "0.13.0"
 async-trait = "0.1"
 axum = "0.8"
 axum-extra = { version = "0.10", features = ["cookie"] }

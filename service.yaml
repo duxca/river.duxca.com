@@ -1,0 +1,50 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  annotations:
+    run.googleapis.com/ingress: all
+    run.googleapis.com/ingress-status: all
+    run.googleapis.com/urls: '["https://litestream-sandbox-93254674393.asia-northeast1.run.app","https://litestream-sandbox-4h2uh5x4wa-an.a.run.app"]'
+  labels:
+    cloud.googleapis.com/location: asia-northeast1
+  name: litestream-sandbox
+  namespace: '93254674393'
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/maxScale: '1'
+        run.googleapis.com/client-name: gcloud
+        run.googleapis.com/client-version: 513.0.0
+        run.googleapis.com/cpu-throttling: 'true'
+        run.googleapis.com/execution-environment: gen1
+        run.googleapis.com/startup-cpu-boost: 'false'
+      labels:
+        client.knative.dev/nonce: urwmccjjyf
+        run.googleapis.com/startupProbeType: Custom
+    spec:
+      containerConcurrency: 128
+      containers:
+      - env:
+        - name: GOOGLE_APPLICATION_CREDENTIALS
+          value: /etc/key.json
+        image: asia-northeast1-docker.pkg.dev/duxca-298210/cloud-run-source-deploy/litestream-sandbox:latest
+        ports:
+        - containerPort: 8080
+          name: http1
+        resources:
+          limits:
+            cpu: '1'
+            memory: 256Mi
+        startupProbe:
+          failureThreshold: 3
+          initialDelaySeconds: 10
+          periodSeconds: 240
+          tcpSocket:
+            port: 8080
+          timeoutSeconds: 240
+      serviceAccountName: 93254674393-compute@developer.gserviceaccount.com
+      timeoutSeconds: 3
+  traffic:
+  - latestRevision: true
+    percent: 100

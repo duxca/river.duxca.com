@@ -77,19 +77,19 @@ async fn main() -> Result<(), anyhow::Error> {
         .per_second(2)
         .burst_size(5)
         .use_headers()
-        .finish()?;
+        .finish().unwrap();
     let governor_conf = std::sync::Arc::new(governor_conf);
 
-    // tokio::spawn({
-    //     let governor_limiter = governor_conf.limiter().clone();
-    //     async move {
-    //         loop {
-    //             tokio::time::sleep(std::time::Duration::from_secs(60)).await;
-    //             tracing::info!("rate limiting storage size: {}", governor_limiter.len());
-    //             governor_limiter.retain_recent();
-    //         }
-    //     }
-    // });
+    tokio::spawn({
+        let governor_limiter = governor_conf.limiter().clone();
+        async move {
+            loop {
+                tokio::time::sleep(std::time::Duration::from_secs(60)).await;
+                tracing::info!("rate limiting storage size: {}", governor_limiter.len());
+                governor_limiter.retain_recent();
+            }
+        }
+    });
 
     let app = axum::Router::new()
         .route(
@@ -104,6 +104,10 @@ async fn main() -> Result<(), anyhow::Error> {
         .route(
             "/oauth/callback/github",
             axum::routing::get(crate::web::login::github::callback),
+        )
+        .route(
+            "/admin",
+            axum::routing::get(crate::web::admin),
         )
         .route(
             "/login/twitter",
@@ -131,6 +135,9 @@ async fn main() -> Result<(), anyhow::Error> {
         })
         .layer(tower_http::trace::TraceLayer::new_for_http())
         .layer(tower_http::compression::CompressionLayer::new())
+        .layer(tower_governor::GovernorLayer {
+            config: governor_conf,
+        })
         .with_state({
             // 一般のリクエストで DB にアクセスするための State
             crate::web::State::from_pool(pool)?

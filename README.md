@@ -74,6 +74,18 @@ gcloud run deploy ... \
 
 ```
 
+### 起動時のプローブのタイムアウトの設定
+```
+gcloud run services describe litestream-sandbox --format export > service.yaml
+```
+
+- service.yaml をごにょごにょする
+- https://cloud.google.com/run/docs/configuring/healthchecks?hl=ja
+
+```
+gcloud run services replace service.yaml
+```
+
 ### custom domain mapping で dns の設定
 
 - https://zenn.dev/mseto/articles/cloud-run-domain
