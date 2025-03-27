@@ -158,8 +158,6 @@ fn app() -> Html {
                 wasm_bindgen_futures::spawn_local(async move {
                     let res = crate::api::call::<model::api::list_rivers::Response>(
                         model::api::list_rivers::Request {
-                            offset: None,
-                            limit: Some(10000),
                         },
                     )
                     .await

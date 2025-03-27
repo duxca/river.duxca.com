@@ -12,6 +12,68 @@
 1. `./cli/deploy.bash`
 
 
+
+
+## cloud run 環境作成までの道のり
+
+
+### サービスアカウントの作成
+
+- https://zenn.dev/nbstsh/scraps/96a5919e94ac2f
+- cloud run 環境内から gcp へアクセスするため
+- `roles/secretmanager.secretAccessor`
+- storage access
+
+```
+gcloud iam service-accounts create ...
+gcloud secrets add-iam-policy-binding ...
+```
+
+### secret manager の設定
+
+- cloud run から secret manager へアクセスするためのクレデンシャルをコンテナ内部に渡す方法
+- https://blog.g-gen.co.jp/entry/secret-manager-with-cloud-run
+
+```
+gcloud secrets create ...
+```
+
+### gar へ docker push するための設定
+
+```
+gcloud artifacts repositories create ...
+gcloud auth configure-docker ...
+docker build ...
+docker push ...
+```
+
+### デプロイ
+
+- 環境変数とか https://cloud.google.com/run/docs/configuring/services/secrets?hl=ja
+
+```
+gcloud run deploy ... \
+  --image ... \
+  --service-account ... \
+  --update-env-vars=GOOGLE_APPLICATION_CREDENTIALS=/etc/key.json \
+  --update-secrets=/etc/key.json=GOOGLE_APPLICATION_CREDENTIALS:1 \
+  --update-secrets=FACEBOOK_CLIENT_ID=FACEBOOK_CLIENT_ID:1 \
+
+```
+
+### custom domain mapping で dns の設定
+
+- https://zenn.dev/mseto/articles/cloud-run-domain
+
+## github action から deploy するための設定
+- https://docs.github.com/ja/actions/security-for-github-actions/security-hardening-your-deployments/configuring-openid-connect-in-google-cloud-platform
+- https://github.com/google-github-actions/deploy-cloudrun
+- https://zenn.dev/cloud_ace/articles/7fe428ac4f25c8
+- https://zenn.dev/marblet/articles/e61c0dcafc3dba
+- Artifact Registry 書き込み
+- Cloud Run 管理者
+- サービス アカウント ユーザー
+
 ## tips
 
 ### river
