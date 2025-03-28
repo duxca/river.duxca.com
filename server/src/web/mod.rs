@@ -47,16 +47,24 @@ pub async fn admin(
     use axum::response::IntoResponse;
     if let Some(user) = auth_session.user {
         let mut conn = st.db.acquire().await?;
-
-        let (access_logs, _, _) =
-            db::user::list_access_logs(&mut conn, Some(user.user_id), 0, 100).await?;
+        let user_id = if user.role == 0 {
+            None
+        } else {
+            Some(user.user_id)
+        };
+        let (access_logs, _, _) = db::user::list_access_logs(&mut conn, user_id, 0, 100).await?;
         #[derive(Debug, askama::Template)]
         #[template(path = "admin.html")]
         struct Tmpl {
             users: Vec<model::user::User>,
             access_logs: Vec<model::user::AccessLog>,
         }
-        let users = vec![user];
+        let users = if user.role == 0 {
+            let (users, _, _) = db::user::list_users(&mut conn, 0, 100).await?;
+            users
+        } else {
+            vec![user]
+        };
         let template = Tmpl { users, access_logs };
         let body = axum::response::Html(template.render()?);
         return Ok(body.into_response());

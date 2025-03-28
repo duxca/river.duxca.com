@@ -4,15 +4,13 @@
 #[tracing::instrument(level = "trace", skip(conn))]
 pub fn list_users<'a, 'c>(
     conn: impl sqlx::Acquire<'c, Database = sqlx::Sqlite> + Send + 'a,
-    offset: Option<i64>,
-    limit: Option<i64>,
+    offset: i64,
+    limit: i64,
 ) -> impl std::future::Future<Output = Result<(Vec<model::user::User>, i64, i64), anyhow::Error>>
 + Send
 + 'a {
     async move {
         let mut conn = conn.acquire().await?;
-        let limit = limit.unwrap_or(20);
-        let offset = offset.unwrap_or(0);
         let rows = sqlx::query_as!(
             model::user::User,
             r#"

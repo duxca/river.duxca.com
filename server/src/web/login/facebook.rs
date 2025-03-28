@@ -15,7 +15,7 @@ pub struct LoginForm {
 pub async fn login(
     auth_session: axum_login::AuthSession<crate::web::login::Backend>,
     session: tower_sessions::Session,
-    axum::Form(LoginForm {redirect}): axum::Form<LoginForm>,
+    axum::Form(LoginForm { redirect }): axum::Form<LoginForm>,
 ) -> Result<impl axum::response::IntoResponse, crate::web::Ise> {
     use anyhow::Context;
     use axum::response::IntoResponse;
@@ -106,7 +106,7 @@ pub async fn callback(
             .into_response());
     };
     auth_session.login(&user).await?;
-    let redirect    = session.get::<String>("redirect").await?;
+    let redirect = session.get::<String>("redirect").await?;
     if let Some(redirect) = redirect {
         Ok(axum::response::Redirect::to(&redirect).into_response())
     } else {

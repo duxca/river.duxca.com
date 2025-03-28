@@ -149,7 +149,7 @@ pub async fn callback(
         .login(&user)
         .await
         .context("セッションへのユーザーログインに失敗")?;
-    let redirect    = session.get::<String>("redirect").await?;
+    let redirect = session.get::<String>("redirect").await?;
     if let Some(redirect) = redirect {
         Ok(axum::response::Redirect::to(&redirect).into_response())
     } else {

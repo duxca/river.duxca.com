@@ -2,16 +2,22 @@ pub mod facebook;
 pub mod github;
 pub mod twitter;
 
+#[derive(Debug, serde::Deserialize)]
+pub struct LogoutForm {
+    pub redirect: Option<String>,
+}
+
 /// POST /logout
 // #[tracing::instrument(level = "trace")]
 pub async fn logout(
     mut auth_session: axum_login::AuthSession<Backend>,
     session: tower_sessions::Session,
-    axum::Form(()): axum::Form<()>,
+    axum::Form(LogoutForm { redirect }): axum::Form<LogoutForm>,
 ) -> Result<impl axum::response::IntoResponse, crate::web::Ise> {
     auth_session.logout().await?;
     session.flush().await?;
-    Ok(axum::response::Redirect::to("/"))
+    let redirect = redirect.unwrap_or_else(|| "/".to_string());
+    Ok(axum::response::Redirect::to(&redirect))
 }
 
 #[derive(Debug, thiserror::Error)]
