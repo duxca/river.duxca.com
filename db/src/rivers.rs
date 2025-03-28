@@ -3,20 +3,24 @@
 #[tracing::instrument(level = "trace", skip(conn))]
 pub fn create_river<'a, 'c>(
     conn: impl sqlx::Acquire<'c, Database = sqlx::Sqlite> + Send + 'a,
+    user_id: i64,
     river_name: &'a str,
     waypoint: (f64, f64),
+    description: &'a str,
 ) -> impl std::future::Future<Output = Result<i64, anyhow::Error>> + Send + 'a {
     let waypoint = serde_json::json!(waypoint).to_string();
     async move {
         let mut conn = conn.acquire().await?;
         let row = sqlx::query!(
             r#"
-            INSERT INTO rivers (river_name, waypoint)
-            VALUES (?1, ?2)
+            INSERT INTO rivers (user_id, river_name, waypoint, description)
+            VALUES (?1, ?2, ?3, ?4)
             RETURNING river_id;
             "#,
+            user_id,
             river_name,
-            waypoint
+            waypoint,
+            description
         )
         .fetch_one(&mut *conn)
         .await?;
@@ -37,8 +41,10 @@ pub fn list_rivers_all<'a, 'c>(
             r#"
             SELECT
                 river_id,
+                user_id,
                 river_name,
                 waypoint AS "waypoint!: serde_json::Value",
+                description,
                 created_at
             FROM rivers
             ORDER BY river_id ASC
@@ -77,6 +83,7 @@ pub fn update_river<'a, 'c>(
 }
 
 #[allow(clippy::type_complexity)]
+#[tracing::instrument(level = "trace", skip(conn))]
 pub fn get_river<'a, 'c>(
     conn: impl sqlx::Acquire<'c, Database = sqlx::Sqlite> + Send + 'a,
     river_id: i64,
@@ -89,8 +96,10 @@ pub fn get_river<'a, 'c>(
             r#"
             SELECT
                 river_id,
+                user_id,
                 river_name,
                 waypoint AS "waypoint!: serde_json::Value",
+                description,
                 created_at
             FROM rivers
             WHERE river_id = ?1
@@ -103,6 +112,26 @@ pub fn get_river<'a, 'c>(
     }
 }
 
+#[tracing::instrument(level = "trace", skip(conn))]
+pub fn delete_river<'a, 'c>(
+    conn: impl sqlx::Acquire<'c, Database = sqlx::Sqlite> + Send + 'a,
+    river_id: i64,
+) -> impl std::future::Future<Output = Result<(), anyhow::Error>> + Send + 'a {
+    async move {
+        let mut conn = conn.acquire().await?;
+        sqlx::query!(
+            r#"
+            DELETE FROM rivers
+            WHERE river_id = ?1
+            "#,
+            river_id
+        )
+        .execute(&mut *conn)
+        .await?;
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -110,7 +139,6 @@ mod tests {
     #[sqlx::test()]
     async fn river_lifecycle_test(conn: sqlx::SqlitePool) -> Result<(), anyhow::Error> {
         env_logger::builder().is_test(true).try_init().ok();
-
         // テストユーザーを作成
         let row = sqlx::query!(
             r#"
@@ -128,7 +156,8 @@ mod tests {
         let first_river_count = rivers.len();
 
         // 川を作成
-        let river_id = create_river(&conn, "多摩川", (35.6435548, 139.7537994)).await?;
+        let river_id =
+            create_river(&conn, user_id, "多摩川", (35.6435548, 139.7537994), "").await?;
 
         // 作成した川が取得できることを確認
         let river = get_river(&conn, river_id)

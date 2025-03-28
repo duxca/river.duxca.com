@@ -237,6 +237,7 @@ pub fn add_access_log<'a, 'c>(
 #[tracing::instrument(level = "trace", skip(conn))]
 pub fn list_access_logs<'a, 'c>(
     conn: impl sqlx::Acquire<'c, Database = sqlx::Sqlite> + Send + 'a,
+    // None の場合は全ユーザーのログを取得
     user_id: Option<i64>,
     offset: i64,
     limit: i64,
@@ -314,6 +315,7 @@ pub fn list_access_logs<'a, 'c>(
 #[cfg(test)]
 mod tests {
     use super::*;
+
     #[sqlx::test()]
     async fn user_login_test(conn: sqlx::SqlitePool) -> Result<(), anyhow::Error> {
         env_logger::builder().is_test(true).try_init().ok();
@@ -418,7 +420,7 @@ mod tests {
         assert_eq!(user2.nickname, "user2");
 
         // ユーザーリストのテスト
-        let (users, next_offset, total) = list_users(&conn, None, Some(10)).await?;
+        let (users, next_offset, total) = list_users(&conn, 0, 10).await?;
         assert!(users.len() >= 2); // 初期データの admin + 作成した2ユーザー
         assert!(next_offset >= 2);
         assert!(total >= 2);

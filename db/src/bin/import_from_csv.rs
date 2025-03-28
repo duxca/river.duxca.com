@@ -12,6 +12,7 @@ async fn main() -> Result<(), anyhow::Error> {
         let record: RiverCsv = result?;
         db::rivers::create_river(
             &mut conn,
+            0,
             &record.river_name,
             (record.latitude, record.longitude),
         )
@@ -46,7 +47,7 @@ async fn main() -> Result<(), anyhow::Error> {
             record.user_id,
             record.waypoint_name,
             (record.latitude, record.longitude),
-            Some(record.description),
+            &record.description,
         )
         .await?;
     }

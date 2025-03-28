@@ -46,7 +46,7 @@ gcloud secrets create ...
 
 ```
 gcloud run services update ... \
-  --clear-secrets --clear-volumes --clear-volume-mounts
+  --clear-secrets --clear-volumes --clear-volume-mounts --clear-env-vars
 gcloud run services describe ...
 
 ```

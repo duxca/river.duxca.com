@@ -7,10 +7,9 @@ pub fn create_river_waypoint<'a, 'c>(
     user_id: i64,
     waypoint_name: String,
     waypoint: (f64, f64),
-    description: Option<String>,
+    description: &'a str,
 ) -> impl std::future::Future<Output = Result<i64, anyhow::Error>> + Send + 'a {
     let waypoint = serde_json::json!(waypoint).to_string();
-    let description = description.unwrap_or_default();
     async move {
         let mut conn = conn.acquire().await?;
         let row = sqlx::query!(
@@ -93,6 +92,26 @@ pub fn update_river_waypoint<'a, 'c>(
     }
 }
 
+#[tracing::instrument(level = "trace", skip(conn))]
+pub fn delete_river_waypoint<'a, 'c>(
+    conn: impl sqlx::Acquire<'c, Database = sqlx::Sqlite> + Send + 'a,
+    river_waypoint_id: i64,
+) -> impl std::future::Future<Output = Result<(), anyhow::Error>> + Send + 'a {
+    async move {
+        let mut conn = conn.acquire().await?;
+        sqlx::query!(
+            r#"
+            DELETE FROM river_waypoints
+            WHERE river_waypoint_id = ?1
+            "#,
+            river_waypoint_id
+        )
+        .execute(&mut *conn)
+        .await?;
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -115,21 +134,22 @@ mod tests {
 
         // 川を作成
         let river_id =
-            crate::rivers::create_river(&conn, "多摩川", (35.6435548, 139.7537994)).await?;
+            crate::rivers::create_river(&conn, user_id, "多摩川", (35.6435548, 139.7537994), "")
+                .await?;
 
         // river_waypoint を追加
-        let waypoint_id = crate::river_waypoints::create_river_waypoint(
+        let waypoint_id = create_river_waypoint(
             &conn,
             river_id,
             user_id,
             "二子玉川".to_string(),
             (35.6436000, 139.7538000),
-            Some("テスト用の川のウェイポイント".to_string()),
+            "テスト用の川のウェイポイント",
         )
         .await?;
 
         // 作成したwaypoint情報を取得して検証
-        let waypoints = crate::river_waypoints::list_river_waypoints_all(&conn, river_id).await?;
+        let waypoints = list_river_waypoints_all(&conn, river_id).await?;
         assert_eq!(waypoints.len(), 1);
         assert_eq!(waypoints[0].river_waypoint_id, waypoint_id);
         assert_eq!(waypoints[0].river_id, river_id);
@@ -138,7 +158,7 @@ mod tests {
         assert_eq!(waypoints[0].description, "テスト用の川のウェイポイント");
 
         // waypointを更新
-        crate::river_waypoints::update_river_waypoint(
+        update_river_waypoint(
             &conn,
             waypoint_id,
             "二子玉川駅".to_string(),
@@ -148,7 +168,7 @@ mod tests {
         .await?;
 
         // 更新後のwaypoint情報を取得して検証
-        let waypoints = crate::river_waypoints::list_river_waypoints_all(&conn, river_id).await?;
+        let waypoints = list_river_waypoints_all(&conn, river_id).await?;
         assert_eq!(waypoints.len(), 1);
         assert_eq!(waypoints[0].river_waypoint_id, waypoint_id);
         assert_eq!(waypoints[0].waypoint_name, "二子玉川駅");

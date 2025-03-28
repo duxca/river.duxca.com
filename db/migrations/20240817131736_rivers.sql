@@ -2,10 +2,13 @@ PRAGMA foreign_keys = ON;
 
 CREATE TABLE rivers (
   river_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+  -- 登録者
+  user_id INTEGER NOT NULL,
   river_name TEXT NOT NULL UNIQUE,
   -- 代表点の緯度経度
   -- ex. [35.6895, 139.6917]
   waypoint JSON NOT NULL,
+  description TEXT NOT NULL,
   created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
 );
 
@@ -28,6 +31,7 @@ CREATE TABLE river_tracks (
 
 CREATE TABLE river_waypoints (
   river_waypoint_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+  -- 登録者
   river_id INTEGER NOT NULL,
   user_id INTEGER NOT NULL,
   waypoint_name TEXT NOT NULL,

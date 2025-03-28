@@ -2,10 +2,12 @@
 #[cfg_attr(feature = "sql", derive(sqlx::FromRow))]
 #[serde(rename_all = "camelCase")]
 pub struct River {
+    pub user_id: i64,
     pub river_id: i64,
     pub river_name: String,
     // [lat, long]
     pub waypoint: serde_json::Value,
+    pub description: String,
     pub created_at: i64,
 }
 

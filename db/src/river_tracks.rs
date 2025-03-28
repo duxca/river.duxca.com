@@ -94,8 +94,6 @@ pub fn update_river_track<'a, 'c>(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     #[sqlx::test()]
     async fn river_tracks_lifecycle_test(conn: sqlx::SqlitePool) -> Result<(), anyhow::Error> {
         env_logger::builder().is_test(true).try_init().ok();
@@ -114,7 +112,7 @@ mod tests {
 
         // 川を作成
         let river_id =
-            crate::rivers::create_river(&conn, "多摩川", (35.6435548, 139.7537994)).await?;
+            crate::rivers::create_river(&conn, 0, "多摩川", (35.6435548, 139.7537994), "").await?;
 
         // river_track を追加
         let track_id = crate::river_tracks::create_river_track(

@@ -1,8 +1,12 @@
-// pub mod create_river_waypoint;
+pub mod create_river;
+pub mod create_river_waypoint;
+pub mod delete_river;
+pub mod delete_river_waypoint;
+pub mod get_me;
 pub mod get_river;
-// pub mod list_access_logs;
+pub mod list_access_logs;
 pub mod list_rivers;
-// pub mod list_users;
+pub mod list_users;
 
 pub async fn handler(
     db: &sqlx::sqlite::SqlitePool,
@@ -15,28 +19,41 @@ pub async fn handler(
     }
     db::user::add_access_log(&mut *conn, user.user_id, &req).await?;
     match req {
-        model::api::Request::GetMe(..) => Ok(model::api::get_me::Response { user }.into()),
-        // model::api::Request::ListUsers(req) => {
-        //     let res = crate::list_users::list_users(db, req).await?;
-        //     Ok(res.into())
-        // }
-        // model::api::Request::ListAccessLogs(req) => {
-        //     let res = crate::list_access_logs::list_access_logs(db, req).await?;
-        //     Ok(res.into())
-        // }
+        model::api::Request::GetMe(req) => {
+            let res = crate::get_me::get_me(db, user, req).await?;
+            Ok(res.into())
+        }
+        model::api::Request::ListUsers(req) => {
+            let res = crate::list_users::list_users(db, user, req).await?;
+            Ok(res.into())
+        }
+        model::api::Request::ListAccessLogs(req) => {
+            let res = crate::list_access_logs::list_access_logs(db, user, req).await?;
+            Ok(res.into())
+        }
         model::api::Request::ListRivers(req) => {
-            let res = crate::list_rivers::list_rivers(db, req).await?;
+            let res = crate::list_rivers::list_rivers(db, user, req).await?;
             Ok(res.into())
         }
         model::api::Request::GetRiver(req) => {
-            let res = crate::get_river::get_river(db, req).await?;
-            let Some(res) = res else {
-                return Ok(model::api::ErrorKind::NotFound.into());
-            };
+            let res = crate::get_river::get_river(db, user, req).await?;
             Ok(res.into())
-        } // model::api::Request::CreateRiverWaypoint(req) => {
-          //     let res = crate::create_river_waypoint::create_river_waypoint(db, req).await?;
-          //     Ok(res.into())
-          // }
+        }
+        model::api::Request::CreateRiver(req) => {
+            let res = crate::create_river::create_river(db, user, req).await?;
+            Ok(res.into())
+        }
+        model::api::Request::DeleteRiver(req) => {
+            let res = crate::delete_river::delete_river(db, user, req).await?;
+            Ok(res.into())
+        }
+        model::api::Request::CreateRiverWaypoint(req) => {
+            let res = crate::create_river_waypoint::create_river_waypoint(db, user, req).await?;
+            Ok(res.into())
+        }
+        model::api::Request::DeleteRiverWaypoint(req) => {
+            let res = crate::delete_river_waypoint::delete_river_waypoint(db, user, req).await?;
+            Ok(res.into())
+        }
     }
 }

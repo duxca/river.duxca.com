@@ -23,9 +23,10 @@ gcloud run deploy litestream-sandbox\
   --update-secrets=GITHUB_CLIENT_SECRET=GITHUB_CLIENT_SECRET:1 \
   --update-secrets=TWITTER_CLIENT_ID=TWITTER_CLIENT_ID:1 \
   --update-secrets=TWITTER_CLIENT_SECRET=TWITTER_CLIENT_SECRET:1 \
-  --update-env-vars=GOOGLE_APPLICATION_CREDENTIALS=/etc/key.json \
+  --update-secrets=GOOGLE_APPLICATION_CREDENTIALS=GOOGLE_APPLICATION_CREDENTIALS:3 \
   --allow-unauthenticated
 
 # ボリュームマウントするとlitestreamがハングする
+
+#  --update-env-vars=GOOGLE_APPLICATION_CREDENTIALS=/etc/key.json \
 #  --update-secrets=/etc/key.json=GOOGLE_APPLICATION_CREDENTIALS:3 \
-#  --service-account 93254674393-compute@developer.gserviceaccount.com \

@@ -1,10 +1,12 @@
+pub mod create_river;
+pub mod create_river_waypoint;
+pub mod delete_river;
+pub mod delete_river_waypoint;
 pub mod get_me;
 pub mod get_river;
-// pub mod list_access_logs;
+pub mod list_access_logs;
 pub mod list_rivers;
-// pub mod list_users;
-// pub mod update_river_waypoint;
-// pub mod create_river_waypoint;
+pub mod list_users;
 
 #[derive(
     Debug,
@@ -18,13 +20,15 @@ pub mod list_rivers;
 #[serde(tag = "type")]
 #[serde(rename_all = "PascalCase")]
 pub enum Request {
-    // CreateRiverWaypoint(crate::api::create_river_waypoint::Request),
     GetMe(crate::api::get_me::Request),
-    GetRiver(crate::api::get_river::Request),
-    // ListUsers(crate::api::list_users::Request),
-    // ListAccessLogs(crate::api::list_access_logs::Request),
+    ListUsers(crate::api::list_users::Request),
+    ListAccessLogs(crate::api::list_access_logs::Request),
     ListRivers(crate::api::list_rivers::Request),
-    // UpdateRiverWaypoint(crate::api::update_river_waypoint::Request),
+    GetRiver(crate::api::get_river::Request),
+    CreateRiver(crate::api::create_river::Request),
+    DeleteRiver(crate::api::delete_river::Request),
+    DeleteRiverWaypoint(crate::api::delete_river_waypoint::Request),
+    CreateRiverWaypoint(crate::api::create_river_waypoint::Request),
 }
 
 #[derive(
@@ -39,14 +43,15 @@ pub enum Request {
 #[serde(tag = "type")]
 #[serde(rename_all = "PascalCase")]
 pub enum Response {
-    // CreateRiverWaypoint(crate::api::create_river_waypoint::Response),
     GetMe(crate::api::get_me::Response),
-    GetRiver(crate::api::get_river::Response),
-    // ListUser(crate::api::list_users::Response),
-    // ListAccessLogs(crate::api::list_access_logs::Response),
+    ListUser(crate::api::list_users::Response),
+    ListAccessLogs(crate::api::list_access_logs::Response),
     ListRivers(crate::api::list_rivers::Response),
-    // ListFieildSpot(crate::api::list_river_spots::Response),
-    // UpdateRiverWaypoint(crate::api::update_river_waypoint::Response),
+    GetRiver(crate::api::get_river::Response),
+    CreateRiver(crate::api::create_river::Response),
+    DeleteRiver(crate::api::delete_river::Response),
+    CreateRiverWaypoint(crate::api::create_river_waypoint::Response),
+    DeleteRiverWaypoint(crate::api::delete_river_waypoint::Response),
     Error(ErrorKind),
 }
 
@@ -56,7 +61,6 @@ pub enum Response {
 pub enum ErrorKind {
     PermissionDenied,
     InvalidRequest,
-    NotFound,
 }
 
 impl Request {
@@ -70,15 +74,18 @@ impl Request {
             // default user
             let flag = match self {
                 crate::api::Request::GetMe(..) => true,
-                // crate::api::Request::ListUsers(..) => false,
-                // crate::api::Request::ListAccessLogs(..) => false,
+                crate::api::Request::ListUsers(..) => false,
+                crate::api::Request::ListAccessLogs(..) => false,
                 crate::api::Request::ListRivers(..) => true,
                 crate::api::Request::GetRiver(..) => true,
-                // crate::api::Request::ListRiverWaypoints(..) => true,
-                // model::api::Request::CreateRiverWaypoint(..) => false,
+                crate::api::Request::CreateRiver(..) => false,
+                crate::api::Request::DeleteRiver(..) => false,
+                crate::api::Request::DeleteRiverWaypoint(..) => true,
+                crate::api::Request::CreateRiverWaypoint(..) => true,
             };
             return flag;
         }
+        // unreachable
         false
     }
 

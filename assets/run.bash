@@ -7,7 +7,7 @@ env | sort
 ls -la /etc
 cat .env | sort
 cat ./litestream.yml
-cat $GOOGLE_APPLICATION_CREDENTIALS > ./key.json
+echo $GOOGLE_APPLICATION_CREDENTIALS > ./key.json
 export GOOGLE_APPLICATION_CREDENTIALS=./key.json
 ls -la .
 cat $GOOGLE_APPLICATION_CREDENTIALS
