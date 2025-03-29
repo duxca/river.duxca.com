@@ -108,6 +108,10 @@ async fn main() -> Result<(), anyhow::Error> {
         )
         .route("/admin", axum::routing::get(crate::web::admin::admin))
         .route(
+            "/admin/apply",
+            axum::routing::post(crate::web::admin::admin_apply),
+        )
+        .route(
             "/login/twitter",
             axum::routing::post(crate::web::login::twitter::login),
         )

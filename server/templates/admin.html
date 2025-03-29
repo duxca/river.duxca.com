@@ -3,6 +3,20 @@
 
 <head>
     <title>admin</title>
+    <style>
+        textarea {
+            font-family: Menlo, Consolas, Monaco, "Lucida Console", "Andale Mono", "Liberation Mono", "DejaVu Sans Mono", "Courier New", "Bitstream Vera Sans Mono", monospace;
+            width: 100%;
+            padding: 0px;
+            margin: 0px;
+            box-sizing: border-box;
+            font-size: 1.2em;
+            line-height: 1.5em;
+            resize: none;
+            text-align: left;
+            overflow: auto;
+        }
+    </style>
 </head>
 
 <body>
@@ -57,26 +71,24 @@
         </tr>
         {% endfor %}
     </table>
-    <form method="post" action="/acmin/apply">
-        <textarea name="river_csv" rows="10" cols="50">
-            {{river_csv}}
-        </textarea>
+    <form method="post" action="/admin/apply">
+        <div>{{river_csv_header}}</div>
+        <textarea name="river_csv" rows="10" cols="50">{{river_csv}}</textarea>
         <input type="submit" value="apply" />
     </form>
-    <form method="post" action="/acmin/apply">
-        <textarea name="river_waypoints_csv" rows="10" cols="50">
-            {{river_waypoints_csv}}
-        </textarea>
+    <form method="post" action="/admin/apply">
+        <div>{{river_waypoints_csv_header}}</div>
+        <textarea name="river_waypoints_csv" rows="10" cols="50">{{river_waypoints_csv}}</textarea>
         <input type="submit" value="apply" />
     </form>
-    <form method="post" action="/acmin/apply">
-        <textarea name="river_tracks_csv" rows="10" cols="50">
-            {{river_tracks_csv}}
-        </textarea>
+    <form method="post" action="/admin/apply">
+        <div>{{river_tracks_csv_header}}</div>
+        <textarea name="river_tracks_csv" rows="10" cols="50">{{river_tracks_csv}}</textarea>
         <input type="submit" value="apply" />
     </form>
     <form method="post" action="/logout">
         <input type="submit" value="Logout" />
     </form>
 </body>
+
 </html>

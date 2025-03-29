@@ -12,8 +12,11 @@ pub async fn admin(
         users: Vec<model::user::User>,
         user_auths: Vec<model::user::UserAuth>,
         access_logs: Vec<model::user::AccessLog>,
+        river_csv_header: String,
         river_csv: String,
+        river_waypoints_csv_header: String,
         river_waypoints_csv: String,
+        river_tracks_csv_header: String,
         river_tracks_csv: String,
     }
     let Some(user) = auth_session.user else {
@@ -26,29 +29,36 @@ pub async fn admin(
     let (access_logs, _, _) = db::user::list_access_logs(&mut conn, None, 0, 100).await?;
     let (users, _, _) = db::user::list_users(&mut conn, 0, 100).await?;
     let (user_auths, _) = db::user::list_user_auths(&mut conn, 0, 100).await?;
-    let mut river_csv = csv::Writer::from_writer(vec![]);
-    let mut river_tracks_csv = csv::Writer::from_writer(vec![]);
-    let mut river_waypooints_csv = csv::Writer::from_writer(vec![]);
+    let mut writer_builder = csv::WriterBuilder::new();
+    writer_builder
+        .delimiter(b',')
+        .has_headers(false)
+        .quote(b'\\');
+    let mut river_csv = writer_builder.from_writer(vec![]);
+    let mut river_tracks_csv = writer_builder.from_writer(vec![]);
+    let mut river_waypooints_csv = writer_builder.from_writer(vec![]);
     let rivers = db::rivers::list_rivers_all(&mut conn).await?;
-    for river in &rivers {
-        river_csv.serialize(river)?;
+    for river in rivers {
         let tracks = db::river_tracks::list_river_tracks_all(&mut conn, river.river_id).await?;
         for track in tracks {
-            river_tracks_csv.serialize(track)?;
+            river_tracks_csv.serialize(model::river::RiverTrack::<String>::from(track))?;
         }
         let waypoints =
             db::river_waypoints::list_river_waypoints_all(&mut conn, river.river_id).await?;
-        for waypoint in waypoints {
-            let wpt: Vec<f64> = serde_json::from_value(waypoint.waypoint)?;
-            river_waypooints_csv.serialize(wpt)?;
+        for wpt in waypoints {
+            river_waypooints_csv.serialize(model::river::RiverWaypoint::<String>::from(wpt))?;
         }
+        river_csv.serialize(model::river::River::<String>::from(river))?;
     }
     let template = Tmpl {
         users,
         user_auths,
         access_logs,
+        river_csv_header: "river_id,user_id,river_name,waypoint,description,created_at".to_string(),
         river_csv: String::from_utf8(river_csv.into_inner()?)?,
+        river_waypoints_csv_header: "river_waypoint_id,river_id,user_id,waypoint_name,description,waypoint,created_at,updated_at".to_string(),
         river_waypoints_csv: String::from_utf8(river_waypooints_csv.into_inner()?)?,
+        river_tracks_csv_header: "river_track_id,river_id,user_id,track_name,description,track,created_at,updated_at".to_string(),
         river_tracks_csv: String::from_utf8(river_tracks_csv.into_inner()?)?,
     };
     let body = axum::response::Html(template.render()?);
@@ -56,7 +66,7 @@ pub async fn admin(
 }
 
 #[derive(Debug, serde::Deserialize)]
-struct ApplyForm {
+pub struct ApplyForm {
     river_csv: Option<String>,
     river_waypoints_csv: Option<String>,
     river_tracks_csv: Option<String>,
@@ -80,10 +90,15 @@ pub async fn admin_apply(
     if user.role != 0 {
         return Ok(crate::web::handler_404().await.into_response());
     }
+    let mut reader_builder = csv::ReaderBuilder::new();
+    reader_builder
+        .delimiter(b',')
+        .quote(b'\\')
+        .has_headers(false);
     let mut conn = st.db.acquire().await?;
     if let Some(river_csv) = river_csv {
-        let mut rdr = csv::Reader::from_reader(river_csv.as_bytes());
-        for result in rdr.deserialize::<model::river::River>() {
+        let mut rdr = reader_builder.from_reader(river_csv.as_bytes());
+        for result in rdr.deserialize::<model::river::River<String>>() {
             let model::river::River {
                 river_id,
                 user_id,
@@ -91,7 +106,7 @@ pub async fn admin_apply(
                 waypoint,
                 description,
                 created_at,
-            } = result?;
+            } = model::river::River::<serde_json::Value>::try_from(result?)?;
             sqlx::query!(
                 r#"
             INSERT INTO rivers (river_id, user_id, river_name, waypoint, description, created_at)
@@ -117,8 +132,8 @@ pub async fn admin_apply(
         }
     }
     if let Some(river_waypoints_csv) = river_waypoints_csv {
-        let mut rdr = csv::Reader::from_reader(river_waypoints_csv.as_bytes());
-        for result in rdr.deserialize::<model::river::RiverWaypoint>() {
+        let mut rdr = reader_builder.from_reader(river_waypoints_csv.as_bytes());
+        for result in rdr.deserialize::<model::river::RiverWaypoint<String>>() {
             let model::river::RiverWaypoint {
                 river_waypoint_id,
                 river_id,
@@ -128,7 +143,7 @@ pub async fn admin_apply(
                 waypoint,
                 created_at,
                 updated_at,
-            } = result?;
+            } = model::river::RiverWaypoint::<serde_json::Value>::try_from(result?)?;
             sqlx::query!(
                 r#"
             INSERT INTO river_waypoints (river_waypoint_id, river_id, user_id, waypoint_name, description, waypoint, created_at, updated_at)
@@ -157,8 +172,8 @@ pub async fn admin_apply(
             .await?;
         }
         if let Some(river_tracks_csv) = river_tracks_csv {
-            let mut rdr = csv::Reader::from_reader(river_tracks_csv.as_bytes());
-            for result in rdr.deserialize::<model::river::RiverTrack>() {
+            let mut rdr = reader_builder.from_reader(river_tracks_csv.as_bytes());
+            for result in rdr.deserialize::<model::river::RiverTrack<String>>() {
                 let model::river::RiverTrack {
                     river_track_id,
                     river_id,
@@ -168,7 +183,7 @@ pub async fn admin_apply(
                     track,
                     created_at,
                     updated_at,
-                } = result?;
+                } = model::river::RiverTrack::<serde_json::Value>::try_from(result?)?;
                 sqlx::query!(
                     r#"
                 INSERT INTO river_tracks (river_track_id, river_id, user_id, track_name, description, track, created_at, updated_at)

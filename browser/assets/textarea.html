@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+  <title>textarea</title>
+  <meta name="viewport" content="width=device-width" />
+<style>
+body{
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  padding: 0px;
+  margin: 0px;
+}
+textarea#editor {
+  position: absolute;
+  font-family: Menlo, Consolas, Monaco, "Lucida Console", "Andale Mono", "Liberation Mono", "DejaVu Sans Mono", "Courier New", "Bitstream Vera Sans Mono", monospace;
+  width: 100%;
+  height: 100%;
+  padding: 0px;
+  margin: 0px;
+  box-sizing: border-box;
+  font-size: 1.2em;
+  line-height: 1.5em;
+  top: 0; left: 0; right: 0; bottom: 0;
+  resize: none;
+  text-align: left;
+  -webkit-overflow-scrolling: touch;
+  -moz-overflow-scrolling: touch;
+  overflow-scrolling: touch;
+  overflow: auto;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body.dark   { background-color: #073642 }
+body.light  { background-color: #EEE }
+
+textarea:focus {
+  outline: none;
+}
+
+body.dark textarea {
+  background-color: #073642;
+  color: #93A1A1;
+  font-weight: 400;
+}
+
+body.light textarea {
+  background-color: #FDF6E3;
+  color: #586E75;
+  font-weight: 700;
+}
+</style>
+</head>
+<body class="light">
+<textarea id="editor"></textarea>
+<script>
+let tid = 0;
+const elm = document.getElementById("editor");
+elm.innerHTML = localStorage["text"] || "";
+elm.addEventListener("keyup", function(ev){
+  clearTimeout(tid);
+  tid = setTimeout(function(){
+    localStorage["text"] = elm.value;
+  }, 500);
+});
+elm.focus();
+document.addEventListener('keydown', function(ev){
+  if((ev.metaKey || ev.ctrlKey) && ev.key === "s"){
+    ev.preventDefault();
+  }else if((ev.metaKey || ev.ctrlKey) && ev.key === "r"){
+    ev.preventDefault();
+  }
+});
+</script>
+</body>
+</html>
