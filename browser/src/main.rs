@@ -75,6 +75,7 @@ fn app() -> Html {
     });
     let onclick_add_waypoint_cb = Callback::from({
         let map_state = map_state.clone();
+        let selected_river_id = selected_river_id.clone();
         move |_: MouseEvent| {
             if let Some(map) = map_state.as_ref() {
                 let title = web_sys::window()
@@ -99,6 +100,19 @@ fn app() -> Html {
                     .open_popup()
                     .add_to(map);
                 // TODO マーカーのグループ化 ex. LayerGroup
+                let selected_river_id = selected_river_id.clone();
+                wasm_bindgen_futures::spawn_local(async move {
+                    let res = crate::api::call::<model::api::create_river_waypoint::Response>(
+                        model::api::create_river_waypoint::Request {
+                            river_id: selected_river_id.as_ref().unwrap().clone(),
+                            name: title,
+                            latitude: pt.latitude,
+                            longitude: pt.longitude,
+                        },
+                    )
+                    .await
+                    .unwrap();
+                });
             }
         }
     });
@@ -337,6 +351,19 @@ fn app() -> Html {
                         <riverset>
                             <legend>{"AddWaypoint"}</legend>
                             <input type={"text"} id={"waypoint_name"} />
+                            <label>
+                                    {"川:"}
+                                    <select name="river" size="1" onchange={select_river_cb}>
+                                        <option value="0">{"---"}</option>
+                                        {
+                                            rivers.iter().map(|river|{
+                                                html!{
+                                                    <option value={river.river_id.to_string()}>{&river.river_name}</option>
+                                                }
+                                            }).collect::<Html>()
+                                        }
+                                    </select>
+                                </label>
                             <div><button onclick={onclick_add_waypoint_cb}>{"add point"}</button></div>
                         </riverset>
                     } else if let EditMode::RemoveWaypoint(ref o) = *edit_mode {
