@@ -93,6 +93,38 @@ pub fn update_river_waypoint<'a, 'c>(
 }
 
 #[tracing::instrument(level = "trace", skip(conn))]
+pub fn get_river_waypoint<'a, 'c>(
+    conn: impl sqlx::Acquire<'c, Database = sqlx::Sqlite> + Send + 'a,
+    river_waypoint_id: i64,
+) -> impl std::future::Future<Output = Result<Option<model::river::RiverWaypoint>, anyhow::Error>>
++ Send
++ 'a {
+    async move {
+        let mut conn = conn.acquire().await?;
+        let row = sqlx::query_as!(
+            model::river::RiverWaypoint,
+            r#"
+            SELECT
+                river_waypoint_id,
+                river_id,
+                user_id,
+                waypoint_name,
+                description,
+                waypoint AS "waypoint!: serde_json::Value",
+                created_at,
+                updated_at
+            FROM river_waypoints
+            WHERE river_waypoint_id = ?1
+            "#,
+            river_waypoint_id
+        )
+        .fetch_optional(&mut *conn)
+        .await?;
+        Ok(row)
+    }
+}
+
+#[tracing::instrument(level = "trace", skip(conn))]
 pub fn delete_river_waypoint<'a, 'c>(
     conn: impl sqlx::Acquire<'c, Database = sqlx::Sqlite> + Send + 'a,
     river_waypoint_id: i64,

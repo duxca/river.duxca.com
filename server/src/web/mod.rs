@@ -1,3 +1,4 @@
+pub mod admin;
 pub mod api;
 pub mod login;
 
@@ -34,50 +35,6 @@ where
     }
 }
 
-#[derive(Debug, serde::Deserialize)]
-pub struct LoginForm {}
-
-// GET /admin
-#[tracing::instrument(level = "trace", skip(auth_session, st))]
-pub async fn admin(
-    auth_session: axum_login::AuthSession<crate::web::login::Backend>,
-    axum::extract::State(ref st): axum::extract::State<crate::web::State>,
-) -> Result<impl axum::response::IntoResponse, Ise> {
-    use askama::Template;
-    use axum::response::IntoResponse;
-    if let Some(user) = auth_session.user {
-        let mut conn = st.db.acquire().await?;
-        let user_id = if user.role == 0 {
-            None
-        } else {
-            Some(user.user_id)
-        };
-        let (access_logs, _, _) = db::user::list_access_logs(&mut conn, user_id, 0, 100).await?;
-        #[derive(Debug, askama::Template)]
-        #[template(path = "admin.html")]
-        struct Tmpl {
-            users: Vec<model::user::User>,
-            access_logs: Vec<model::user::AccessLog>,
-        }
-        let users = if user.role == 0 {
-            let (users, _, _) = db::user::list_users(&mut conn, 0, 100).await?;
-            users
-        } else {
-            vec![user]
-        };
-        let template = Tmpl { users, access_logs };
-        let body = axum::response::Html(template.render()?);
-        return Ok(body.into_response());
-    } else {
-        #[derive(Debug, askama::Template)]
-        #[template(path = "login.html")]
-        struct Tmpl {
-            redirect: String,
-        }
-        let template = Tmpl {
-            redirect: "/admin".to_string(),
-        };
-        let body = axum::response::Html(template.render()?);
-        Ok(body.into_response())
-    }
+pub async fn handler_404() -> impl axum::response::IntoResponse {
+    (axum::http::StatusCode::NOT_FOUND, "404 not found")
 }

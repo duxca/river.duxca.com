@@ -106,7 +106,7 @@ async fn main() -> Result<(), anyhow::Error> {
             "/oauth/callback/github",
             axum::routing::get(crate::web::login::github::callback),
         )
-        .route("/admin", axum::routing::get(crate::web::admin))
+        .route("/admin", axum::routing::get(crate::web::admin::admin))
         .route(
             "/login/twitter",
             axum::routing::post(crate::web::login::twitter::login),
@@ -126,10 +126,14 @@ async fn main() -> Result<(), anyhow::Error> {
         .route("/logout", axum::routing::post(crate::web::login::logout))
         .layer(axum_login::AuthManagerLayerBuilder::new(backend, session_layer).build())
         .layer(tower_http::cors::CorsLayer::very_permissive())
-        .fallback_service(if cfg!(feature = "local") {
-            tower_http::services::ServeDir::new(config.local_dist_path)
-        } else {
-            tower_http::services::ServeDir::new("dist")
+        .fallback_service({
+            use axum::handler::HandlerWithoutStateExt;
+            tower_http::services::ServeDir::new(if cfg!(feature = "local") {
+                &config.local_dist_path
+            } else {
+                "dist"
+            })
+            .not_found_service(crate::web::handler_404.into_service())
         })
         .layer(tower_http::trace::TraceLayer::new_for_http())
         .layer(tower_http::compression::CompressionLayer::new())

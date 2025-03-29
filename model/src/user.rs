@@ -14,6 +14,7 @@ pub struct User {
 #[cfg_attr(feature = "sql", derive(sqlx::FromRow))]
 #[serde(rename_all = "camelCase")]
 pub struct UserAuth {
+    pub user_auth_id: i64,
     pub user_id: i64,
     pub identifier: String,
     // github: 0

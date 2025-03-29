@@ -58,6 +58,7 @@ pub fn auth_or_create_user<'a, 'c>(
             model::user::UserAuth,
             r#"
             SELECT
+                user_auth_id,
                 user_id,
                 identity_type,
                 identifier,
@@ -124,6 +125,7 @@ pub fn auth_or_add_user_auth<'a, 'c>(
             model::user::UserAuth,
             r#"
                 SELECT
+                    user_auth_id,
                     user_id,
                     identity_type,
                     identifier,
@@ -187,6 +189,40 @@ pub fn get_user<'a, 'c>(
         .fetch_optional(&mut *conn)
         .await?;
         Ok(row)
+    }
+}
+
+#[tracing::instrument(level = "trace", skip(conn))]
+pub fn list_user_auths<'a, 'c>(
+    conn: impl sqlx::Acquire<'c, Database = sqlx::Sqlite> + Send + 'a,
+    offset: i64,
+    limit: i64,
+) -> impl std::future::Future<Output = Result<(Vec<model::user::UserAuth>, i64), anyhow::Error>>
++ Send
++ 'a {
+    async move {
+        let mut conn = conn.acquire().await?;
+        let rows = sqlx::query_as!(
+            model::user::UserAuth,
+            r#"
+            SELECT
+                user_auth_id,
+                user_id,
+                identity_type,
+                identifier,
+                created_at
+            FROM user_auths
+            ORDER BY user_auth_id ASC
+            LIMIT ?1
+            OFFSET ?2
+            "#,
+            limit,
+            offset
+        )
+        .fetch_all(&mut *conn)
+        .await?;
+        let next_offset = offset + rows.len() as i64;
+        Ok((rows, next_offset))
     }
 }
 
@@ -342,6 +378,7 @@ mod tests {
             model::user::UserAuth,
             r#"
             SELECT
+                user_auth_id,
                 user_id,
                 identity_type,
                 identifier,
@@ -369,6 +406,7 @@ mod tests {
             model::user::UserAuth,
             r#"
             SELECT
+                user_auth_id,
                 user_id,
                 identity_type,
                 identifier,

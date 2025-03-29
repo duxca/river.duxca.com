@@ -16,4 +16,6 @@ clean:
 watch:
 	cargo watch -x "clippy -p server"
 
-
+.PHONY:check
+check:
+	cargo clippy

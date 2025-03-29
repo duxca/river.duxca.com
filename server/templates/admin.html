@@ -9,10 +9,10 @@
     <h1>admin</h1>
     <table>
         <tr>
-            <td>user_id</td>
-            <td>nickname</td>
-            <td>role</td>
-            <td>created_at</td>
+            <th>user_id</th>
+            <th>nickname</th>
+            <th>role</th>
+            <th>created_at</th>
         </tr>
         {% for user in users %}
         <tr>
@@ -20,6 +20,24 @@
             <td>{{user.nickname}}</td>
             <td>{{user.role}}</td>
             <td>{{user.created_at}}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    <table>
+        <tr>
+            <th>user_auth_id</th>
+            <th>user_id</th>
+            <th>identifier</th>
+            <th>identity_type</th>
+            <th>created_at</th>
+        </tr>
+        {% for auth in user_auths %}
+        <tr>
+            <td>{{auth.user_auth_id}}</td>
+            <td>{{auth.user_id}}</td>
+            <td>{{auth.identifier}}</td>
+            <td>{{auth.identity_type}}</td>
+            <td>{{auth.created_at}}</td>
         </tr>
         {% endfor %}
     </table>
@@ -39,10 +57,26 @@
         </tr>
         {% endfor %}
     </table>
-        <form method="post" action="/logout">
-            <input type="submit" value="Logout" />
-        </form>
-
+    <form method="post" action="/acmin/apply">
+        <textarea name="river_csv" rows="10" cols="50">
+            {{river_csv}}
+        </textarea>
+        <input type="submit" value="apply" />
+    </form>
+    <form method="post" action="/acmin/apply">
+        <textarea name="river_waypoints_csv" rows="10" cols="50">
+            {{river_waypoints_csv}}
+        </textarea>
+        <input type="submit" value="apply" />
+    </form>
+    <form method="post" action="/acmin/apply">
+        <textarea name="river_tracks_csv" rows="10" cols="50">
+            {{river_tracks_csv}}
+        </textarea>
+        <input type="submit" value="apply" />
+    </form>
+    <form method="post" action="/logout">
+        <input type="submit" value="Logout" />
+    </form>
 </body>
-
 </html>

@@ -7,10 +7,9 @@ pub fn create_river_track<'a, 'c>(
     user_id: i64,
     track_name: &'a str,
     track: &'a [(f64, f64)],
-    description: Option<&'a str>,
+    description: &'a str,
 ) -> impl std::future::Future<Output = Result<i64, anyhow::Error>> + Send + 'a {
     let track = serde_json::json!(track).to_string();
-    let description = description.unwrap_or_default();
     async move {
         let mut conn = conn.acquire().await?;
         let row = sqlx::query!(
@@ -92,6 +91,57 @@ pub fn update_river_track<'a, 'c>(
     }
 }
 
+#[tracing::instrument(level = "trace", skip(conn))]
+pub fn get_river_track<'a, 'c>(
+    conn: impl sqlx::Acquire<'c, Database = sqlx::Sqlite> + Send + 'a,
+    river_track_id: i64,
+) -> impl std::future::Future<Output = Result<Option<model::river::RiverTrack>, anyhow::Error>> + Send + 'a
+{
+    async move {
+        let mut conn = conn.acquire().await?;
+        let row = sqlx::query_as!(
+            model::river::RiverTrack,
+            r#"
+            SELECT
+                river_track_id,
+                river_id,
+                user_id,
+                track_name,
+                description,
+                track AS "track!: serde_json::Value",
+                created_at,
+                updated_at
+            FROM river_tracks
+            WHERE river_track_id = ?1
+            "#,
+            river_track_id
+        )
+        .fetch_optional(&mut *conn)
+        .await?;
+        Ok(row)
+    }
+}
+
+#[tracing::instrument(level = "trace", skip(conn))]
+pub fn delete_river_track<'a, 'c>(
+    conn: impl sqlx::Acquire<'c, Database = sqlx::Sqlite> + Send + 'a,
+    river_track_id: i64,
+) -> impl std::future::Future<Output = Result<(), anyhow::Error>> + Send + 'a {
+    async move {
+        let mut conn = conn.acquire().await?;
+        sqlx::query!(
+            r#"
+            DELETE FROM river_tracks
+            WHERE river_track_id = ?1
+            "#,
+            river_track_id
+        )
+        .execute(&mut *conn)
+        .await?;
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     #[sqlx::test()]
@@ -121,7 +171,7 @@ mod tests {
             user_id,
             "多摩川上流",
             &[(35.6435548, 139.7537994), (35.6436000, 139.7538000)],
-            Some("テスト用の川の軌跡"),
+            "テスト用の川の軌跡",
         )
         .await?;
 
