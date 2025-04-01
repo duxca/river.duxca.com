@@ -20,8 +20,14 @@ impl ImplicitClone for Point {}
 pub struct Props {
     pub markers: Vec<(String, Point)>,
     pub forcus: Point,
-    pub on_ready: Callback<Map>,
     pub on_move: Callback<Point>,
+    // 新しいコールバック
+    #[prop_or_default]
+    pub on_add_waypoint: Option<Callback<(String, Point)>>,
+    #[prop_or_default]
+    pub on_add_route_point: Option<Callback<Point>>,
+    #[prop_or_default]
+    pub on_add_river: Option<Callback<(String, Point)>>,
 }
 
 #[function_component(MapComponent)]
@@ -29,8 +35,10 @@ pub fn map_component(
     Props {
         markers,
         forcus,
-        on_ready,
         on_move,
+        on_add_waypoint,
+        on_add_route_point,
+        on_add_river,
     }: &Props,
 ) -> Html {
     let node_ref = NodeRef::default();
@@ -40,7 +48,6 @@ pub fn map_component(
         let node_ref = node_ref.clone();
         let forcus = *forcus;
         let map_state = map_state.clone();
-        let on_ready = on_ready.clone();
         let on_move = on_move.clone();
         move |()| {
             let div = node_ref.cast::<HtmlDivElement>().unwrap();
@@ -131,7 +138,6 @@ pub fn map_component(
             cb.forget();
 
             map_state.set(Some(map.clone()));
-            on_ready.emit(map.clone());
         }
     });
 
@@ -153,10 +159,14 @@ pub fn map_component(
         }
     });
 
-    use_effect_update({
+    {
         let map_state = map_state.clone();
-        move || {
+        let markers = markers.clone();
+        
+        use_effect_with(markers.clone(), move |markers| {
+            let map_state = map_state.clone();
             let markers = markers.clone();
+            
             wasm_bindgen_futures::spawn_local(async move {
                 let Some(map) = map_state.as_ref() else {
                     return;
@@ -210,8 +220,108 @@ pub fn map_component(
                     return;
                 }
             });
-        }
-    });
+            
+            || () // クリーンアップ関数
+        });
+    }
+
+    // マップ操作のためのコールバック
+    let add_waypoint_onclick = {
+        let map_state = map_state.clone();
+        let on_add_waypoint = on_add_waypoint.clone();
+        
+        Callback::from(move |e: MouseEvent| {
+            e.prevent_default();
+            if let (Some(map), Some(callback)) = (map_state.as_ref(), on_add_waypoint.as_ref()) {
+                let title = web_sys::window()
+                    .unwrap()
+                    .document()
+                    .unwrap()
+                    .get_element_by_id("waypoint_name")
+                    .unwrap()
+                    .dyn_ref::<web_sys::HtmlInputElement>()
+                    .unwrap()
+                    .value();
+                
+                let latlng = map.get_center();
+                let pt = Point {
+                    latitude: latlng.lat(),
+                    longitude: latlng.lng(),
+                };
+                
+                // マーカーを追加して表示
+                let p = leaflet::Popup::new(&leaflet::PopupOptions::default(), None);
+                p.set_content(&JsValue::from_serde(&serde_json::json!(title)).unwrap());
+                leaflet::Marker::new(&leaflet::LatLng::new(pt.latitude, pt.longitude))
+                    .bind_popup(&p)
+                    .open_popup()
+                    .add_to(map);
+                
+                // コールバックを呼び出し
+                callback.emit((title, pt));
+            }
+        })
+    };
+    
+    let add_route_point_onclick = {
+        let map_state = map_state.clone();
+        let on_add_route_point = on_add_route_point.clone();
+        
+        Callback::from(move |e: MouseEvent| {
+            e.prevent_default();
+            if let (Some(map), Some(callback)) = (map_state.as_ref(), on_add_route_point.as_ref()) {
+                let latlng = map.get_center();
+                let pt = Point {
+                    latitude: latlng.lat(),
+                    longitude: latlng.lng(),
+                };
+                
+                // マーカーを追加
+                leaflet::Marker::new(&leaflet::LatLng::new(pt.latitude, pt.longitude))
+                    .add_to(map);
+                
+                // コールバックを呼び出し
+                callback.emit(pt);
+            }
+        })
+    };
+    
+    let add_river_onclick = {
+        let map_state = map_state.clone();
+        let on_add_river = on_add_river.clone();
+        
+        Callback::from(move |e: MouseEvent| {
+            e.prevent_default();
+            if let (Some(map), Some(callback)) = (map_state.as_ref(), on_add_river.as_ref()) {
+                let river_name = web_sys::window()
+                    .unwrap()
+                    .document()
+                    .unwrap()
+                    .get_element_by_id("river_name")
+                    .unwrap()
+                    .dyn_ref::<web_sys::HtmlInputElement>()
+                    .unwrap()
+                    .value();
+                
+                let latlng = map.get_center();
+                let pt = Point {
+                    latitude: latlng.lat(),
+                    longitude: latlng.lng(),
+                };
+                
+                // マーカーを追加して表示
+                let p = leaflet::Popup::new(&leaflet::PopupOptions::default(), None);
+                p.set_content(&JsValue::from_serde(&serde_json::json!(river_name)).unwrap());
+                leaflet::Marker::new(&leaflet::LatLng::new(pt.latitude, pt.longitude))
+                    .bind_popup(&p)
+                    .open_popup()
+                    .add_to(map);
+                
+                // コールバックを呼び出し
+                callback.emit((river_name, pt));
+            }
+        })
+    };
 
     // この VDOM に変化なければ再描画されない
     html! {
@@ -219,6 +329,29 @@ pub fn map_component(
             <div id="map" ref={node_ref}>
             </div>
             <div class="crosshair">
+            </div>
+            <div style="display: none;">
+                {
+                    if on_add_waypoint.is_some() {
+                        html! { <button onclick={add_waypoint_onclick} id="map_add_waypoint_button"></button> }
+                    } else {
+                        html! {}
+                    }
+                }
+                {
+                    if on_add_route_point.is_some() {
+                        html! { <button onclick={add_route_point_onclick} id="map_add_route_point_button"></button> }
+                    } else {
+                        html! {}
+                    }
+                }
+                {
+                    if on_add_river.is_some() {
+                        html! { <button onclick={add_river_onclick} id="map_add_river_button"></button> }
+                    } else {
+                        html! {}
+                    }
+                }
             </div>
         </>
     }

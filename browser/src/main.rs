@@ -52,7 +52,7 @@ fn app() -> Html {
     let selected_river_id = use_state(|| None);
     let rivers = use_state(|| Vec::<model::river::River>::new());
     let river_waypoints = use_state(|| Vec::<model::river::RiverWaypoint>::new());
-    let map_state = use_state(|| None);
+    // map_stateは不要になったので削除
 
     // 初回のみログインチェック
     use_effect_with((), {
@@ -148,88 +148,93 @@ fn app() -> Html {
             forcus.set(pt);
         }
     });
-    let map_ready_cb = Callback::from({
-        let map_state = map_state.clone();
-        move |map: leaflet::Map| {
-            map_state.set(Some(map));
-        }
-    });
+    // map_stateは不要になったので削除
     let onclick_add_waypoint_cb = Callback::from({
-        let map_state = map_state.clone();
         let selected_river_id = selected_river_id.clone();
         move |_: MouseEvent| {
-            if let Some(map) = map_state.as_ref() {
-                let title = web_sys::window()
-                    .unwrap()
-                    .document()
-                    .unwrap()
-                    .get_element_by_id("waypoint_name")
-                    .unwrap()
-                    .dyn_ref::<HtmlInputElement>()
-                    .unwrap()
-                    .value();
-                let latlng = map.get_center();
-                let pt = Point {
-                    latitude: latlng.lat(),
-                    longitude: latlng.lng(),
-                };
-                console::log!(&title, pt.latitude, pt.longitude);
-                let p = leaflet::Popup::new(&leaflet::PopupOptions::default(), None);
-                p.set_content(&JsValue::from_serde(&serde_json::json!(title)).unwrap());
-                leaflet::Marker::new(&leaflet::LatLng::new(pt.latitude, pt.longitude))
-                    .bind_popup(&p)
-                    .open_popup()
-                    .add_to(map);
-                // TODO マーカーのグループ化 ex. LayerGroup
-                wasm_bindgen_futures::spawn_local({
-                    let selected_river_id = selected_river_id.clone();
-                    async move {
-                        let res = crate::api::call::<model::api::create_river_waypoint::Response>(
-                            model::api::create_river_waypoint::Request {
-                                river_id: selected_river_id.as_ref().unwrap().clone(),
-                                name: title,
-                                latitude: pt.latitude,
-                                longitude: pt.longitude,
-                            },
-                        )
-                        .await
-                        .unwrap();
-                    }
-                });
-            }
+            // マップコンポーネント内のボタンをクリック
+            web_sys::window()
+                .unwrap()
+                .document()
+                .unwrap()
+                .get_element_by_id("map_add_waypoint_button")
+                .unwrap()
+                .dyn_ref::<web_sys::HtmlElement>()
+                .unwrap()
+                .click();
+        }
+    });
+    
+    let on_add_waypoint = Callback::from({
+        let selected_river_id = selected_river_id.clone();
+        move |(title, pt): (String, Point)| {
+            console::log!(&title, pt.latitude, pt.longitude);
+            
+            // TODO マーカーのグループ化 ex. LayerGroup
+            wasm_bindgen_futures::spawn_local({
+                let selected_river_id = selected_river_id.clone();
+                let title = title.clone();
+                let pt = pt.clone();
+                async move {
+                    let res = crate::api::call::<model::api::create_river_waypoint::Response>(
+                        model::api::create_river_waypoint::Request {
+                            river_id: selected_river_id.as_ref().unwrap().clone(),
+                            name: title,
+                            latitude: pt.latitude,
+                            longitude: pt.longitude,
+                        },
+                    )
+                    .await
+                    .unwrap();
+                }
+            });
         }
     });
     let onclick_add_route_cb = Callback::from({
-        let map_state = map_state.clone();
-        let edit_mode = edit_mode.clone();
         move |_: MouseEvent| {
-            if let Some(map) = map_state.as_ref() {
-                if let EditMode::AddRoute(ref mut o) = (*edit_mode).clone() {
-                    let latlng = map.get_center();
-                    let pt = Point {
-                        latitude: latlng.lat(),
-                        longitude: latlng.lng(),
-                    };
-                    console::log!(pt.latitude, pt.longitude);
-                    let mark =
-                        leaflet::Marker::new(&leaflet::LatLng::new(pt.latitude, pt.longitude))
-                            .add_to(map);
-                    o.layers.push(std::rc::Rc::new(O(mark)));
-                    if let Some(pt_old) = o.last_point.as_ref() {
-                        let a = leaflet::LatLng::new(pt_old.latitude, pt_old.longitude);
-                        let b = leaflet::LatLng::new(pt.latitude, pt.longitude);
-                        let arr = &[&a, &b]
-                            .into_iter()
-                            .map(JsValue::from)
-                            .collect::<js_sys::Array>();
-                        let line = leaflet::Polyline::new(arr).add_to(map);
-                        o.layers.push(std::rc::Rc::new(O(line)));
-                        console::log!(map.distance(&a, &b));
-                        o.distance += map.distance(&a, &b);
-                    }
-                    o.last_point = Some(pt);
-                    edit_mode.set(EditMode::AddRoute(o.clone()));
+            // マップコンポーネント内のボタンをクリック
+            web_sys::window()
+                .unwrap()
+                .document()
+                .unwrap()
+                .get_element_by_id("map_add_route_point_button")
+                .unwrap()
+                .dyn_ref::<web_sys::HtmlElement>()
+                .unwrap()
+                .click();
+        }
+    });
+    
+    let on_add_route_point = Callback::from({
+        let edit_mode = edit_mode.clone();
+        move |pt: Point| {
+            if let EditMode::AddRoute(ref mut o) = (*edit_mode).clone() {
+                console::log!(pt.latitude, pt.longitude);
+                
+                // 新しいポイントを追加
+                o.layers.push(std::rc::Rc::new(O(leaflet::Layer::from(JsValue::from_str("marker")))));
+                
+                if let Some(pt_old) = o.last_point.as_ref() {
+                    // 距離を計算（実際のマップオブジェクトなしで距離を計算する方法）
+                    let lat1 = pt_old.latitude.to_radians();
+                    let lon1 = pt_old.longitude.to_radians();
+                    let lat2 = pt.latitude.to_radians();
+                    let lon2 = pt.longitude.to_radians();
+                    
+                    let r = 6371.0; // 地球の半径（km）
+                    let dlon = lon2 - lon1;
+                    let dlat = lat2 - lat1;
+                    
+                    let a = (dlat/2.0).sin().powi(2) + lat1.cos() * lat2.cos() * (dlon/2.0).sin().powi(2);
+                    let c = 2.0 * a.sqrt().atan2((1.0-a).sqrt());
+                    let distance = r * c * 1000.0; // メートルに変換
+                    
+                    o.distance += distance;
+                    o.layers.push(std::rc::Rc::new(O(leaflet::Layer::from(JsValue::from_str("line")))));
                 }
+                
+                o.last_point = Some(pt);
+                edit_mode.set(EditMode::AddRoute(o.clone()));
             }
         }
     });
@@ -267,45 +272,40 @@ fn app() -> Html {
     });
 
     let onclick_add_river_cb = Callback::from({
-        let map_state = map_state.clone();
         move |_: MouseEvent| {
-            if let Some(map) = map_state.as_ref() {
-                let river_name = web_sys::window()
-                    .unwrap()
-                    .document()
-                    .unwrap()
-                    .get_element_by_id("river_name")
-                    .unwrap()
-                    .dyn_ref::<HtmlInputElement>()
-                    .unwrap()
-                    .value();
-                let latlng = map.get_center();
-                let pt = Point {
-                    latitude: latlng.lat(),
-                    longitude: latlng.lng(),
-                };
-                console::log!(&river_name, pt.latitude, pt.longitude);
-                let p = leaflet::Popup::new(&leaflet::PopupOptions::default(), None);
-                p.set_content(&JsValue::from_serde(&serde_json::json!(river_name)).unwrap());
-                leaflet::Marker::new(&leaflet::LatLng::new(pt.latitude, pt.longitude))
-                    .bind_popup(&p)
-                    .open_popup()
-                    .add_to(map);
-                // TODO マーカーのグループ化 ex. LayerGroup
-                wasm_bindgen_futures::spawn_local({
-                    async move {
-                        let res = crate::api::call::<model::api::create_river::Response>(
-                            model::api::create_river::Request {
-                                name: river_name,
-                                latitude: pt.latitude,
-                                longitude: pt.longitude,
-                            },
-                        )
-                        .await
-                        .unwrap();
-                    }
-                });
-            }
+            // マップコンポーネント内のボタンをクリック
+            web_sys::window()
+                .unwrap()
+                .document()
+                .unwrap()
+                .get_element_by_id("map_add_river_button")
+                .unwrap()
+                .dyn_ref::<web_sys::HtmlElement>()
+                .unwrap()
+                .click();
+        }
+    });
+    
+    let on_add_river = Callback::from({
+        move |(river_name, pt): (String, Point)| {
+            console::log!(&river_name, pt.latitude, pt.longitude);
+            
+            // TODO マーカーのグループ化 ex. LayerGroup
+            wasm_bindgen_futures::spawn_local({
+                let river_name = river_name.clone();
+                let pt = pt.clone();
+                async move {
+                    let res = crate::api::call::<model::api::create_river::Response>(
+                        model::api::create_river::Request {
+                            name: river_name,
+                            latitude: pt.latitude,
+                            longitude: pt.longitude,
+                        },
+                    )
+                    .await
+                    .unwrap();
+                }
+            });
         }
     });
 
@@ -344,8 +344,10 @@ fn app() -> Html {
                             longitude: long,
                         })
                     }).collect::<Vec<(String, Point)>>()}
-                    on_ready={map_ready_cb}
-                    on_move={on_move} />
+                    on_move={on_move}
+                    on_add_waypoint={Some(on_add_waypoint)}
+                    on_add_route_point={Some(on_add_route_point)}
+                    on_add_river={Some(on_add_river)} />
                 <div class="control">
                     <fieldset>
                         <legend>{"Edit Mode"}</legend>
