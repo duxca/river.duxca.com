@@ -9,14 +9,18 @@ use yew::prelude::*;
 
 mod api;
 mod components;
-
+#[derive(Debug, PartialEq, Clone, Eq)]
+enum PageState {
+    Loading,
+    LoggedOut,
+    LoggedIn(model::user::User),
+}
 #[derive(Debug, PartialEq, Clone)]
 enum EditMode {
     Home,
     AddRoute(AddRouteMode),
     AddWaypoint,
-    #[allow(dead_code)]
-    RemoveWaypoint(RemoveWaypointMode),
+    AddRiver(AddRiverMode),
 }
 #[derive(Debug, PartialEq, Clone, Default)]
 struct AddRouteMode {
@@ -25,9 +29,7 @@ struct AddRouteMode {
     layers: Vec<std::rc::Rc<O>>,
 }
 #[derive(Debug, PartialEq, Clone, Default)]
-struct RemoveWaypointMode {
-    target: Option<Point>,
-}
+struct AddRiverMode {}
 #[derive(Debug, PartialEq, Clone)]
 struct O(leaflet::Layer);
 impl Drop for O {
@@ -40,7 +42,7 @@ impl Drop for O {
 #[function_component(App)]
 #[allow(clippy::redundant_closure)]
 fn app() -> Html {
-    let loggedin = use_state(|| false);
+    let page_state = use_state(|| PageState::Loading);
     // Fuji
     let forcus = use_state(|| Point {
         latitude: 35.3622222,
@@ -51,6 +53,79 @@ fn app() -> Html {
     let rivers = use_state(|| Vec::<model::river::River>::new());
     let river_waypoints = use_state(|| Vec::<model::river::RiverWaypoint>::new());
     let map_state = use_state(|| None);
+
+    // 初回のみログインチェック
+    use_effect_with((), {
+        let page_state = page_state.clone();
+        move |()| {
+            wasm_bindgen_futures::spawn_local(async move {
+                let res = crate::api::call::<model::api::get_me::Response>(
+                    model::api::get_me::Request {},
+                )
+                .await;
+                if res.is_err() {
+                    return;
+                }
+                page_state.set(PageState::LoggedIn(res.unwrap().user));
+            });
+        }
+    });
+    use_effect_with(page_state.clone(), {
+        let rivers = rivers.clone();
+        let forcus = forcus.clone();
+        move |page_state| {
+            let page_state = page_state.clone();
+            wasm_bindgen_futures::spawn_local(async move {
+                if *page_state == PageState::Loading {
+                    return;
+                }
+                if *page_state == PageState::LoggedOut {
+                    return;
+                }
+                let url_hash = web_sys::window().unwrap().location().hash().unwrap();
+                if let Some(hash) = url_hash.split('#').nth(1) {
+                    let mut latlng = hash.split(',');
+                    let latitude = latlng.next().unwrap().parse::<f64>().unwrap();
+                    let longitude = latlng.next().unwrap().parse::<f64>().unwrap();
+                    forcus.set(Point {
+                        latitude,
+                        longitude,
+                    });
+                }
+                // ログインしたら川の一覧を取得
+                let res = crate::api::call::<model::api::list_rivers::Response>(
+                    model::api::list_rivers::Request {},
+                )
+                .await
+                .unwrap();
+                // 川の一覧を描画
+                rivers.set(res.rivers);
+            });
+        }
+    });
+    use_effect_with(rivers.clone(), {
+        let river_waypoints = river_waypoints.clone();
+        move |rivers| {
+            let rivers = rivers.clone();
+            wasm_bindgen_futures::spawn_local(async move {
+                let mut list = vec![];
+                for river in &*rivers {
+                    let mut res = crate::api::call::<model::api::get_river::Response>(
+                        model::api::get_river::Request {
+                            river_id: river.river_id,
+                        },
+                    )
+                    .await
+                    .unwrap();
+                    list.append(&mut res.waypoints);
+                }
+                // 都度再描画
+                river_waypoints.set(list.clone());
+            });
+        }
+    });
+
+
 
     let select_river_cb = Callback::from({
         let selected_river_id = selected_river_id.clone();
@@ -66,7 +141,13 @@ fn app() -> Html {
             selected_river_id.set(Some(river_id));
         }
     });
-    // let last_point = use_state(|| None as Option<Point>);
+    
+    let on_move = Callback::from({
+        let forcus = forcus.clone();
+        move |pt: Point| {
+            forcus.set(pt);
+        }
+    });
     let map_ready_cb = Callback::from({
         let map_state = map_state.clone();
         move |map: leaflet::Map| {
@@ -100,18 +181,20 @@ fn app() -> Html {
                     .open_popup()
                     .add_to(map);
                 // TODO マーカーのグループ化 ex. LayerGroup
-                let selected_river_id = selected_river_id.clone();
-                wasm_bindgen_futures::spawn_local(async move {
-                    let res = crate::api::call::<model::api::create_river_waypoint::Response>(
-                        model::api::create_river_waypoint::Request {
-                            river_id: selected_river_id.as_ref().unwrap().clone(),
-                            name: title,
-                            latitude: pt.latitude,
-                            longitude: pt.longitude,
-                        },
-                    )
-                    .await
-                    .unwrap();
+                wasm_bindgen_futures::spawn_local({
+                    let selected_river_id = selected_river_id.clone();
+                    async move {
+                        let res = crate::api::call::<model::api::create_river_waypoint::Response>(
+                            model::api::create_river_waypoint::Request {
+                                river_id: selected_river_id.as_ref().unwrap().clone(),
+                                name: title,
+                                latitude: pt.latitude,
+                                longitude: pt.longitude,
+                            },
+                        )
+                        .await
+                        .unwrap();
+                    }
                 });
             }
         }
@@ -150,60 +233,7 @@ fn app() -> Html {
             }
         }
     });
-    // 初回のみログインチェック
-    use_effect_with((), {
-        let loggedin = loggedin.clone();
-        move |()| {
-            wasm_bindgen_futures::spawn_local(async move {
-                let res = crate::api::call::<model::api::get_me::Response>(
-                    model::api::get_me::Request {},
-                )
-                .await;
-                if let Ok(_res) = res {
-                    loggedin.set(true);
-                }
-            });
-        }
-    });
-    // ログインしたら川の一覧を取得
-    use_effect_with(loggedin.clone(), {
-        let rivers = rivers.clone();
-        move |loggedin| {
-            if **loggedin {
-                wasm_bindgen_futures::spawn_local(async move {
-                    let res = crate::api::call::<model::api::list_rivers::Response>(
-                        model::api::list_rivers::Request {},
-                    )
-                    .await
-                    .unwrap();
-                    rivers.set(res.rivers);
-                });
-            }
-        }
-    });
-    // 川の一覧が取得できたら川のウェイポイントを取得
-    use_effect_with(rivers.clone(), {
-        let river_waypoints = river_waypoints.clone();
-        move |rivers| {
-            wasm_bindgen_futures::spawn_local({
-                let rivers = rivers.clone();
-                async move {
-                    let mut list = vec![];
-                    for river in &**rivers {
-                        let mut res = crate::api::call::<model::api::get_river::Response>(
-                            model::api::get_river::Request {
-                                river_id: river.river_id,
-                            },
-                        )
-                        .await
-                        .unwrap();
-                        list.append(&mut res.waypoints);
-                    }
-                    river_waypoints.set(list);
-                }
-            });
-        }
-    });
+
     // 選択された川が変化したら川のウェイポイントを取得してフォーカスする
     use_effect_with(selected_river_id.clone(), {
         let forcus = forcus.clone();
@@ -236,63 +266,88 @@ fn app() -> Html {
         }
     });
 
-    // pointsが変化したら再描画
-    use_effect_with(river_waypoints, {
+    let onclick_add_river_cb = Callback::from({
         let map_state = map_state.clone();
-        move |river_waypoints| {
-            // TODO marker の重複排除
+        move |_: MouseEvent| {
             if let Some(map) = map_state.as_ref() {
-                for waypoint in river_waypoints.iter() {
-                    // let opt = leaflet::IconOptions::new();
-                    // opt.set_icon_url("marker-red.png".to_string());
-                    // opt.set_icon_size(leaflet::Point::new(25.0, 41.0));
-                    // opt.set_icon_anchor(leaflet::Point::new(12.0, 40.0));
-                    // opt.set_popup_anchor(leaflet::Point::new(0.0, -40.0));
-                    // let my_icon = leaflet::Icon::new(&opt);
-                    // let opt = leaflet::MarkerOptions::new();
-                    // opt.set_icon(my_icon);
-                    // leaflet::Marker::new_with_options(
-                    let p = leaflet::Popup::new(&leaflet::PopupOptions::default(), None);
-                    p.set_content(
-                        &JsValue::from_serde(&serde_json::json!(waypoint.waypoint_name)).unwrap(),
-                    );
-                    let (latitude, longitude) =
-                        serde_json::from_value::<(f64, f64)>(waypoint.waypoint.clone()).unwrap();
-                    leaflet::Marker::new(&leaflet::LatLng::new(latitude, longitude))
-                        .bind_popup(&p)
-                        .open_popup()
-                        .add_to(map);
-                }
-            }
-        }
-    });
-    // forcusが変化したら再描画
-    use_effect_with(*forcus, {
-        let map_state = map_state.clone();
-        move |forcus| {
-            if let Some(map) = map_state.as_ref() {
-                map.set_view(
-                    &leaflet::LatLng::new(forcus.latitude, forcus.longitude),
-                    11.0,
-                );
+                let river_name = web_sys::window()
+                    .unwrap()
+                    .document()
+                    .unwrap()
+                    .get_element_by_id("river_name")
+                    .unwrap()
+                    .dyn_ref::<HtmlInputElement>()
+                    .unwrap()
+                    .value();
+                let latlng = map.get_center();
+                let pt = Point {
+                    latitude: latlng.lat(),
+                    longitude: latlng.lng(),
+                };
+                console::log!(&river_name, pt.latitude, pt.longitude);
+                let p = leaflet::Popup::new(&leaflet::PopupOptions::default(), None);
+                p.set_content(&JsValue::from_serde(&serde_json::json!(river_name)).unwrap());
+                leaflet::Marker::new(&leaflet::LatLng::new(pt.latitude, pt.longitude))
+                    .bind_popup(&p)
+                    .open_popup()
+                    .add_to(map);
+                // TODO マーカーのグループ化 ex. LayerGroup
+                wasm_bindgen_futures::spawn_local({
+                    async move {
+                        let res = crate::api::call::<model::api::create_river::Response>(
+                            model::api::create_river::Request {
+                                name: river_name,
+                                latitude: pt.latitude,
+                                longitude: pt.longitude,
+                            },
+                        )
+                        .await
+                        .unwrap();
+                    }
+                });
             }
         }
     });
 
-    html! {
-        <>
-            if *loggedin {
+    match *page_state {
+        PageState::Loading => {
+            html! {
+                <>
+                <div>{"Loading..."}</div>
+                </>
+            }
+        }
+        PageState::LoggedOut => {
+            html! {
+                <>
+                <form method="post" action="/login/github">
+                <input type="submit" value="GitHub Login" />
+                </form>
+                <form method="post" action="/login/facebook">
+                    <input type="submit" value="Facebook Login" />
+                </form>
+                <form method="post" action="/login/twitter">
+                    <input type="submit" value="twitter Login" />
+                </form>
+                </>
+            }
+        }
+        PageState::LoggedIn(ref user) => {
+            html! {
+                <>
                 <MapComponent
-                    initial_forcus={*forcus}
-                    map_ready={map_ready_cb} />
+                    forcus={*forcus}
+                    markers={river_waypoints.iter().map(|wpt|{
+                        let (lat, long) =  serde_json::from_value::<(f64, f64)>(wpt.waypoint.clone()).unwrap();
+                        (wpt.waypoint_name.clone(), Point{
+                            latitude: lat,
+                            longitude: long,
+                        })
+                    }).collect::<Vec<(String, Point)>>()}
+                    on_ready={map_ready_cb}
+                    on_move={on_move} />
                 <div class="control">
-                    <riverset>
-                        <legend>{"Account"}</legend>
-                        <form method="post" action="/logout">
-                            <input type="submit" value="Logout" />
-                        </form>
-                    </riverset>
-                    <riverset>
+                    <fieldset>
                         <legend>{"Edit Mode"}</legend>
                         <div>
                             <button onclick={Callback::from({
@@ -321,9 +376,21 @@ fn app() -> Html {
                                 {"Waypoint"}
                             </button>
                         </div>
-                    </riverset>
+                        if user.role == 0 {
+                            <div>
+                                <button
+                                    onclick={Callback::from({
+                                        let edit_mode = edit_mode.clone();
+                                        move |_| edit_mode.set(EditMode::AddRiver(AddRiverMode::default()))
+                                    })}
+                                >
+                                    {"River"}
+                                </button>
+                            </div>
+                        }
+                    </fieldset>
                     if let EditMode::Home{} = *edit_mode {
-                        <riverset>
+                        <fieldset>
                             <legend>{"Home"}</legend>
                             <div>
                                 <label>
@@ -340,17 +407,17 @@ fn app() -> Html {
                                     </select>
                                 </label>
                             </div>
-                        </riverset>
+                        </fieldset>
                     } else if let EditMode::AddRoute(ref o) = *edit_mode {
-                        <riverset>
+                        <fieldset>
                             <legend>{"addRoute"}</legend>
                             <div><button onclick={onclick_add_route_cb}>{"add point"}</button></div>
                             <div>{format!("distance: {} m", o.distance.round() as i64)}</div>
-                        </riverset>
+                        </fieldset>
                     } else if let EditMode::AddWaypoint{} = *edit_mode {
-                        <riverset>
+                        <fieldset>
                             <legend>{"AddWaypoint"}</legend>
-                            <input type={"text"} id={"waypoint_name"} />
+                            <input type="text" id="waypoint_name" />
                             <label>
                                     {"川:"}
                                     <select name="river" size="1" onchange={select_river_cb}>
@@ -365,30 +432,27 @@ fn app() -> Html {
                                     </select>
                                 </label>
                             <div><button onclick={onclick_add_waypoint_cb}>{"add point"}</button></div>
-                        </riverset>
-                    } else if let EditMode::RemoveWaypoint(ref o) = *edit_mode {
-                        <riverset>
-                            <legend>{"RemoveWaypoint"}</legend>
-                            if let Some(_target) = o.target {
-                                <div>{"Select Waypoint"}</div>
-                            } else {
-                                <div>{"Remove Waypoint"}</div>
-                            }
-                        </riverset>
+                        </fieldset>
+                    } else if let EditMode::AddRiver(ref o) = *edit_mode {
+                        <fieldset>
+                            <legend>{"addRiver"}</legend>
+                            <div><input type="text" id={"river_name"} /></div>
+                            {{forcus.latitude}}
+                            {{"."}}
+                            {{forcus.longitude}}
+                            <div><button onclick={onclick_add_river_cb}>{"add river"}</button></div>
+                        </fieldset>
                     }
+                    <fieldset>
+                        <legend>{"Account"}</legend>
+                        <form method="post" action="/logout">
+                            <input type="submit" value="Logout" />
+                        </form>
+                    </fieldset>
                 </div>
-            }else{
-                <form method="post" action="/login/github">
-                    <input type="submit" value="GitHub Login" />
-                </form>
-                <form method="post" action="/login/facebook">
-                    <input type="submit" value="Facebook Login" />
-                </form>
-                <form method="post" action="/login/twitter">
-                    <input type="submit" value="twitter Login" />
-                </form>
+                </>
             }
-        </>
+        }
     }
 }
 
