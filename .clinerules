@@ -1,0 +1,7 @@
+このソフトウェアは川の地図情報を処理するWebアプリです
+server/ にはrustのaxumをつかったwebサーバーのコードあり、
+browser/ にはrustのyewとleaflet.jsのrustラッパーライブラリをつかったSPAウェブアプリのコードがあります。
+サーバー側のデータベースにはrustのsqlxとsqlite3を使っており、コードはdb/に入っています。
+データベースのスキーマはdb/migrationSの中にあります
+service/にはwebサーバのapiで提供する具体的な処理が入っています
+model/にはserver/,browser/およびdb/.で使われるドメインモデルの構造体などの型が定義されています
