@@ -1,6 +1,7 @@
 #![allow(unused_imports)]
 use crate::components::map_component::{MapComponent, MapLayer};
 use gloo::console;
+use gloo::utils::document;
 use gloo::utils::format::JsValueSerdeExt;
 use wasm_bindgen::prelude::*;
 // use web_sys::HtmlInputElement;
@@ -14,28 +15,19 @@ enum PageState {
     LoggedOut,
     LoggedIn(model::user::User),
 }
+
 #[derive(Debug, PartialEq, Clone)]
 enum EditMode {
     Home,
     AddRoute(AddRouteMode),
     AddWaypoint,
-    AddRiver(AddRiverMode),
+    AddRiver,
 }
+
 #[derive(Debug, PartialEq, Clone, Default)]
 struct AddRouteMode {
-    last_point: Option<(f64, f64)>,
+    track: Vec<(f64, f64)>,
     distance: f64,
-    layers: Vec<std::rc::Rc<O>>,
-}
-#[derive(Debug, PartialEq, Clone, Default)]
-struct AddRiverMode {}
-#[derive(Debug, PartialEq, Clone)]
-struct O(leaflet::Layer);
-impl Drop for O {
-    fn drop(&mut self) {
-        console::log!("drop");
-        self.0.remove();
-    }
 }
 
 #[function_component(App)]
@@ -45,9 +37,9 @@ fn app() -> Html {
     // Fuji
     let forcus = use_state(|| (35.3622222, 138.7313889));
     let edit_mode = use_state(|| EditMode::Home {});
-    let selected_river_id = use_state(|| None);
     let rivers = use_state(|| Vec::<model::river::River>::new());
     let river_waypoints = use_state(|| Vec::<model::river::RiverWaypoint>::new());
+    let river_tracks = use_state(|| Vec::<model::river::RiverTrack>::new());
     // map_stateは不要になったので削除
 
     // 初回のみログインチェック
@@ -100,10 +92,12 @@ fn app() -> Html {
 
     use_effect_with(rivers.clone(), {
         let river_waypoints = river_waypoints.clone();
+        let river_tracks = river_tracks.clone();
         move |rivers| {
             let rivers = rivers.clone();
             wasm_bindgen_futures::spawn_local(async move {
-                let mut list = vec![];
+                let mut wpts = vec![];
+                let mut tracks = vec![];
                 for river in &*rivers {
                     let mut res = crate::api::call::<model::api::get_river::Response>(
                         model::api::get_river::Request {
@@ -112,170 +106,244 @@ fn app() -> Html {
                     )
                     .await
                     .unwrap();
-                    list.append(&mut res.waypoints);
+                    wpts.append(&mut res.waypoints);
+                    tracks.append(&mut res.tracks);
                 }
                 // 都度再描画
-                river_waypoints.set(list.clone());
+                river_waypoints.set(wpts.clone());
+                river_tracks.set(tracks);
             });
-        }
-    });
-
-    let select_river_cb = Callback::from({
-        let selected_river_id = selected_river_id.clone();
-        move |ev: Event| {
-            let val = ev
-                .target()
-                .unwrap()
-                .dyn_into::<web_sys::HtmlSelectElement>()
-                .unwrap()
-                .value();
-            // console::log!(&val);
-            let river_id = val.parse::<i64>().unwrap();
-            selected_river_id.set(Some(river_id));
         }
     });
 
     let on_move = Callback::from({
         let forcus = forcus.clone();
         move |(lat, lng): (f64, f64)| {
-            console::log!(lat, lng);
+            web_sys::window()
+                .unwrap()
+                .location()
+                .set_hash(&format!("{},{}", lat, lng))
+                .unwrap();
             forcus.set((lat, lng));
-            // web_sys::window()
-            //     .unwrap()
-            //     .location()
-            //     .set_hash(&format!("{},{}", forcus.latitude, forcus.longitude))
-            //     .unwrap();
         }
     });
-    // let on_add_route_point = Callback::from({
-    //     let edit_mode = edit_mode.clone();
-    //     move |(lat, lng)| {
-    //         if let EditMode::AddRoute(ref mut o) = (*edit_mode).clone() {
-    //             console::log!(lat, lng);
 
-    //             // 新しいポイントを追加
-    //             o.layers.push(std::rc::Rc::new(O(leaflet::Layer::from(
-    //                 JsValue::from_str("marker"),
-    //             ))));
-
-    //             if let Some(pt_old) = o.last_point.as_ref() {
-    //                 // 距離を計算（実際のマップオブジェクトなしで距離を計算する方法）
-    //                 let lat1 = pt_old.latitude.to_radians();
-    //                 let lon1 = pt_old.longitude.to_radians();
-    //                 let lat2 = pt.latitude.to_radians();
-    //                 let lon2 = pt.longitude.to_radians();
-
-    //                 let r = 6371.0; // 地球の半径（km）
-    //                 let dlon = lon2 - lon1;
-    //                 let dlat = lat2 - lat1;
-
-    //                 let a = (dlat / 2.0).sin().powi(2)
-    //                     + lat1.cos() * lat2.cos() * (dlon / 2.0).sin().powi(2);
-    //                 let c = 2.0 * a.sqrt().atan2((1.0 - a).sqrt());
-    //                 let distance = r * c * 1000.0; // メートルに変換
-
-    //                 o.distance += distance;
-    //                 o.layers.push(std::rc::Rc::new(O(leaflet::Layer::from(
-    //                     JsValue::from_str("line"),
-    //                 ))));
-    //             }
-
-    //             o.last_point = Some(pt);
-    //             edit_mode.set(EditMode::AddRoute(o.clone()));
-    //         }
-    //     }
-    // });
-
-    // 選択された川が変化したら川のウェイポイントを取得してフォーカスする
-    use_effect_with(selected_river_id.clone(), {
+    let onclick_go_to_river = Callback::from({
+        let edit_mode = edit_mode.clone();
+        let rivers = rivers.clone();
         let forcus = forcus.clone();
-        move |selected_river_id| {
-            if let Some(selected_river_id) = selected_river_id.as_ref() {
-                wasm_bindgen_futures::spawn_local({
-                    let selected_river_id = *selected_river_id;
-                    async move {
-                        let res = crate::api::call::<model::api::get_river::Response>(
-                            model::api::get_river::Request {
-                                river_id: selected_river_id,
-                            },
-                        )
-                        .await
+        move |_ev: MouseEvent| {
+            let EditMode::Home = &*edit_mode else {
+                return;
+            };
+            let val = document()
+                .get_element_by_id("river")
+                .unwrap()
+                .dyn_into::<web_sys::HtmlSelectElement>()
+                .unwrap()
+                .value();
+            let river_id = val.parse::<i64>().unwrap();
+            for river in &*rivers {
+                if river.river_id == river_id {
+                    let (lat, lng) =
+                        serde_json::from_value::<(f64, f64)>(river.waypoint.clone()).unwrap();
+                    web_sys::window()
+                        .unwrap()
+                        .location()
+                        .set_hash(&format!("{},{}", lat, lng))
                         .unwrap();
-                        if !res.waypoints.is_empty() {
-                            let (lat, lng) = serde_json::from_value::<(f64, f64)>(
-                                res.waypoints[0].waypoint.clone(),
-                            )
-                            .unwrap();
-                            forcus.set((lat, lng));
-                        }
-                    }
-                });
+                    forcus.set((lat, lng));
+                    return;
+                }
             }
         }
     });
-
-    // let on_add_river = Callback::from({
-    //     move |(river_name, pt): (String, Point)| {
-    //         console::log!(&river_name, pt.latitude, pt.longitude);
-
-    //         // TODO マーカーのグループ化 ex. LayerGroup
-    //         wasm_bindgen_futures::spawn_local({
-    //             let river_name = river_name.clone();
-    //             let pt = pt.clone();
-    //             async move {
-    //                 let res = crate::api::call::<model::api::create_river::Response>(
-    //                     model::api::create_river::Request {
-    //                         name: river_name,
-    //                         latitude: pt.latitude,
-    //                         longitude: pt.longitude,
-    //                     },
-    //                 )
-    //                 .await
-    //                 .unwrap();
-    //             }
-    //         });
-    //     }
-    // });
-    let waypoints = vec![];
-    // river_waypoints
-    //     .iter()
-    //     .map(|wpt| {
-    //         let (lat, long) = serde_json::from_value::<(f64, f64)>(wpt.waypoint.clone()).unwrap();
-    //         (
-    //             wpt.waypoint_name.clone(),
-    //             Point {
-    //                 latitude: lat,
-    //                 longitude: long,
-    //             },
-    //         )
-    //     })
-    //     .collect::<Vec<(String, Point)>>();
-    let tracks = vec![];
-    // river_waypoints
-    //     .iter()
-    //     .map(|wpt| {
-    //         let (lat, long) = serde_json::from_value::<(f64, f64)>(wpt.waypoint.clone()).unwrap();
-    //         (
-    //             wpt.river_id,
-    //             Point {
-    //                 latitude: lat,
-    //                 longitude: long,
-    //             },
-    //         )
-    //     })
-    //     .collect::<Vec<(i64, Point)>>();
     let onclick_add_route_cb = Callback::from({
         let edit_mode = edit_mode.clone();
-        move |_| todo!()
+        let forcus = forcus.clone();
+        move |_ev: MouseEvent| {
+            let EditMode::AddRoute(st) = &*edit_mode else {
+                return;
+            };
+            let (lat, lng) = *forcus;
+            let mut track = st.track.clone();
+            track.push((lat, lng));
+            edit_mode.set(EditMode::AddRoute(AddRouteMode {
+                track,
+                // TODO
+                distance: st.distance,
+            }));
+        }
+    });
+    let onclick_save_route_cb = Callback::from({
+        let edit_mode = edit_mode.clone();
+        let forcus = forcus.clone();
+        let river_tracks = river_tracks.clone();
+        move |_ev: MouseEvent| {
+            let EditMode::AddRoute(st) = &*edit_mode else {
+                return;
+            };
+            let (lat, lng) = *forcus;
+            let mut track = st.track.clone();
+            track.push((lat, lng));
+            let river_id = document()
+                .get_element_by_id("river")
+                .unwrap()
+                .dyn_into::<web_sys::HtmlSelectElement>()
+                .unwrap()
+                .value()
+                .parse::<i64>()
+                .unwrap();
+            let edit_mode = edit_mode.clone();
+            let river_tracks = river_tracks.clone();
+            wasm_bindgen_futures::spawn_local(async move {
+                let model::api::create_river_track::Response { river_track_id } =
+                    crate::api::call::<model::api::create_river_track::Response>(
+                        model::api::create_river_track::Request {
+                            river_id,
+                            track_name: "test".to_string(),
+                            description: "test".to_string(),
+                            track: track.clone(),
+                        },
+                    )
+                    .await
+                    .unwrap();
+                let mut trks = (&*river_tracks).clone();
+                trks.push(model::river::RiverTrack {
+                    user_id: 0,
+                    river_track_id,
+                    river_id,
+                    track_name: "test".to_string(),
+                    description: "test".to_string(),
+                    track: serde_json::to_value(track).unwrap(),
+                    created_at: 0,
+                    updated_at: 0,
+                });
+                river_tracks.set(trks);
+                edit_mode.set(EditMode::Home {});
+            });
+        }
     });
     let onclick_add_waypoint_cb = Callback::from({
         let edit_mode = edit_mode.clone();
-        move |_| todo!()
+        let forcus = forcus.clone();
+        let river_waypoints = river_waypoints.clone();
+        move |_ev: MouseEvent| {
+            let EditMode::AddWaypoint = &*edit_mode else {
+                return;
+            };
+            let val = document()
+                .get_element_by_id("river")
+                .unwrap()
+                .dyn_into::<web_sys::HtmlSelectElement>()
+                .unwrap()
+                .value();
+            let river_id = val.parse::<i64>().unwrap();
+            let title = web_sys::window()
+                .unwrap()
+                .document()
+                .unwrap()
+                .get_element_by_id("waypoint_name")
+                .unwrap()
+                .dyn_ref::<web_sys::HtmlInputElement>()
+                .unwrap()
+                .value();
+            let (lat, lng) = *forcus;
+            let river_waypoints = river_waypoints.clone();
+            wasm_bindgen_futures::spawn_local(async move {
+                let model::api::create_river_waypoint::Response { river_waypoint_id } =
+                    crate::api::call::<model::api::create_river_waypoint::Response>(
+                        model::api::create_river_waypoint::Request {
+                            river_id,
+                            name: title.clone(),
+                            latitude: lat,
+                            longitude: lng,
+                        },
+                    )
+                    .await
+                    .unwrap();
+                let mut wpts = (&*river_waypoints).clone();
+                wpts.push(model::river::RiverWaypoint {
+                    user_id: 0,
+                    river_waypoint_id,
+                    river_id,
+                    waypoint_name: title,
+                    waypoint: serde_json::to_value((lat, lng)).unwrap(),
+                    description: "".to_string(),
+                    created_at: 0,
+                    updated_at: 0,
+                });
+                river_waypoints.set(wpts);
+            });
+        }
     });
     let onclick_add_river_cb = Callback::from({
         let edit_mode = edit_mode.clone();
-        move |_| todo!()
+        let forcus = forcus.clone();
+        let rivers = rivers.clone();
+        move |_ev: MouseEvent| {
+            let EditMode::AddRiver = &*edit_mode else {
+                return;
+            };
+            let title = web_sys::window()
+                .unwrap()
+                .document()
+                .unwrap()
+                .get_element_by_id("river_name")
+                .unwrap()
+                .dyn_ref::<web_sys::HtmlInputElement>()
+                .unwrap()
+                .value();
+            let (lat, lng) = *forcus;
+            let edit_mode = edit_mode.clone();
+            let rivers = rivers.clone();
+            wasm_bindgen_futures::spawn_local(async move {
+                let model::api::create_river::Response { river_id } =
+                    crate::api::call::<model::api::create_river::Response>(
+                        model::api::create_river::Request {
+                            name: title.clone(),
+                            latitude: lat,
+                            longitude: lng,
+                        },
+                    )
+                    .await
+                    .unwrap();
+                let mut rvs = (&*rivers).clone();
+                rvs.push(model::river::River {
+                    user_id: 0,
+                    river_id,
+                    river_name: title,
+                    waypoint: serde_json::to_value((lat, lng)).unwrap(),
+                    description: "".to_string(),
+                    created_at: 0,
+                });
+                rivers.set(rvs);
+                edit_mode.set(EditMode::Home {});
+            });
+        }
     });
+
+    let mut waypoints = vec![];
+    let mut tracks = vec![];
+    for river in &*rivers {
+        let (lat, long) = serde_json::from_value::<(f64, f64)>(river.waypoint.clone()).unwrap();
+        waypoints.push((river.river_id, river.river_name.clone(), (lat, long)));
+    }
+    for wpt in &*river_waypoints {
+        let (lat, long) = serde_json::from_value::<(f64, f64)>(wpt.waypoint.clone()).unwrap();
+        waypoints.push((
+            wpt.river_waypoint_id,
+            wpt.waypoint_name.clone(),
+            (lat, long),
+        ));
+    }
+    for trk in &*river_tracks {
+        let track = serde_json::from_value::<Vec<(f64, f64)>>(trk.track.clone()).unwrap();
+        tracks.push((trk.river_track_id, track));
+    }
+    if let EditMode::AddRoute(ref o) = *edit_mode {
+        tracks.push((0, o.track.clone()));
+    }
 
     match *page_state {
         PageState::Loading => {
@@ -315,7 +383,7 @@ fn app() -> Html {
                         <div>
                             <button onclick={Callback::from({
                                 let edit_mode = edit_mode.clone();
-                                move |_| edit_mode.set(EditMode::Home{})}
+                                move |_| edit_mode.set(EditMode::Home)}
                             )}>
                                 {"Home"}
                             </button>
@@ -332,8 +400,7 @@ fn app() -> Html {
                             <button
                                 onclick={Callback::from({
                                     let edit_mode = edit_mode.clone();
-                                    move |_| edit_mode.set(EditMode::AddWaypoint{
-                                    })
+                                    move |_| edit_mode.set(EditMode::AddWaypoint)
                                 })}
                             >
                                 {"Waypoint"}
@@ -344,7 +411,7 @@ fn app() -> Html {
                                 <button
                                     onclick={Callback::from({
                                         let edit_mode = edit_mode.clone();
-                                        move |_| edit_mode.set(EditMode::AddRiver(AddRiverMode::default()))
+                                        move |_| edit_mode.set(EditMode::AddRiver)
                                     })}
                                 >
                                     {"River"}
@@ -358,7 +425,7 @@ fn app() -> Html {
                             <div>
                                 <label>
                                     {"川:"}
-                                    <select name="river" size="1" onchange={select_river_cb}>
+                                    <select id="river" size="1">
                                         <option value="0">{"---"}</option>
                                         {
                                             rivers.iter().map(|river|{
@@ -370,39 +437,57 @@ fn app() -> Html {
                                     </select>
                                 </label>
                             </div>
+                            <div><button onclick={onclick_go_to_river}>{"go"}</button></div>
                         </fieldset>
                     } else if let EditMode::AddRoute(ref o) = *edit_mode {
                         <fieldset>
                             <legend>{"addRoute"}</legend>
+                            <label>
+                                {"川:"}
+                                <select id="river" size="1">
+                                    <option value="0">{"---"}</option>
+                                    {
+                                        rivers.iter().map(|river|{
+                                            html!{
+                                                <option value={river.river_id.to_string()}>{&river.river_name}</option>
+                                            }
+                                        }).collect::<Html>()
+                                    }
+                                </select>
+                            </label>
                             <div><button onclick={onclick_add_route_cb}>{"add point"}</button></div>
+                            <div>{{format!("lat: {}", forcus.0)}}</div>
+                            <div>{{format!("lng: {}", forcus.1)}}</div>
                             <div>{format!("distance: {} m", o.distance.round() as i64)}</div>
+                            <div><button onclick={onclick_save_route_cb}>{"save"}</button></div>
                         </fieldset>
                     } else if let EditMode::AddWaypoint{} = *edit_mode {
                         <fieldset>
                             <legend>{"AddWaypoint"}</legend>
                             <input type="text" id="waypoint_name" />
                             <label>
-                                    {"川:"}
-                                    <select name="river" size="1" onchange={select_river_cb}>
-                                        <option value="0">{"---"}</option>
-                                        {
-                                            rivers.iter().map(|river|{
-                                                html!{
-                                                    <option value={river.river_id.to_string()}>{&river.river_name}</option>
-                                                }
-                                            }).collect::<Html>()
-                                        }
-                                    </select>
-                                </label>
+                                {"川:"}
+                                <select id="river" size="1">
+                                    <option value="0">{"---"}</option>
+                                    {
+                                        rivers.iter().map(|river|{
+                                            html!{
+                                                <option value={river.river_id.to_string()}>{&river.river_name}</option>
+                                            }
+                                        }).collect::<Html>()
+                                    }
+                                </select>
+                            </label>
+                            <div>{{format!("lat: {}", forcus.0)}}</div>
+                            <div>{{format!("lng: {}", forcus.1)}}</div>
                             <div><button onclick={onclick_add_waypoint_cb}>{"add point"}</button></div>
                         </fieldset>
-                    } else if let EditMode::AddRiver(ref o) = *edit_mode {
+                    } else if let EditMode::AddRiver = *edit_mode {
                         <fieldset>
                             <legend>{"addRiver"}</legend>
                             <div><input type="text" id={"river_name"} /></div>
-                            {{forcus.0}}
-                            {{"."}}
-                            {{forcus.1}}
+                            <div>{{format!("lat: {}", forcus.0)}}</div>
+                            <div>{{format!("lng: {}", forcus.1)}}</div>
                             <div><button onclick={onclick_add_river_cb}>{"add river"}</button></div>
                         </fieldset>
                     }

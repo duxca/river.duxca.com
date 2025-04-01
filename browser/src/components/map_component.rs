@@ -13,8 +13,8 @@ pub enum MapLayer {
     GSI,
     OSM,
     Hillshade,
-    Blank,
-    AnaglyphmapColor,
+    // Blank,
+    // AnaglyphmapColor,
     Seamlessphoto,
 }
 // (lat, lng)
@@ -83,22 +83,22 @@ pub fn map_component(
                     &opt,
                 )
             };
-            let blank = {
-                let opt = leaflet::TileLayerOptions::new();
-                opt.set_attribution("<a href='https://maps.gsi.go.jp/development/ichiran.html' target='_blank'>地理院タイル</a>".to_string());
-                TileLayer::new_options(
-                    "https://cyberjapandata.gsi.go.jp/xyz/blank/{z}/{x}/{y}.png",
-                    &opt,
-                )
-            };
-            let anaglyphmap_color = {
-                let opt = leaflet::TileLayerOptions::new();
-                opt.set_attribution("<a href='https://maps.gsi.go.jp/development/ichiran.html' target='_blank'>地理院タイル</a>".to_string());
-                TileLayer::new_options(
-                    "https://cyberjapandata.gsi.go.jp/xyz/anaglyphmap_color/{z}/{x}/{y}.png",
-                    &opt,
-                )
-            };
+            // let blank = {
+            //     let opt = leaflet::TileLayerOptions::new();
+            //     opt.set_attribution("<a href='https://maps.gsi.go.jp/development/ichiran.html' target='_blank'>地理院タイル</a>".to_string());
+            //     TileLayer::new_options(
+            //         "https://cyberjapandata.gsi.go.jp/xyz/blank/{z}/{x}/{y}.png",
+            //         &opt,
+            //     )
+            // };
+            // let anaglyphmap_color = {
+            //     let opt = leaflet::TileLayerOptions::new();
+            //     opt.set_attribution("<a href='https://maps.gsi.go.jp/development/ichiran.html' target='_blank'>地理院タイル</a>".to_string());
+            //     TileLayer::new_options(
+            //         "https://cyberjapandata.gsi.go.jp/xyz/anaglyphmap_color/{z}/{x}/{y}.png",
+            //         &opt,
+            //     )
+            // };
             let seamlessphoto = {
                 let opt = leaflet::TileLayerOptions::new();
                 opt.set_attribution("<a href='https://maps.gsi.go.jp/development/ichiran.html' target='_blank'>地理院タイル</a>".to_string());
@@ -111,8 +111,8 @@ pub fn map_component(
                 MapLayer::GSI => gsi.add_to(&map),
                 MapLayer::OSM => osm.add_to(&map),
                 MapLayer::Hillshade => hillshademap.add_to(&map),
-                MapLayer::Blank => blank.add_to(&map),
-                MapLayer::AnaglyphmapColor => anaglyphmap_color.add_to(&map),
+                // MapLayer::Blank => blank.add_to(&map),
+                // MapLayer::AnaglyphmapColor => anaglyphmap_color.add_to(&map),
                 MapLayer::Seamlessphoto => seamlessphoto.add_to(&map),
             };
 
@@ -135,14 +135,14 @@ pub fn map_component(
                     &JsValue::from(hillshademap),
                 )
                 .unwrap();
-                js_sys::Reflect::set(&opt, &JsValue::from("白地図"), &JsValue::from(blank))
-                    .unwrap();
-                js_sys::Reflect::set(
-                    &opt,
-                    &JsValue::from("立体地図（カラー）"),
-                    &JsValue::from(anaglyphmap_color),
-                )
-                .unwrap();
+                // js_sys::Reflect::set(&opt, &JsValue::from("白地図"), &JsValue::from(blank))
+                //     .unwrap();
+                // js_sys::Reflect::set(
+                //     &opt,
+                //     &JsValue::from("立体地図（カラー）"),
+                //     &JsValue::from(anaglyphmap_color),
+                // )
+                // .unwrap();
                 LayersControl::new(&opt)
             };
             control.add_to(&map);
@@ -179,10 +179,10 @@ pub fn map_component(
                 return;
             };
             let latlng = map.get_center();
-            if latlng.lat() != *lat && latlng.lng() != *lng {
+            if latlng.lat() == *lat && latlng.lng() == *lng {
                 return;
             }
-            map.set_view(&leaflet::LatLng::new(*lat, *lng), 11.0);
+            map.set_view(&leaflet::LatLng::new(*lat, *lng), map.get_zoom());
         }
     });
 
@@ -203,6 +203,8 @@ pub fn map_component(
                 let icon = {
                     let opt = leaflet::DivIconOptions::new();
                     opt.set_html(name.clone());
+                    opt.set_icon_size(leaflet::Point::new(100.0, 20.0));
+                    opt.set_icon_anchor(leaflet::Point::new(0.0, 20.0));
                     leaflet::DivIcon::new(&opt)
                 };
                 let marker = {
