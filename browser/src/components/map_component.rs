@@ -8,130 +8,160 @@ use web_sys::{Element, HtmlDivElement, HtmlElement, Node};
 use yew::html::ImplicitClone;
 use yew::prelude::*;
 
-#[derive(Copy, Clone, Debug, PartialEq)]
-pub struct Point {
-    pub longitude: f64,
-    pub latitude: f64,
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum MapLayer {
+    GSI,
+    OSM,
+    Hillshade,
+    Blank,
+    AnaglyphmapColor,
+    Seamlessphoto,
 }
-
-impl ImplicitClone for Point {}
-
+// (lat, lng)
 #[derive(PartialEq, Properties, Clone)]
 pub struct Props {
-    pub markers: Vec<(String, Point)>,
-    pub forcus: Point,
-    pub on_move: Callback<Point>,
-    // 新しいコールバック
+    pub layer: MapLayer,
+    // 初期位置
+    pub forcus: (f64, f64),
+    pub waypoints: Vec<(i64, String, (f64, f64))>,
+    pub tracks: Vec<(i64, Vec<(f64, f64)>)>,
     #[prop_or_default]
-    pub on_add_waypoint: Option<Callback<(String, Point)>>,
-    #[prop_or_default]
-    pub on_add_route_point: Option<Callback<Point>>,
-    #[prop_or_default]
-    pub on_add_river: Option<Callback<(String, Point)>>,
+    pub on_move: Option<Callback<(f64, f64)>>,
 }
 
 #[function_component(MapComponent)]
 pub fn map_component(
     Props {
-        markers,
+        layer,
+        waypoints,
+        tracks,
         forcus,
         on_move,
-        on_add_waypoint,
-        on_add_route_point,
-        on_add_river,
     }: &Props,
 ) -> Html {
     let node_ref = NodeRef::default();
     let map_state = use_state(|| None);
+    // 描画中のウェイポイント一覧
+    let markers_state = use_state(|| Vec::<(i64, leaflet::Marker)>::new());
+    // 描画中のトラック一覧
+    let polylines_state = use_state(|| Vec::<(i64, leaflet::Polyline)>::new());
+
     // 初回のみ
     use_effect_with((), {
         let node_ref = node_ref.clone();
-        let forcus = *forcus;
+        let (lat, lng) = *forcus;
+        let layer = *layer;
         let map_state = map_state.clone();
         let on_move = on_move.clone();
         move |()| {
             let div = node_ref.cast::<HtmlDivElement>().unwrap();
             let map = Map::new_with_element(&div, &MapOptions::default());
-            map.set_view(&LatLng::new(forcus.latitude, forcus.longitude), 11.0);
-            let opt = leaflet::TileLayerOptions::new();
-            opt.set_attribution("<a href='https://maps.gsi.go.jp/development/ichiran.html' target='_blank'>地理院タイル</a>".to_string());
-            let gsi = TileLayer::new_options(
-                "https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png",
-                &opt,
-            );
-            let opt = leaflet::TileLayerOptions::new();
-            opt.set_attribution(
-                r#"© <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>"#
-                    .to_string(),
-            );
-            let osm =
-                TileLayer::new_options("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", &opt);
-            gsi.add_to(&map);
-            let opt = leaflet::TileLayerOptions::new();
-            opt.set_attribution("<a href='https://maps.gsi.go.jp/development/ichiran.html' target='_blank'>地理院タイル</a>".to_string());
-            let hillshademap = TileLayer::new_options(
-                "https://cyberjapandata.gsi.go.jp/xyz/hillshademap/{z}/{x}/{y}.png",
-                &opt,
-            );
-            let opt = leaflet::TileLayerOptions::new();
-            opt.set_attribution("<a href='https://maps.gsi.go.jp/development/ichiran.html' target='_blank'>地理院タイル</a>".to_string());
-            let blank = TileLayer::new_options(
-                "https://cyberjapandata.gsi.go.jp/xyz/blank/{z}/{x}/{y}.png",
-                &opt,
-            );
-            let opt = leaflet::TileLayerOptions::new();
-            opt.set_attribution("<a href='https://maps.gsi.go.jp/development/ichiran.html' target='_blank'>地理院タイル</a>".to_string());
-            let anaglyphmap_color = TileLayer::new_options(
-                "https://cyberjapandata.gsi.go.jp/xyz/anaglyphmap_color/{z}/{x}/{y}.png",
-                &opt,
-            );
-            let opt = leaflet::TileLayerOptions::new();
-            opt.set_attribution("<a href='https://maps.gsi.go.jp/development/ichiran.html' target='_blank'>地理院タイル</a>".to_string());
-            let seamlessphoto = TileLayer::new_options(
-                "https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg",
-                &opt,
-            );
 
-            let opt = js_sys::Object::new();
-            js_sys::Reflect::set(&opt, &JsValue::from("OpenStreetMap"), &JsValue::from(osm))
+            // 初期位置
+            map.set_view(&LatLng::new(lat, lng), 11.0);
+            let gsi = {
+                let opt = leaflet::TileLayerOptions::new();
+                opt.set_attribution("<a href='https://maps.gsi.go.jp/development/ichiran.html' target='_blank'>地理院タイル</a>".to_string());
+                TileLayer::new_options(
+                    "https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png",
+                    &opt,
+                )
+            };
+            let osm = {
+                let opt = leaflet::TileLayerOptions::new();
+                opt.set_attribution(
+                    r#"© <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>"#
+                        .to_string(),
+                );
+                TileLayer::new_options("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", &opt)
+            };
+            let hillshademap = {
+                let opt = leaflet::TileLayerOptions::new();
+                opt.set_attribution("<a href='https://maps.gsi.go.jp/development/ichiran.html' target='_blank'>地理院タイル</a>".to_string());
+                TileLayer::new_options(
+                    "https://cyberjapandata.gsi.go.jp/xyz/hillshademap/{z}/{x}/{y}.png",
+                    &opt,
+                )
+            };
+            let blank = {
+                let opt = leaflet::TileLayerOptions::new();
+                opt.set_attribution("<a href='https://maps.gsi.go.jp/development/ichiran.html' target='_blank'>地理院タイル</a>".to_string());
+                TileLayer::new_options(
+                    "https://cyberjapandata.gsi.go.jp/xyz/blank/{z}/{x}/{y}.png",
+                    &opt,
+                )
+            };
+            let anaglyphmap_color = {
+                let opt = leaflet::TileLayerOptions::new();
+                opt.set_attribution("<a href='https://maps.gsi.go.jp/development/ichiran.html' target='_blank'>地理院タイル</a>".to_string());
+                TileLayer::new_options(
+                    "https://cyberjapandata.gsi.go.jp/xyz/anaglyphmap_color/{z}/{x}/{y}.png",
+                    &opt,
+                )
+            };
+            let seamlessphoto = {
+                let opt = leaflet::TileLayerOptions::new();
+                opt.set_attribution("<a href='https://maps.gsi.go.jp/development/ichiran.html' target='_blank'>地理院タイル</a>".to_string());
+                TileLayer::new_options(
+                    "https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg",
+                    &opt,
+                )
+            };
+            match layer {
+                MapLayer::GSI => gsi.add_to(&map),
+                MapLayer::OSM => osm.add_to(&map),
+                MapLayer::Hillshade => hillshademap.add_to(&map),
+                MapLayer::Blank => blank.add_to(&map),
+                MapLayer::AnaglyphmapColor => anaglyphmap_color.add_to(&map),
+                MapLayer::Seamlessphoto => seamlessphoto.add_to(&map),
+            };
+
+            let control = {
+                // 生 object でしか設定できない
+                let opt = js_sys::Object::new();
+                js_sys::Reflect::set(&opt, &JsValue::from("OpenStreetMap"), &JsValue::from(osm))
+                    .unwrap();
+                js_sys::Reflect::set(&opt, &JsValue::from("地理院タイル"), &JsValue::from(gsi))
+                    .unwrap();
+                js_sys::Reflect::set(
+                    &opt,
+                    &JsValue::from("航空写真"),
+                    &JsValue::from(seamlessphoto),
+                )
                 .unwrap();
-            js_sys::Reflect::set(&opt, &JsValue::from("地理院タイル"), &JsValue::from(gsi))
+                js_sys::Reflect::set(
+                    &opt,
+                    &JsValue::from("陰影起伏図"),
+                    &JsValue::from(hillshademap),
+                )
                 .unwrap();
-            js_sys::Reflect::set(
-                &opt,
-                &JsValue::from("航空写真"),
-                &JsValue::from(seamlessphoto),
-            )
-            .unwrap();
-            js_sys::Reflect::set(
-                &opt,
-                &JsValue::from("陰影起伏図"),
-                &JsValue::from(hillshademap),
-            )
-            .unwrap();
-            js_sys::Reflect::set(&opt, &JsValue::from("白地図"), &JsValue::from(blank)).unwrap();
-            js_sys::Reflect::set(
-                &opt,
-                &JsValue::from("立体地図（カラー）"),
-                &JsValue::from(anaglyphmap_color),
-            )
-            .unwrap();
-            let control = LayersControl::new(&opt);
+                js_sys::Reflect::set(&opt, &JsValue::from("白地図"), &JsValue::from(blank))
+                    .unwrap();
+                js_sys::Reflect::set(
+                    &opt,
+                    &JsValue::from("立体地図（カラー）"),
+                    &JsValue::from(anaglyphmap_color),
+                )
+                .unwrap();
+                LayersControl::new(&opt)
+            };
             control.add_to(&map);
 
-            let opt = Object::new();
-            let control = ScaleControl::new(&opt.unchecked_into());
+            let control = {
+                let opt = js_sys::Object::new();
+                ScaleControl::new(&opt.unchecked_into())
+            };
             control.add_to(&map);
 
+            // TODO: use_effect_with(on_move, ) を使う
             let cb = Closure::<_>::new({
                 let map = map.clone();
                 let on_move = on_move.clone();
                 move |_| {
                     let latlng = map.get_center();
-                    on_move.emit(Point {
-                        latitude: latlng.lat(),
-                        longitude: latlng.lng(),
-                    });
+                    if let Some(on_move) = on_move.as_ref() {
+                        on_move.emit((latlng.lat(), latlng.lng()));
+                    }
                 }
             });
             map.add_event_listener("move", &cb);
@@ -144,184 +174,76 @@ pub fn map_component(
     // forcusが変化したら再描画
     use_effect_with(*forcus, {
         let map_state = map_state.clone();
-        move |forcus| {
-            if let Some(map) = map_state.as_ref() {
-                web_sys::window()
-                    .unwrap()
-                    .location()
-                    .set_hash(&format!("{},{}", forcus.latitude, forcus.longitude))
-                    .unwrap();
-                map.set_view(
-                    &leaflet::LatLng::new(forcus.latitude, forcus.longitude),
-                    11.0,
-                );
+        move |(lat, lng)| {
+            let Some(map) = map_state.as_ref() else {
+                return;
+            };
+            let latlng = map.get_center();
+            if latlng.lat() != *lat && latlng.lng() != *lng {
+                return;
             }
+            map.set_view(&leaflet::LatLng::new(*lat, *lng), 11.0);
         }
     });
 
-    {
+    // markers が変化したら再描画
+    use_effect_with(waypoints.clone(), {
         let map_state = map_state.clone();
-        let markers = markers.clone();
-        
-        use_effect_with(markers.clone(), move |markers| {
-            let map_state = map_state.clone();
-            let markers = markers.clone();
-            
-            wasm_bindgen_futures::spawn_local(async move {
-                let Some(map) = map_state.as_ref() else {
-                    return;
-                };
-                // マーカーを削除
-                // let markers = map.get_layers();
-                // for marker in markers.iter() {
-                //     map.remove_layer(marker);
-                // }
-                // マーカーを追加
-                for (
-                    name,
-                    Point {
-                        latitude,
-                        longitude,
-                    },
-                ) in markers
-                {
-                    // let marker = leaflet::Marker::new(&LatLng::new(point.latitude, point.longitude));
-                    // marker.bind_popup(name);
-                    // marker.add_to(map);
-                    // let opt = leaflet::IconOptions::new();
-                    // opt.set_icon_url("marker-red.png".to_string());
-                    // opt.set_icon_size(leaflet::Point::new(25.0, 41.0));
-                    // opt.set_icon_anchor(leaflet::Point::new(12.0, 40.0));
-                    // opt.set_popup_anchor(leaflet::Point::new(0.0, -40.0));
-                    // let my_icon = leaflet::Icon::new(&opt);
-                    // let opt = leaflet::MarkerOptions::new();
-                    // opt.set_icon(my_icon);
-                    // leaflet::Marker::new_with_options(
-                    // let p = leaflet::Popup::new(&leaflet::PopupOptions::default(), None);
-                    // p.set_content(
-                    //     &JsValue::from_serde(&serde_json::json!(name)).unwrap(),
-                    // );
-                    // let (latitude, longitude) =
-                    // serde_json::from_value::<(f64, f64)>(point.clone()).unwrap();
+        move |waypoints| {
+            let Some(map) = map_state.as_ref() else {
+                return;
+            };
+            // TODO: 必要なものだけ消す
+            for (_id, marker) in &*markers_state {
+                map.remove_layer(marker);
+            }
+            // TODO: 必要分だけ追加
+            let mut markers = vec![];
+            for (_id, name, (lat, lng)) in waypoints {
+                let icon = {
                     let opt = leaflet::DivIconOptions::new();
-                    // opt.set_icon_size(leaflet::Point::new(25.0, 41.0));
                     opt.set_html(name.clone());
-                    let icon = leaflet::DivIcon::new(&opt);
+                    leaflet::DivIcon::new(&opt)
+                };
+                let marker = {
                     let opt = leaflet::MarkerOptions::new();
                     opt.set_icon(leaflet::Icon::from(icon));
-                    leaflet::Marker::new_with_options(
-                        &leaflet::LatLng::new(latitude, longitude),
-                        &opt,
-                    )
-                    // .icon(icon)
-                    // .bind_popup(&p)
-                    // .open_popup()
-                    .add_to(map);
-                    return;
-                }
-            });
-            
-            || () // クリーンアップ関数
-        });
-    }
+                    leaflet::Marker::new_with_options(&leaflet::LatLng::new(*lat, *lng), &opt)
+                };
+                marker.add_to(map);
+                markers.push((*_id, marker.clone()));
+            }
+            markers_state.set(markers);
+        }
+    });
 
-    // マップ操作のためのコールバック
-    let add_waypoint_onclick = {
+    // tracks が変化したら再描画
+    use_effect_with(tracks.clone(), {
         let map_state = map_state.clone();
-        let on_add_waypoint = on_add_waypoint.clone();
-        
-        Callback::from(move |e: MouseEvent| {
-            e.prevent_default();
-            if let (Some(map), Some(callback)) = (map_state.as_ref(), on_add_waypoint.as_ref()) {
-                let title = web_sys::window()
-                    .unwrap()
-                    .document()
-                    .unwrap()
-                    .get_element_by_id("waypoint_name")
-                    .unwrap()
-                    .dyn_ref::<web_sys::HtmlInputElement>()
-                    .unwrap()
-                    .value();
-                
-                let latlng = map.get_center();
-                let pt = Point {
-                    latitude: latlng.lat(),
-                    longitude: latlng.lng(),
-                };
-                
-                // マーカーを追加して表示
-                let p = leaflet::Popup::new(&leaflet::PopupOptions::default(), None);
-                p.set_content(&JsValue::from_serde(&serde_json::json!(title)).unwrap());
-                leaflet::Marker::new(&leaflet::LatLng::new(pt.latitude, pt.longitude))
-                    .bind_popup(&p)
-                    .open_popup()
-                    .add_to(map);
-                
-                // コールバックを呼び出し
-                callback.emit((title, pt));
+        move |tracks| {
+            let Some(map) = map_state.as_ref() else {
+                return;
+            };
+            // TODO: 必要な分だけ削除
+            for (_id, polyline) in &*polylines_state {
+                map.remove_layer(polyline);
             }
-        })
-    };
-    
-    let add_route_point_onclick = {
-        let map_state = map_state.clone();
-        let on_add_route_point = on_add_route_point.clone();
-        
-        Callback::from(move |e: MouseEvent| {
-            e.prevent_default();
-            if let (Some(map), Some(callback)) = (map_state.as_ref(), on_add_route_point.as_ref()) {
-                let latlng = map.get_center();
-                let pt = Point {
-                    latitude: latlng.lat(),
-                    longitude: latlng.lng(),
-                };
-                
-                // マーカーを追加
-                leaflet::Marker::new(&leaflet::LatLng::new(pt.latitude, pt.longitude))
-                    .add_to(map);
-                
-                // コールバックを呼び出し
-                callback.emit(pt);
+            // TODO: 必要な分だけ追加
+            let mut polylines = vec![];
+            for (id, track) in tracks {
+                let track = track
+                    .iter()
+                    .cloned()
+                    .map(|(lat, lng)| wasm_bindgen::JsValue::from(LatLng::new(lat, lng)))
+                    .collect::<js_sys::Array>();
+                let opt = leaflet::PolylineOptions::new();
+                let polyline = leaflet::Polyline::new_with_options(&track, &opt);
+                polyline.add_to(map);
+                polylines.push((*id, polyline.clone()));
             }
-        })
-    };
-    
-    let add_river_onclick = {
-        let map_state = map_state.clone();
-        let on_add_river = on_add_river.clone();
-        
-        Callback::from(move |e: MouseEvent| {
-            e.prevent_default();
-            if let (Some(map), Some(callback)) = (map_state.as_ref(), on_add_river.as_ref()) {
-                let river_name = web_sys::window()
-                    .unwrap()
-                    .document()
-                    .unwrap()
-                    .get_element_by_id("river_name")
-                    .unwrap()
-                    .dyn_ref::<web_sys::HtmlInputElement>()
-                    .unwrap()
-                    .value();
-                
-                let latlng = map.get_center();
-                let pt = Point {
-                    latitude: latlng.lat(),
-                    longitude: latlng.lng(),
-                };
-                
-                // マーカーを追加して表示
-                let p = leaflet::Popup::new(&leaflet::PopupOptions::default(), None);
-                p.set_content(&JsValue::from_serde(&serde_json::json!(river_name)).unwrap());
-                leaflet::Marker::new(&leaflet::LatLng::new(pt.latitude, pt.longitude))
-                    .bind_popup(&p)
-                    .open_popup()
-                    .add_to(map);
-                
-                // コールバックを呼び出し
-                callback.emit((river_name, pt));
-            }
-        })
-    };
+            polylines_state.set(polylines);
+        }
+    });
 
     // この VDOM に変化なければ再描画されない
     html! {
@@ -330,48 +252,22 @@ pub fn map_component(
             </div>
             <div class="crosshair">
             </div>
-            <div style="display: none;">
-                {
-                    if on_add_waypoint.is_some() {
-                        html! { <button onclick={add_waypoint_onclick} id="map_add_waypoint_button"></button> }
-                    } else {
-                        html! {}
-                    }
-                }
-                {
-                    if on_add_route_point.is_some() {
-                        html! { <button onclick={add_route_point_onclick} id="map_add_route_point_button"></button> }
-                    } else {
-                        html! {}
-                    }
-                }
-                {
-                    if on_add_river.is_some() {
-                        html! { <button onclick={add_river_onclick} id="map_add_river_button"></button> }
-                    } else {
-                        html! {}
-                    }
-                }
-            </div>
         </>
     }
 }
 
-use js_sys::Object;
-use leaflet::Control;
-use yew_hooks::use_effect_update;
 #[wasm_bindgen]
 extern "C" {
     #[derive(Clone, Debug)]
-    #[wasm_bindgen(extends = Control, js_namespace = ["L", "Scale"])]
+    #[wasm_bindgen(extends = leaflet::Control, js_namespace = ["L", "Scale"])]
     pub type ScaleControl;
 
     #[wasm_bindgen(js_namespace = ["L", "control"], js_name = "scale")]
     fn constructor_scale(options: &ScaleOptions) -> ScaleControl;
 
-    #[wasm_bindgen(extends = Object , js_name = ScaleOptions)]
+    #[wasm_bindgen(extends = js_sys::Object , js_name = ScaleOptions)]
     #[derive(Debug, Clone, PartialEq, Eq)]
-    #[wasm_bindgen(extends = Control)]
+    #[wasm_bindgen(extends = leaflet::Control)]
     pub type ScaleOptions;
 }
 
@@ -384,23 +280,23 @@ impl ScaleControl {
 
 impl Default for ScaleOptions {
     fn default() -> Self {
-        Object::new().unchecked_into()
+        js_sys::Object::new().unchecked_into()
     }
 }
 
 #[wasm_bindgen]
 extern "C" {
     #[derive(Debug, Clone)]
-    #[wasm_bindgen(extends = Control, js_namespace = ["L", "Control"])]
+    #[wasm_bindgen(extends = leaflet::Control, js_namespace = ["L", "Control"])]
     pub type LayersControl;
 
     #[wasm_bindgen(js_namespace = ["L", "control"], js_name = "layers")]
-    fn constructor_layers(options: &Object) -> LayersControl;
+    fn constructor_layers(options: &js_sys::Object) -> LayersControl;
 }
 
 impl LayersControl {
     #[must_use]
-    pub fn new(options: &Object) -> Self {
+    pub fn new(options: &js_sys::Object) -> Self {
         constructor_layers(options)
     }
 }

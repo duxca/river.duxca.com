@@ -1,3 +1,4 @@
+// T=String は CSV
 #[derive(serde::Deserialize, serde::Serialize, Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "sql", derive(sqlx::FromRow))]
 #[serde(rename_all = "camelCase")]
@@ -9,6 +10,20 @@ pub struct River<T = serde_json::Value> {
     pub waypoint: T,
     pub description: String,
     pub created_at: i64,
+}
+
+impl From<River<serde_json::Value>> for River<(f64, f64)> {
+    fn from(river: River) -> Self {
+        let (latitude, longitude) = serde_json::from_value::<(f64, f64)>(river.waypoint).unwrap();
+        River {
+            user_id: river.user_id,
+            river_id: river.river_id,
+            river_name: river.river_name,
+            waypoint: (latitude, longitude),
+            description: river.description,
+            created_at: river.created_at,
+        }
+    }
 }
 
 impl From<River<serde_json::Value>> for River<String> {
@@ -52,6 +67,22 @@ pub struct RiverTrack<T = serde_json::Value> {
     pub track: T,
     pub created_at: i64,
     pub updated_at: i64,
+}
+
+impl From<RiverTrack<serde_json::Value>> for RiverTrack<Vec<(f64, f64)>> {
+    fn from(river_track: RiverTrack) -> Self {
+        let track = serde_json::from_value::<Vec<(f64, f64)>>(river_track.track).unwrap();
+        RiverTrack {
+            river_track_id: river_track.river_track_id,
+            river_id: river_track.river_id,
+            user_id: river_track.user_id,
+            track_name: river_track.track_name,
+            description: river_track.description,
+            track,
+            created_at: river_track.created_at,
+            updated_at: river_track.updated_at,
+        }
+    }
 }
 
 impl From<RiverTrack<serde_json::Value>> for RiverTrack<String> {
@@ -99,6 +130,22 @@ pub struct RiverWaypoint<T = serde_json::Value> {
     pub waypoint: T,
     pub created_at: i64,
     pub updated_at: i64,
+}
+
+impl From<RiverWaypoint<serde_json::Value>> for RiverWaypoint<(f64, f64)> {
+    fn from(river_waypoint: RiverWaypoint) -> Self {
+        let waypoint = serde_json::from_value::<(f64, f64)>(river_waypoint.waypoint).unwrap();
+        RiverWaypoint {
+            river_waypoint_id: river_waypoint.river_waypoint_id,
+            river_id: river_waypoint.river_id,
+            user_id: river_waypoint.user_id,
+            waypoint_name: river_waypoint.waypoint_name,
+            description: river_waypoint.description,
+            waypoint,
+            created_at: river_waypoint.created_at,
+            updated_at: river_waypoint.updated_at,
+        }
+    }
 }
 
 impl From<RiverWaypoint<serde_json::Value>> for RiverWaypoint<String> {
