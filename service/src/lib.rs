@@ -10,9 +10,10 @@ pub mod list_access_logs;
 pub mod list_rivers;
 pub mod list_users;
 
+#[tracing::instrument(level = "trace", skip(db))]
 pub async fn handler(
     db: &sqlx::sqlite::SqlitePool,
-    user: model::user::User,
+    user: &model::user::User,
     req: model::api::Request,
 ) -> Result<model::api::Response, anyhow::Error> {
     let mut conn = db.acquire().await?;

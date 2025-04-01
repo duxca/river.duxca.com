@@ -21,15 +21,15 @@ struct Config {
 async fn main() -> Result<(), anyhow::Error> {
     shadow_rs::shadow!(build);
     dotenvy::dotenv().ok();
-    // env_logger::init();
-    tracing_subscriber::fmt()
-        .with_timer(tracing_subscriber::fmt::time::LocalTime::rfc_3339())
-        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
-        .with_file(true)
-        .with_line_number(true)
-        .with_thread_names(true)
-        .with_thread_ids(true)
-        .init();
+    env_logger::init();
+    // tracing_subscriber::fmt()
+    //     .with_timer(tracing_subscriber::fmt::time::LocalTime::rfc_3339())
+    //     .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+    //     .with_file(true)
+    //     .with_line_number(true)
+    //     .with_thread_names(true)
+    //     .with_thread_ids(true)
+    //     .init();
     let config = envy::from_env::<Config>()?;
     log::debug!("config: {:#?}", config);
 
@@ -110,6 +110,10 @@ async fn main() -> Result<(), anyhow::Error> {
         .route(
             "/admin/apply",
             axum::routing::post(crate::web::admin::admin_apply),
+        )
+        .route(
+            "/admin/delete_waypoints",
+            axum::routing::post(crate::web::admin::admin_delete_waypoints),
         )
         .route(
             "/login/twitter",

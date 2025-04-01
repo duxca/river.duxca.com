@@ -1,6 +1,7 @@
+#[tracing::instrument(level = "trace", skip(pool))]
 pub async fn list_users(
     pool: &sqlx::sqlite::SqlitePool,
-    _user: model::user::User,
+    _user: &model::user::User,
     model::api::list_users::Request { offset, limit }: model::api::list_users::Request,
 ) -> Result<model::api::list_users::Response, anyhow::Error> {
     let offset = offset.unwrap_or(0);

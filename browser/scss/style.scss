@@ -7,19 +7,50 @@ body {
 
 html,
 body,
-.map-container,
 #map {
   height: 100%;
   width: 100%;
 }
-.control {
+
+.control-top-left-1st {
   position: absolute;
-  bottom: 1em;
-  right: 1em;
+  top: 5em;
+  left: 1em;
   z-index: 1000;
-  padding: 10px;
-  border-radius: 5px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+.control-top-left-2nd {
+  position: absolute;
+  top: 7em;
+  left: 1em;
+  z-index: 1000;
+}
+.control-top-left-3rd {
+  position: absolute;
+  top: 9em;
+  left: 1em;
+  z-index: 1000;
+}
+.control-top-left-4th {
+  position: absolute;
+  top: 11em;
+  left: 1em;
+  z-index: 1000;
+}
+.control-top-left-5th {
+  position: absolute;
+  top: 13em;
+  left: 1em;
+  z-index: 1000;
+}
+
+.control-bottom-left-1st {
+  position: absolute;
+  bottom: 5em;
+  left: 1em;
+  z-index: 1000;
+  // padding: 10px;
+  // border-radius: 5px;
+  // box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .crosshair {

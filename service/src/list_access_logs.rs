@@ -1,6 +1,7 @@
+#[tracing::instrument(level = "trace", skip(pool))]
 pub async fn list_access_logs(
     pool: &sqlx::sqlite::SqlitePool,
-    _user: model::user::User,
+    _user: &model::user::User,
     model::api::list_access_logs::Request {
         offset,
         limit,

@@ -19,7 +19,7 @@ pub async fn api(
     let Ok(req) = serde_json::from_value::<model::api::Request>(json) else {
         return Ok((axum::http::StatusCode::BAD_REQUEST, "invalid request").into_response());
     };
-    let res = service::handler(&st.db, user, req).await?;
+    let res = service::handler(&st.db, &user, req).await?;
     let json = serde_json::to_value(res)?;
     Ok(axum::response::Json::from(json).into_response())
 }

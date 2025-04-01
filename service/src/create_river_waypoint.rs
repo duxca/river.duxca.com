@@ -1,6 +1,7 @@
+#[tracing::instrument(level = "trace", skip(pool))]
 pub async fn create_river_waypoint(
     pool: &sqlx::sqlite::SqlitePool,
-    user: model::user::User,
+    user: &model::user::User,
     model::api::create_river_waypoint::Request {
         river_id,
         name,

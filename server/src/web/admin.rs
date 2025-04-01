@@ -12,6 +12,7 @@ pub async fn admin(
         users: Vec<model::user::User>,
         user_auths: Vec<model::user::UserAuth>,
         access_logs: Vec<model::user::AccessLog>,
+        river_waypoints: Vec<model::river::RiverWaypoint>,
         river_csv_header: String,
         river_csv: String,
         river_waypoints_csv_header: String,
@@ -38,6 +39,7 @@ pub async fn admin(
     let mut river_tracks_csv = writer_builder.from_writer(vec![]);
     let mut river_waypooints_csv = writer_builder.from_writer(vec![]);
     let rivers = db::rivers::list_rivers_all(&mut conn).await?;
+    let mut river_waypoints = vec![];
     for river in rivers {
         let tracks = db::river_tracks::list_river_tracks_all(&mut conn, river.river_id).await?;
         for track in tracks {
@@ -45,15 +47,17 @@ pub async fn admin(
         }
         let waypoints =
             db::river_waypoints::list_river_waypoints_all(&mut conn, river.river_id).await?;
-        for wpt in waypoints {
+        for wpt in waypoints.clone() {
             river_waypooints_csv.serialize(model::river::RiverWaypoint::<String>::from(wpt))?;
         }
         river_csv.serialize(model::river::River::<String>::from(river))?;
+        river_waypoints.extend(waypoints);
     }
     let template = Tmpl {
         users,
         user_auths,
         access_logs,
+        river_waypoints,
         river_csv_header: "river_id,user_id,river_name,waypoint,description,created_at".to_string(),
         river_csv: String::from_utf8(river_csv.into_inner()?)?,
         river_waypoints_csv_header: "river_waypoint_id,river_id,user_id,waypoint_name,description,waypoint,created_at,updated_at".to_string(),
@@ -212,6 +216,39 @@ pub async fn admin_apply(
                 .await?;
             }
         }
+    }
+    Ok(axum::response::Redirect::to("/admin").into_response())
+}
+
+#[derive(Debug, serde::Deserialize)]
+pub struct ApiForm {
+    pub waypoint_ids: Vec<i64>,
+}
+
+// POST /admin/delete_waypoints
+#[tracing::instrument(level = "trace", skip(auth_session, st))]
+pub async fn admin_delete_waypoints(
+    auth_session: axum_login::AuthSession<crate::web::login::Backend>,
+    axum::extract::State(ref st): axum::extract::State<crate::web::State>,
+    axum_extra::extract::Form(ApiForm { waypoint_ids }): axum_extra::extract::Form<ApiForm>,
+) -> Result<impl axum::response::IntoResponse, crate::web::Ise> {
+    use axum::response::IntoResponse;
+    let Some(user) = auth_session.user else {
+        return Ok(crate::web::handler_404().await.into_response());
+    };
+    if user.role != 0 {
+        return Ok(crate::web::handler_404().await.into_response());
+    }
+    for wpt in waypoint_ids {
+        service::handler(
+            &st.db,
+            &user,
+            model::api::delete_river_waypoint::Request {
+                river_waypoint_id: wpt,
+            }
+            .into(),
+        )
+        .await?;
     }
     Ok(axum::response::Redirect::to("/admin").into_response())
 }

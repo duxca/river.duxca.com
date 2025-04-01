@@ -86,6 +86,21 @@
         <textarea name="river_tracks_csv" rows="10" cols="50">{{river_tracks_csv}}</textarea>
         <input type="submit" value="apply" />
     </form>
+    <form method="post" action="/admin/delete_waypoints">
+        <ul>
+            {% for wpt in river_waypoints %}
+            <li>
+                <label>
+                    <input type="checkbox" name="waypoint_ids" value="{{wpt.river_waypoint_id}}" />
+                    {{wpt.river_waypoint_id}}
+                    {{wpt.river_id}}
+                    {{wpt.waypoint_name}}
+                </label>
+            </li>
+            {% endfor %}
+        </ul>
+        <input type="submit" value="apply" />
+    </form>
     <form method="post" action="/logout">
         <input type="submit" value="Logout" />
     </form>

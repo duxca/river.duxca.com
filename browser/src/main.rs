@@ -377,48 +377,46 @@ fn app() -> Html {
                     tracks={tracks}
                     waypoints={waypoints}
                     on_move={on_move} />
-                <div class="control">
-                    <fieldset>
-                        <legend>{"Edit Mode"}</legend>
-                        <div>
-                            <button onclick={Callback::from({
-                                let edit_mode = edit_mode.clone();
-                                move |_| edit_mode.set(EditMode::Home)}
-                            )}>
-                                {"Home"}
-                            </button>
-                        </div>
-                        <div>
-                            <button onclick={Callback::from({
-                                let edit_mode = edit_mode.clone();
-                                move |_| edit_mode.set(EditMode::AddRoute(AddRouteMode::default()))
-                            })}>
-                                {"Route"}
-                            </button>
-                        </div>
-                        <div>
-                            <button
-                                onclick={Callback::from({
-                                    let edit_mode = edit_mode.clone();
-                                    move |_| edit_mode.set(EditMode::AddWaypoint)
-                                })}
-                            >
-                                {"Waypoint"}
-                            </button>
-                        </div>
-                        if user.role == 0 {
-                            <div>
-                                <button
-                                    onclick={Callback::from({
-                                        let edit_mode = edit_mode.clone();
-                                        move |_| edit_mode.set(EditMode::AddRiver)
-                                    })}
-                                >
-                                    {"River"}
-                                </button>
-                            </div>
-                        }
-                    </fieldset>
+                <button class="control-top-left-1st" onclick={Callback::from({
+                    let edit_mode = edit_mode.clone();
+                    move |_| edit_mode.set(EditMode::Home)}
+                )}>
+                    {"Home"}
+                </button>
+                <button class="control-top-left-2nd" onclick={Callback::from({
+                    let edit_mode = edit_mode.clone();
+                    move |_| edit_mode.set(EditMode::AddRoute(AddRouteMode::default()))
+                })}>
+                    {"Route"}
+                </button>
+                <button
+                    class="control-top-left-3rd"
+                    onclick={Callback::from({
+                        let edit_mode = edit_mode.clone();
+                        move |_| edit_mode.set(EditMode::AddWaypoint)
+                    })}
+                >
+                    {"Waypoint"}
+                </button>
+                if user.role == 0 {
+                    <button
+                        class="control-top-left-4th"
+                        onclick={Callback::from({
+                            let edit_mode = edit_mode.clone();
+                            move |_| edit_mode.set(EditMode::AddRiver)
+                        })}
+                    >
+                        {"River"}
+                    </button>
+                    <form method="post" action="/logout">
+                        <input class="control-top-left-5th" type="submit" value="Logout" />
+                    </form>
+                }else{
+                    <form method="post" action="/logout">
+                        <input class="control-top-left-4th" type="submit" value="Logout" />
+                    </form>
+                }
+                <div class="control-bottom-left-1st">
                     if let EditMode::Home{} = *edit_mode {
                         <fieldset>
                             <legend>{"Home"}</legend>
@@ -442,42 +440,51 @@ fn app() -> Html {
                     } else if let EditMode::AddRoute(ref o) = *edit_mode {
                         <fieldset>
                             <legend>{"addRoute"}</legend>
-                            <label>
-                                {"川:"}
-                                <select id="river" size="1">
-                                    <option value="0">{"---"}</option>
-                                    {
-                                        rivers.iter().map(|river|{
-                                            html!{
-                                                <option value={river.river_id.to_string()}>{&river.river_name}</option>
-                                            }
-                                        }).collect::<Html>()
-                                    }
-                                </select>
-                            </label>
-                            <div><button onclick={onclick_add_route_cb}>{"add point"}</button></div>
+                            <div>
+                                <label>
+                                    {"川:"}
+                                    <select id="river" size="1">
+                                        <option value="0">{"---"}</option>
+                                        {
+                                            rivers.iter().map(|river|{
+                                                html!{
+                                                    <option value={river.river_id.to_string()}>{&river.river_name}</option>
+                                                }
+                                            }).collect::<Html>()
+                                        }
+                                    </select>
+                                </label>
+                            </div>
                             <div>{{format!("lat: {}", forcus.0)}}</div>
                             <div>{{format!("lng: {}", forcus.1)}}</div>
+                            <div><button onclick={onclick_add_route_cb}>{"add point"}</button></div>
                             <div>{format!("distance: {} m", o.distance.round() as i64)}</div>
                             <div><button onclick={onclick_save_route_cb}>{"save"}</button></div>
                         </fieldset>
                     } else if let EditMode::AddWaypoint{} = *edit_mode {
                         <fieldset>
                             <legend>{"AddWaypoint"}</legend>
-                            <input type="text" id="waypoint_name" />
-                            <label>
-                                {"川:"}
-                                <select id="river" size="1">
-                                    <option value="0">{"---"}</option>
-                                    {
-                                        rivers.iter().map(|river|{
-                                            html!{
-                                                <option value={river.river_id.to_string()}>{&river.river_name}</option>
-                                            }
-                                        }).collect::<Html>()
-                                    }
-                                </select>
-                            </label>
+                            <div>
+                                <label>
+                                    {"川:"}
+                                    <select id="river" size="1">
+                                        <option value="0">{"---"}</option>
+                                        {
+                                            rivers.iter().map(|river|{
+                                                html!{
+                                                    <option value={river.river_id.to_string()}>{&river.river_name}</option>
+                                                }
+                                            }).collect::<Html>()
+                                        }
+                                    </select>
+                                </label>
+                            </div>
+                            <div>
+                                <label>
+                                    {"地点:"}
+                                    <input type="text" id="waypoint_name" />
+                                </label>
+                            </div>
                             <div>{{format!("lat: {}", forcus.0)}}</div>
                             <div>{{format!("lng: {}", forcus.1)}}</div>
                             <div><button onclick={onclick_add_waypoint_cb}>{"add point"}</button></div>
@@ -485,18 +492,17 @@ fn app() -> Html {
                     } else if let EditMode::AddRiver = *edit_mode {
                         <fieldset>
                             <legend>{"addRiver"}</legend>
-                            <div><input type="text" id={"river_name"} /></div>
+                            <div>
+                                <label>
+                                    {"川:"}
+                                    <input type="text" id={"river_name"} />
+                                </label>
+                            </div>
                             <div>{{format!("lat: {}", forcus.0)}}</div>
                             <div>{{format!("lng: {}", forcus.1)}}</div>
                             <div><button onclick={onclick_add_river_cb}>{"add river"}</button></div>
                         </fieldset>
                     }
-                    <fieldset>
-                        <legend>{"Account"}</legend>
-                        <form method="post" action="/logout">
-                            <input type="submit" value="Logout" />
-                        </form>
-                    </fieldset>
                 </div>
                 </>
             }

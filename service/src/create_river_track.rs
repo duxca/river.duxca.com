@@ -1,6 +1,7 @@
+#[tracing::instrument(level = "trace", skip(pool))]
 pub async fn create_river_track(
     pool: &sqlx::sqlite::SqlitePool,
-    user: model::user::User,
+    user: &model::user::User,
     model::api::create_river_track::Request {
         river_id,
         track_name,
