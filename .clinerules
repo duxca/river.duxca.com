@@ -21,6 +21,7 @@
 - **sqlx**を使用したRustからのデータベースアクセス
 - **Litestream**を使用したGCSへのデータベースレプリケーション
 - マイグレーションスクリプトによるスキーマ管理（db/migrations/）
+- マイグレーションの実行方法：`cd db && sqlx migration run`
 
 ### ドメインモデル (model/)
 - サーバー、ブラウザ、データベース間で共有される型定義
@@ -71,13 +72,24 @@
   - brave_local_search：ローカルビジネスや場所の検索を実行
 - **fetch**：インターネット上のURLからコンテンツを取得するツール
 
-## Rustライブラリのドキュメント
+## Rustライブラリの調査方法
+
+### docs.rsを使用したドキュメント検索
 
 MCPのbrave-searchとfetchツールを使用して、docs.rs（Rustの公式ドキュメントサイト）から任意のRustライブラリのドキュメントを読むことができます。以下のような方法で必要な情報を検索できます：
 
 1. **ライブラリのドキュメント検索**：`brave_web_search`を使用して「site:docs.rs ライブラリ名」と検索
 2. **特定の関数やモジュールの検索**：`brave_web_search`を使用して「site:docs.rs ライブラリ名 関数名」と検索
 3. **ドキュメントの閲覧**：`fetch`を使用して検索結果のURLからドキュメントを取得
+
+### GitHubリポジトリからのソースコード調査
+
+公式ドキュメントだけでなく、GitHubリポジトリからソースコード、README、examplesなどを直接調査することも重要です。以下の方法で効率的に調査できます：
+
+1. **リポジトリの検索**：`brave_web_search`を使用して「github ライブラリ名 repository」と検索
+2. **READMEの確認**：`fetch`を使用してリポジトリのREADME.mdを取得し、基本的な使い方や設計思想を理解
+3. **examplesディレクトリの調査**：リポジトリ内のexamplesディレクトリにある実際の使用例を確認
+4. **テストコードの確認**：テストコードは実際の使用例として参考になることが多い
 
 ### tokio APIの使い方の例
 
@@ -106,4 +118,109 @@ tokioの特定の機能（例：ファイルI/O）について調べるには：
 2. 検索結果から適切なドキュメントページを見つける
 3. `fetch`でそのページを取得して詳細を確認
 
-このように、MCPツールを活用することで、プロジェクトで使用するあらゆるRustライブラリのドキュメントに簡単にアクセスできます。
+### sqlx::query!マクロの使い方の例
+
+sqlxのコンパイル時クエリチェック機能を使用する例：
+
+```rust
+// 匿名レコード型を返すquery!マクロ
+let rivers = sqlx::query!(
+    r#"
+    SELECT river_id, river_name, waypoint
+    FROM rivers
+    WHERE user_id = ?
+    "#,
+    user_id
+)
+.fetch_all(&pool) // -> Vec<{ river_id: i64, river_name: String, waypoint: serde_json::Value }>
+.await?;
+
+// 名前付き構造体にマッピングするquery_as!マクロ
+struct River {
+    river_id: i64,
+    river_name: String,
+    waypoint: serde_json::Value
+}
+
+let rivers = sqlx::query_as!(River,
+    r#"
+    SELECT river_id, river_name, waypoint
+    FROM rivers
+    WHERE user_id = ?
+    "#,
+    user_id
+)
+.fetch_all(&pool) // -> Vec<River>
+.await?;
+```
+
+#### sqlx::query!マクロとsqlx::query関数の違い
+
+sqlx::query!マクロとsqlx::query関数の主な違いは以下の通りです：
+
+1. **コンパイル時チェック**: query!マクロはコンパイル時にSQLの構文と型をチェックしますが、query関数は実行時にのみチェックします
+2. **型安全性**: query!マクロは結果の型を自動的に推論し、型安全なアクセスを提供しますが、query関数は手動でRowから値を取得する必要があります
+3. **パフォーマンス**: query!マクロはコンパイル時に型情報を生成するため、実行時のオーバーヘッドが少なくなります
+4. **エラー検出**: query!マクロはコンパイル時にSQLエラーを検出できますが、query関数は実行時にのみエラーを検出します
+
+#### sqlx::query!マクロとsqlx::query_as!マクロの違い
+
+1. **query!マクロ**: 匿名レコード型を返します。カラム名がそのままフィールド名になります
+2. **query_as!マクロ**: 指定した構造体にマッピングします。構造体のフィールド名とカラム名が一致する必要があります
+
+マイグレーション実行前でも、sqlx::query!マクロを使用することが推奨されます：
+
+```rust
+// マイグレーション実行前でもマクロを使用
+let river_id = sqlx::query!(
+    r#"
+    INSERT INTO rivers (user_id, river_name) VALUES (?, ?) RETURNING river_id
+    "#,
+    user_id,
+    river_name
+)
+.fetch_one(&mut conn)
+.await?
+.river_id;
+```
+
+このように、MCPツールを活用することで、プロジェクトで使用するあらゆるRustライブラリのドキュメントやソースコードに簡単にアクセスできます。
+
+## 画像アップロード機能
+
+### 実装方法
+
+1. **マルチパートフォームデータの処理**
+   - axumの`Multipart`エクストラクタを使用して、フォームデータを処理
+   - `POST /image`エンドポイントでフォームデータを受け取り、GCSにアップロード
+
+2. **GCSとの連携**
+   - `reqwest`クレートを使用してGCS APIと直接通信
+   - アップロード: `https://storage.googleapis.com/upload/storage/v1/b/{bucket}/o?uploadType=media&name={path}`
+   - ダウンロード: `https://storage.googleapis.com/download/storage/v1/b/{bucket}/o/{path}?alt=media`
+
+3. **データベース設計**
+   - 画像メタデータを保存するテーブルを作成（river_waypoint_images）
+   - 外部キー制約を使用して、river_waypointとの関連付けを保証
+
+4. **マイグレーション**
+   - マイグレーションファイルを作成: `db/migrations/YYYYMMDDHHMMSS_river_waypoint_images.sql`
+   - マイグレーションの実行: `cd db && sqlx migration run`
+
+### コード品質向上のポイント
+
+1. **SQLXのマクロ使用時の注意点**
+   - コンパイル時にデータベースに接続してテーブルの存在を確認するため、マイグレーション実行前は注意が必要
+   - 常にsqlx::query!マクロを使用し、コンパイル時チェックの恩恵を受けることが推奨されます
+   - マイグレーション実行前にコンパイルエラーが発生する場合でも、sqlx::query!マクロを使用することが推奨されます
+   - raw文字列（r#"..."#）を使用することで、SQLクエリ内の特殊文字をエスケープする必要がなくなります
+   - 複雑なSQLクエリの場合は、クエリを複数行に分けて読みやすくすることが推奨されます
+
+2. **Clippyの警告対応**
+   - 不要な参照: `&user` → `user`
+   - 明示的な自動参照外し: `&mut *conn` → `&mut conn`
+   - 未使用のインポート: 使用していないモジュールのインポートを削除
+
+3. **GCSクライアントの実装**
+   - `Clone`トレイトの実装: Stateに含める構造体には`Clone`トレイトが必要
+   - 認証情報の管理: 環境変数を使用してGCSバケット名を設定

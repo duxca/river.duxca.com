@@ -1,14 +1,17 @@
 pub mod admin;
 pub mod api;
+pub mod image;
 pub mod login;
 
 #[derive(Clone)]
 pub struct State {
     pub db: sqlx::sqlite::SqlitePool,
+    pub gcs: crate::gcs::GcsClient,
 }
 impl State {
-    pub fn from_pool(pool: sqlx::sqlite::SqlitePool) -> Result<Self, anyhow::Error> {
-        Ok(Self { db: pool })
+    pub fn from_pool_and_gcs(pool: sqlx::sqlite::SqlitePool, gcs_bucket_name: &str) -> Result<Self, anyhow::Error> {
+        let gcs = crate::gcs::GcsClient::new(gcs_bucket_name);
+        Ok(Self { db: pool, gcs })
     }
 }
 

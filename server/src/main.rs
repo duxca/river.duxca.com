@@ -1,4 +1,5 @@
 mod web;
+mod gcs;
 
 #[derive(serde::Deserialize, Debug)]
 struct Config {
@@ -15,6 +16,7 @@ struct Config {
     local_client_secret: oauth2::ClientSecret,
     local_base_url: String,
     local_dist_path: String,
+    gcs_bucket_name: String,
 }
 
 #[tokio::main(flavor = "current_thread")]
@@ -98,6 +100,8 @@ async fn main() -> Result<(), anyhow::Error> {
             axum::routing::get(|| async { build::CLAP_LONG_VERSION }),
         )
         .route("/api", axum::routing::post(crate::web::api::api))
+        .route("/image", axum::routing::post(crate::web::image::upload_image))
+        .route("/image/:image_id", axum::routing::get(crate::web::image::get_image))
         .route(
             "/login/github",
             axum::routing::post(crate::web::login::github::login),
@@ -150,7 +154,7 @@ async fn main() -> Result<(), anyhow::Error> {
         //})
         .with_state({
             // 一般のリクエストで DB にアクセスするための State
-            crate::web::State::from_pool(pool)?
+            crate::web::State::from_pool_and_gcs(pool, &config.gcs_bucket_name)?
         });
 
     let listener = tokio::net::TcpListener::bind(config.host_addr).await?;

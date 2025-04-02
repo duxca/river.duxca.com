@@ -17,7 +17,7 @@ pub async fn handler(
     req: model::api::Request,
 ) -> Result<model::api::Response, anyhow::Error> {
     let mut conn = db.acquire().await?;
-    if !req.check_permission(&user) {
+    if !req.check_permission(user) {
         return Ok(model::api::ErrorKind::PermissionDenied.into());
     }
     db::user::add_access_log(&mut *conn, user.user_id, &req).await?;

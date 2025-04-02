@@ -1,5 +1,6 @@
 pub mod river_tracks;
 pub mod river_waypoints;
+pub mod river_waypoint_images;
 pub mod rivers;
 pub mod user;
 
