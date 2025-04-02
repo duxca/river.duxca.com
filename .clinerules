@@ -1,7 +1,109 @@
-このソフトウェアは川の地図情報を処理するWebアプリです
-server/ にはrustのaxumをつかったwebサーバーのコードあり、
-browser/ にはrustのyewとleaflet.jsのrustラッパーライブラリをつかったSPAウェブアプリのコードがあります。
-サーバー側のデータベースにはrustのsqlxとsqlite3を使っており、コードはdb/に入っています。
-データベースのスキーマはdb/migrationSの中にあります
-service/にはwebサーバのapiで提供する具体的な処理が入っています
-model/にはserver/,browser/およびdb/.で使われるドメインモデルの構造体などの型が定義されています
+# River.duxca.com プロジェクト概要
+
+このソフトウェアは川の地図情報を処理するWebアプリケーションです。カヌー、カヤック、SUPなどの川遊びに役立つ情報を地図上に表示し、ユーザーが情報を追加・共有できるプラットフォームを提供します。
+
+## プロジェクト構成
+
+### サーバーサイド (server/)
+- Rustの**axum**フレームワークを使用したWebサーバー
+- OAuth認証（GitHub、Facebook、Twitter）によるユーザー認証
+- RESTful APIエンドポイントの提供
+- 管理者向け管理画面の提供
+
+### フロントエンド (browser/)
+- Rustの**Yew**フレームワークを使用したSPA（Single Page Application）
+- **leaflet.js**のRustラッパーライブラリを使用した地図表示
+- 地理院タイル、OpenStreetMapなど複数の地図レイヤー対応
+- 川の情報、ウェイポイント、トラック（ルート）の表示・編集機能
+
+### データベース (db/)
+- **SQLite3**データベースを使用したデータ永続化
+- **sqlx**を使用したRustからのデータベースアクセス
+- **Litestream**を使用したGCSへのデータベースレプリケーション
+- マイグレーションスクリプトによるスキーマ管理（db/migrations/）
+
+### ドメインモデル (model/)
+- サーバー、ブラウザ、データベース間で共有される型定義
+- 川（River）、ウェイポイント（RiverWaypoint）、トラック（RiverTrack）などの構造体
+- APIリクエスト/レスポンスの型定義
+- ユーザー認証関連の型定義
+
+### サービス層 (service/)
+- Webサーバーが提供するAPIの具体的な処理実装
+- ユーザー権限チェック
+- データベースとの連携処理
+- ビジネスロジックの実装
+
+## 主要機能
+
+1. **地図表示**：地理院タイル、OpenStreetMap、航空写真などの複数レイヤー表示
+2. **川情報管理**：川の名前、位置情報、説明の登録・表示
+3. **ウェイポイント管理**：川の特定地点（入出艇場所、危険箇所など）の登録・表示
+4. **トラック管理**：川のルート情報の登録・表示
+5. **ユーザー認証**：GitHub、Facebook、Twitterを使用したOAuth認証
+6. **権限管理**：一般ユーザーと管理者の権限分け
+7. **アクセスログ**：ユーザーのAPIアクセスログ記録
+
+## デプロイ環境
+
+- Google Cloud Run上で動作
+- GitHub Actionsによる自動デプロイ
+- Litestreamを使用したSQLiteデータベースのGCSへのバックアップ
+- カスタムドメイン設定
+
+## 技術スタック
+
+- **言語**：Rust
+- **サーバーフレームワーク**：axum
+- **フロントエンドフレームワーク**：Yew（WebAssembly）
+- **地図ライブラリ**：leaflet.js（Rustラッパー）
+- **データベース**：SQLite3、sqlx
+- **バックアップ**：Litestream
+- **認証**：axum-login、OAuth（GitHub、Facebook、Twitter）
+- **テンプレートエンジン**：askama
+- **ビルドツール**：trunk（WebAssembly）
+- **クラウド**：Google Cloud Run、Google Cloud Storage
+
+## 利用可能なMCPツール
+
+- **brave-search**：インターネット検索を行うためのツール
+  - brave_web_search：一般的なウェブ検索を実行
+  - brave_local_search：ローカルビジネスや場所の検索を実行
+- **fetch**：インターネット上のURLからコンテンツを取得するツール
+
+## Rustライブラリのドキュメント
+
+MCPのbrave-searchとfetchツールを使用して、docs.rs（Rustの公式ドキュメントサイト）から任意のRustライブラリのドキュメントを読むことができます。以下のような方法で必要な情報を検索できます：
+
+1. **ライブラリのドキュメント検索**：`brave_web_search`を使用して「site:docs.rs ライブラリ名」と検索
+2. **特定の関数やモジュールの検索**：`brave_web_search`を使用して「site:docs.rs ライブラリ名 関数名」と検索
+3. **ドキュメントの閲覧**：`fetch`を使用して検索結果のURLからドキュメントを取得
+
+### tokio APIの使い方の例
+
+tokioの非同期ランタイムやI/O操作について調べる場合：
+
+```rust
+// tokioのランタイムを使用した基本的な非同期プログラム
+#[tokio::main]
+async fn main() {
+    // 非同期タスクの作成
+    let handle = tokio::spawn(async {
+        // 非同期処理
+        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+        "Hello from async task"
+    });
+    
+    // タスクの完了を待機
+    let result = handle.await.unwrap();
+    println!("{}", result);
+}
+```
+
+tokioの特定の機能（例：ファイルI/O）について調べるには：
+
+1. `brave_web_search`で「site:docs.rs tokio fs」と検索
+2. 検索結果から適切なドキュメントページを見つける
+3. `fetch`でそのページを取得して詳細を確認
+
+このように、MCPツールを活用することで、プロジェクトで使用するあらゆるRustライブラリのドキュメントに簡単にアクセスできます。
