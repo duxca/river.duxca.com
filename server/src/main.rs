@@ -1,7 +1,6 @@
 mod web;
-mod gcs;
 
-#[derive(serde::Deserialize, Debug)]
+#[derive(serde::Deserialize, Debug, Clone)]
 struct Config {
     host_addr: String,
     database_url: String,
@@ -17,6 +16,7 @@ struct Config {
     local_base_url: String,
     local_dist_path: String,
     gcs_bucket_name: String,
+    gcp_credentials_file: String,
 }
 
 #[tokio::main(flavor = "current_thread")]
@@ -34,6 +34,17 @@ async fn main() -> Result<(), anyhow::Error> {
     //     .init();
     let config = envy::from_env::<Config>()?;
     log::debug!("config: {:#?}", config);
+
+    let gcs = {
+        let cred = google_cloud_auth::credentials::CredentialsFile::new_from_file(
+            config.gcp_credentials_file.clone(),
+        )
+        .await?;
+        let conf = google_cloud_storage::client::ClientConfig::default()
+            .with_credentials(cred)
+            .await?;
+        google_cloud_storage::client::Client::new(conf)
+    };
 
     let pool = db::connect(&config.database_url).await?;
     let session_store = tower_sessions_sqlx_store::SqliteStore::new(pool.clone());
@@ -100,8 +111,18 @@ async fn main() -> Result<(), anyhow::Error> {
             axum::routing::get(|| async { build::CLAP_LONG_VERSION }),
         )
         .route("/api", axum::routing::post(crate::web::api::api))
-        .route("/image", axum::routing::post(crate::web::image::upload_image))
-        .route("/image/:image_id", axum::routing::get(crate::web::image::get_image))
+        .route(
+            "/image",
+            axum::routing::post(crate::web::image::upload_image),
+        )
+        .route(
+            "/image/:image_id",
+            axum::routing::get(crate::web::image::get_image),
+        )
+        .route(
+            "/image/:image_id",
+            axum::routing::delete(crate::web::image::delete_image),
+        )
         .route(
             "/login/github",
             axum::routing::post(crate::web::login::github::login),
@@ -154,7 +175,7 @@ async fn main() -> Result<(), anyhow::Error> {
         //})
         .with_state({
             // 一般のリクエストで DB にアクセスするための State
-            crate::web::State::from_pool_and_gcs(pool, &config.gcs_bucket_name)?
+            crate::web::State::new(config.clone(), pool, gcs)?
         });
 
     let listener = tokio::net::TcpListener::bind(config.host_addr).await?;

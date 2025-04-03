@@ -6,12 +6,16 @@ pub mod login;
 #[derive(Clone)]
 pub struct State {
     pub db: sqlx::sqlite::SqlitePool,
-    pub gcs: crate::gcs::GcsClient,
+    pub gcs: google_cloud_storage::client::Client,
+    pub config: crate::Config,
 }
 impl State {
-    pub fn from_pool_and_gcs(pool: sqlx::sqlite::SqlitePool, gcs_bucket_name: &str) -> Result<Self, anyhow::Error> {
-        let gcs = crate::gcs::GcsClient::new(gcs_bucket_name);
-        Ok(Self { db: pool, gcs })
+    pub fn new(
+        config: crate::Config,
+        db: sqlx::sqlite::SqlitePool,
+        gcs: google_cloud_storage::client::Client,
+    ) -> Result<Self, anyhow::Error> {
+        Ok(Self { config, db, gcs })
     }
 }
 

@@ -1,5 +1,4 @@
 #![allow(unused_imports)]
-use gloo::console;
 
 pub async fn call<
     T: TryFrom<model::api::Response, Error = impl Sync + Send + std::error::Error + 'static>
@@ -7,6 +6,8 @@ pub async fn call<
 >(
     req: impl Into<model::api::Request>,
 ) -> Result<T, anyhow::Error> {
+    use gloo::console;
+    use gloo::net::http;
     let req = Into::<model::api::Request>::into(req);
     let txt = serde_json::to_string(&req)?;
     // console::log!("Request: {}", &txt);

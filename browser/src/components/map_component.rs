@@ -1,17 +1,21 @@
 #![allow(unused_imports)]
-use gloo::console;
+
+// 基本的な構造体の定義に必要なuseステートメント
 use gloo::utils::document;
 use gloo::utils::format::JsValueSerdeExt;
 use leaflet::{LatLng, Map, MapOptions, TileLayer};
+use std::fmt::Debug;
+use wasm_bindgen::closure::Closure;
 use wasm_bindgen::prelude::*;
+use wasm_bindgen::JsCast;
+use wasm_bindgen::JsValue;
 use web_sys::{Element, HtmlDivElement, HtmlElement, Node};
-use yew::html::ImplicitClone;
 use yew::prelude::*;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum MapLayer {
-    GSI,
-    OSM,
+    Gsi,
+    Osm,
     Hillshade,
     // Blank,
     // AnaglyphmapColor,
@@ -42,9 +46,9 @@ pub fn map_component(
     let node_ref = NodeRef::default();
     let map_state = use_state(|| None);
     // 描画中のウェイポイント一覧
-    let markers_state = use_state(|| Vec::<(i64, leaflet::Marker)>::new());
+    let markers_state = use_state(Vec::<(i64, leaflet::Marker)>::new);
     // 描画中のトラック一覧
-    let polylines_state = use_state(|| Vec::<(i64, leaflet::Polyline)>::new());
+    let polylines_state = use_state(Vec::<(i64, leaflet::Polyline)>::new);
 
     // 初回のみ
     use_effect_with((), {
@@ -108,8 +112,8 @@ pub fn map_component(
                 )
             };
             match layer {
-                MapLayer::GSI => gsi.add_to(&map),
-                MapLayer::OSM => osm.add_to(&map),
+                MapLayer::Gsi => gsi.add_to(&map),
+                MapLayer::Osm => osm.add_to(&map),
                 MapLayer::Hillshade => hillshademap.add_to(&map),
                 // MapLayer::Blank => blank.add_to(&map),
                 // MapLayer::AnaglyphmapColor => anaglyphmap_color.add_to(&map),

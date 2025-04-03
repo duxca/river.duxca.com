@@ -136,6 +136,7 @@ let rivers = sqlx::query!(
 .await?;
 
 // 名前付き構造体にマッピングするquery_as!マクロ
+#[derive(sqlx::FromRow)]
 struct River {
     river_id: i64,
     river_name: String,
@@ -183,44 +184,85 @@ let river_id = sqlx::query!(
 .await?
 .river_id;
 ```
+## 外部サービス連携とデータ処理
 
-このように、MCPツールを活用することで、プロジェクトで使用するあらゆるRustライブラリのドキュメントやソースコードに簡単にアクセスできます。
+### クラウドストレージ連携（GCS）
 
-## 画像アップロード機能
+1. **ファイルアップロード処理**
+   - axumの`Multipart`エクストラクタを使用したフォームデータ処理
+   - `reqwest`クレートを使用したGCS APIとの通信
+   - アップロードエンドポイント: `https://storage.googleapis.com/upload/storage/v1/b/{bucket}/o?uploadType=media&name={path}`
+   - ダウンロードエンドポイント: `https://storage.googleapis.com/download/storage/v1/b/{bucket}/o/{path}?alt=media`
 
-### 実装方法
+2. **GCSクライアント実装のベストプラクティス**
+   - `Clone`トレイトの実装: Stateに含める構造体には`Clone`トレイトが必要
+   - 認証情報の管理: 環境変数を使用したGCSバケット名の設定
+   - エラーハンドリング: 適切なエラー型の定義と変換
 
-1. **マルチパートフォームデータの処理**
-   - axumの`Multipart`エクストラクタを使用して、フォームデータを処理
-   - `POST /image`エンドポイントでフォームデータを受け取り、GCSにアップロード
+### データベース設計とマイグレーション
 
-2. **GCSとの連携**
-   - `reqwest`クレートを使用してGCS APIと直接通信
-   - アップロード: `https://storage.googleapis.com/upload/storage/v1/b/{bucket}/o?uploadType=media&name={path}`
-   - ダウンロード: `https://storage.googleapis.com/download/storage/v1/b/{bucket}/o/{path}?alt=media`
+1. **リレーショナルデータモデリング**
+   - 外部キー制約を使用した関連テーブル間の整合性確保
+   - メタデータテーブルの設計（例: river_waypoint_images）
+   - 適切なインデックス設計によるクエリパフォーマンスの最適化
 
-3. **データベース設計**
-   - 画像メタデータを保存するテーブルを作成（river_waypoint_images）
-   - 外部キー制約を使用して、river_waypointとの関連付けを保証
+2. **マイグレーション管理**
+   - 命名規則: `db/migrations/YYYYMMDDHHMMSS_テーブル名.sql`
+   - 実行方法: `cd db && sqlx migration run`
+   - ロールバック考慮: DOWN migrationの実装
 
-4. **マイグレーション**
-   - マイグレーションファイルを作成: `db/migrations/YYYYMMDDHHMMSS_river_waypoint_images.sql`
-   - マイグレーションの実行: `cd db && sqlx migration run`
+## Rustコード品質向上のポイント
 
-### コード品質向上のポイント
+### SQLXの効果的な使用法
 
-1. **SQLXのマクロ使用時の注意点**
-   - コンパイル時にデータベースに接続してテーブルの存在を確認するため、マイグレーション実行前は注意が必要
-   - 常にsqlx::query!マクロを使用し、コンパイル時チェックの恩恵を受けることが推奨されます
-   - マイグレーション実行前にコンパイルエラーが発生する場合でも、sqlx::query!マクロを使用することが推奨されます
-   - raw文字列（r#"..."#）を使用することで、SQLクエリ内の特殊文字をエスケープする必要がなくなります
-   - 複雑なSQLクエリの場合は、クエリを複数行に分けて読みやすくすることが推奨されます
+1. **マクロ活用のベストプラクティス**
+   - `query!`マクロ: 匿名レコード型を返し、カラム名がそのままフィールド名になる
+   - `query_as!`マクロ: 指定した構造体にマッピング（構造体のフィールド名とカラム名の一致が必要）
+   - raw文字列（r#"..."#）の使用: SQLクエリ内の特殊文字のエスケープ不要
+   - 複数行クエリ: 読みやすさ向上のためのフォーマット
 
-2. **Clippyの警告対応**
+2. **コンパイル時チェックの活用**
+   - マイグレーション実行前でも`query!`マクロを使用する利点
+   - 型安全性の確保: 結果の型を自動的に推論し、型安全なアクセスを提供
+   - パフォーマンス向上: コンパイル時に型情報を生成し、実行時オーバーヘッドを削減
+
+### コード品質ツールの活用
+
+1. **Clippy警告対応**
    - 不要な参照: `&user` → `user`
    - 明示的な自動参照外し: `&mut *conn` → `&mut conn`
    - 未使用のインポート: 使用していないモジュールのインポートを削除
+   - 実行方法: `cargo clippy -- -D warnings`
 
-3. **GCSクライアントの実装**
-   - `Clone`トレイトの実装: Stateに含める構造体には`Clone`トレイトが必要
+2. **axumフレームワークのベストプラクティス**
+   - エクストラクタの適切な選択: `Json<T>`, `Path<T>`, `Query<T>`, `Multipart`など
+   - ハンドラ関数の設計: 適切な引数型と戻り値型の選択
+   - エラーハンドリング: `Result<T, AppError>`パターンの活用
+   - ミドルウェアの効果的な使用: ログ記録、認証、レート制限など
    - 認証情報の管理: 環境変数を使用してGCSバケット名を設定
+
+3. **関数スコープ内でのuseステートメントの使用**
+   - ファイル先頭のuseステートメントを避け、関数スコープ内でuseステートメントを使用する
+   - メリット: 名前空間の汚染を防ぎ、依存関係をより明確にする
+   - 実装方法:
+     - ファイル先頭のuseステートメントを削除
+     - 各関数内で必要なuseステートメントを追加（例: `use anyhow::Result;`）
+     - 型名を完全修飾パスで指定（例: `sqlx::sqlite::SqliteConnection`）
+   - 注意点:
+     - 複雑なフレームワーク（Yewなど）を使用するファイルでは実装が難しい場合がある
+     - マクロや属性（`#[derive]`など）で使用される型は関数スコープ外でインポートする必要がある
+   - 例:
+     ```rust
+     // 修正前
+     use anyhow::Result;
+     use sqlx::sqlite::SqliteConnection;
+     
+     pub async fn get_data(conn: &mut SqliteConnection) -> Result<Vec<Data>> {
+         // 関数の実装
+     }
+     
+     // 修正後
+     pub async fn get_data(conn: &mut sqlx::sqlite::SqliteConnection) -> anyhow::Result<Vec<Data>> {
+         use anyhow::Result;
+         // 関数の実装
+     }

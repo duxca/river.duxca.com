@@ -208,7 +208,7 @@ fn app() -> Html {
                     )
                     .await
                     .unwrap();
-                let mut trks = (&*river_tracks).clone();
+                let mut trks = (*river_tracks).clone();
                 trks.push(model::river::RiverTrack {
                     user_id: 0,
                     river_track_id,
@@ -262,7 +262,7 @@ fn app() -> Html {
                     )
                     .await
                     .unwrap();
-                let mut wpts = (&*river_waypoints).clone();
+                let mut wpts = (*river_waypoints).clone();
                 wpts.push(model::river::RiverWaypoint {
                     user_id: 0,
                     river_waypoint_id,
@@ -308,7 +308,7 @@ fn app() -> Html {
                     )
                     .await
                     .unwrap();
-                let mut rvs = (&*rivers).clone();
+                let mut rvs = (*rivers).clone();
                 rvs.push(model::river::River {
                     user_id: 0,
                     river_id,
@@ -372,7 +372,7 @@ fn app() -> Html {
             html! {
                 <>
                 <MapComponent
-                    layer={MapLayer::GSI}
+                    layer={MapLayer::Gsi}
                     forcus={*forcus}
                     tracks={tracks}
                     waypoints={waypoints}

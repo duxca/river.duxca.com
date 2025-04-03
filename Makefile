@@ -18,4 +18,4 @@ watch:
 
 .PHONY:check
 check:
-	cargo clippy
+	cargo clippy -- -D warnings`

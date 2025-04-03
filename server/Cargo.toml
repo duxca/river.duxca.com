@@ -12,7 +12,7 @@ anyhow = "1"
 askama = "0.13.0"
 async-trait = "0.1"
 axum = { version = "0.8", features = ["multipart"] }
-axum-extra = { version = "0.10", features = ["cookie", "form"] }
+axum-extra = { version = "0.10", features = ["cookie", "form", "query", "file-stream", "attachment"] }
 axum-jrpc = "0.8.0"
 axum-login = "0.17"
 bytes = "1.5"
@@ -23,7 +23,8 @@ dotenvy = "0.15"
 env_logger = "0.11.5"
 envy = "0.4.2"
 futures = "0.3.30"
-cloud-storage = "0.11"
+google-cloud-auth = "0.17"
+google-cloud-storage = "0.24"
 log = "0.4.22"
 mime = "0.3"
 model = { path = "../model", features = ["sql", "login"] }
