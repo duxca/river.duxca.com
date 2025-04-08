@@ -1,6 +1,84 @@
-
 ![workflow](https://github.com/legokichi/river.duxca.com/actions/workflows/rust.yml/badge.svg)
 
+# River.duxca.com プロジェクト概要
+
+このソフトウェアは川の地図情報を処理するWebアプリケーションです。カヌー、カヤック、SUPなどの川遊びに役立つ情報を地図上に表示し、ユーザーが情報を追加・共有できるプラットフォームを提供します。
+
+## プロジェクト構成
+
+### サーバーサイド (server/)
+- Rustの**axum**フレームワークを使用したWebサーバー
+- OAuth認証（GitHub、Facebook、Twitter）によるユーザー認証
+- RESTful APIエンドポイントの提供
+- 管理者向け管理画面の提供
+
+### フロントエンド (browser/)
+- Rustの**Yew**フレームワークを使用したSPA（Single Page Application）
+- **leaflet.js**のRustラッパーライブラリを使用した地図表示
+- 地理院タイル、OpenStreetMapなど複数の地図レイヤー対応
+- 川の情報、ウェイポイント、トラック（ルート）の表示・編集機能
+
+### データベース (db/)
+- **SQLite3**データベースを使用したデータ永続化
+- **sqlx**を使用したRustからのデータベースアクセス
+- **Litestream**を使用したGCSへのデータベースレプリケーション
+- マイグレーションスクリプトによるスキーマ管理（db/migrations/）
+- マイグレーションの実行方法：`cd db && sqlx migrate run; cd ..`
+- データベースのリセット方法：`cd db && sqlx database reset; cd ..`
+
+### ドメインモデル (model/)
+- サーバー、ブラウザ、データベース間で共有される型定義
+- 川（River）、ウェイポイント（RiverWaypoint）、トラック（RiverTrack）などの構造体
+- APIリクエスト/レスポンスの型定義
+- ユーザー認証関連の型定義
+
+### サービス層 (service/)
+- Webサーバーが提供するAPIの具体的な処理実装
+- ユーザー権限チェック
+- データベースとの連携処理
+- ビジネスロジックの実装
+
+## 主要機能
+
+1. **地図表示**：地理院タイル、OpenStreetMap、航空写真などの複数レイヤー表示
+2. **川情報管理**：川の名前、位置情報、説明の登録・表示
+3. **ウェイポイント管理**：川の特定地点（入出艇場所、危険箇所など）の登録・表示
+4. **トラック管理**：川のルート情報の登録・表示
+5. **ユーザー認証**：GitHub、Facebook、Twitterを使用したOAuth認証
+6. **権限管理**：一般ユーザーと管理者の権限分け
+7. **アクセスログ**：ユーザーのAPIアクセスログ記録
+
+## デプロイ環境
+
+- Google Cloud Run上で動作
+- GitHub Actionsによる自動デプロイ
+- Litestreamを使用したSQLiteデータベースのGCSへのバックアップ
+- カスタムドメイン設定
+
+## 技術スタック
+
+- **言語**：Rust
+- **サーバーフレームワーク**：axum
+- **フロントエンドフレームワーク**：Yew（WebAssembly）
+- **地図ライブラリ**：leaflet.js（Rustラッパー）
+- **データベース**：SQLite3、sqlx
+- **バックアップ**：Litestream
+- **認証**：axum-login、OAuth（GitHub、Facebook、Twitter）
+- **テンプレートエンジン**：askama
+- **ビルドツール**：trunk（WebAssembly）
+- **クラウド**：Google Cloud Run、Google Cloud Storage
+
+## 開発環境のセットアップ
+
+### ローカル開発用の fake-gcs-server
+
+Google Cloud Storage のエミュレーターとして fake-gcs-server を使用します。以下のコマンドで起動できます：
+
+```bash
+docker-compose up -d
+```
+
+サーバーは http://localhost:4443 で利用可能です。このエミュレーターは開発時の GCS 操作のテストに使用されます。
 
 ## cloud run 環境作成までの道のり
 
