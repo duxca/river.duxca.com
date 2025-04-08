@@ -2,22 +2,56 @@ pub mod facebook;
 pub mod github;
 pub mod twitter;
 
-#[derive(Debug, serde::Deserialize)]
-pub struct LogoutForm {
-    pub redirect: Option<String>,
+/// GET /login
+/// ひみつのログインページ
+#[tracing::instrument(level = "trace", skip(auth_session, st))]
+pub async fn login(
+    auth_session: axum_login::AuthSession<Backend>,
+    axum::extract::State(ref st): axum::extract::State<crate::web::State>,
+) -> Result<impl axum::response::IntoResponse, crate::web::Ise> {
+    use askama::Template;
+    use axum::response::IntoResponse;
+    let mut conn = st.db.acquire().await?;
+    let auths = if let Some(user) = auth_session.user {
+        db::user::get_user_auths(&mut conn, user.user_id).await?
+    } else {
+        vec![]
+    };
+    #[derive(Debug, askama::Template)]
+    #[template(path = "login.html")]
+    struct Tmpl {
+        github: Option<model::user::UserAuth>,
+        twitter: Option<model::user::UserAuth>,
+        facebook: Option<model::user::UserAuth>,
+    }
+    let template = Tmpl {
+        github: auths
+            .iter()
+            .find(|a| a.identity_type == 0)
+            .map(ToOwned::to_owned),
+        facebook: auths
+            .iter()
+            .find(|a| a.identity_type == 1)
+            .map(ToOwned::to_owned),
+        twitter: auths
+            .iter()
+            .find(|a| a.identity_type == 2)
+            .map(ToOwned::to_owned),
+    };
+    let body = axum::response::Html(template.render()?);
+    Ok(body.into_response())
 }
 
+/// GET /logout
 /// POST /logout
-// #[tracing::instrument(level = "trace")]
+#[tracing::instrument(level = "trace", skip(auth_session, session))]
 pub async fn logout(
     mut auth_session: axum_login::AuthSession<Backend>,
     session: tower_sessions::Session,
-    axum::Form(LogoutForm { redirect }): axum::Form<LogoutForm>,
 ) -> Result<impl axum::response::IntoResponse, crate::web::Ise> {
     auth_session.logout().await?;
     session.flush().await?;
-    let redirect = redirect.unwrap_or_else(|| "/".to_string());
-    Ok(axum::response::Redirect::to(&redirect))
+    Ok(axum::response::Redirect::to(&"/"))
 }
 
 #[derive(Debug, thiserror::Error)]

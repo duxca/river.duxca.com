@@ -106,30 +106,19 @@ async fn main() -> Result<(), anyhow::Error> {
     //});
 
     let app = axum::Router::new()
-        .route(
-            "/version",
-            axum::routing::get(|| async { build::CLAP_LONG_VERSION }),
-        )
         .route("/api", axum::routing::post(crate::web::api::api))
+        .layer(tower_http::cors::CorsLayer::very_permissive())
         .route(
             "/image",
             axum::routing::post(crate::web::image::upload_image),
         )
         .route(
-            "/image/:image_id",
+            "/image/{image_id}",
             axum::routing::get(crate::web::image::get_image),
         )
         .route(
-            "/image/:image_id",
+            "/image/{image_id}",
             axum::routing::delete(crate::web::image::delete_image),
-        )
-        .route(
-            "/login/github",
-            axum::routing::post(crate::web::login::github::login),
-        )
-        .route(
-            "/oauth/callback/github",
-            axum::routing::get(crate::web::login::github::callback),
         )
         .route("/admin", axum::routing::get(crate::web::admin::admin))
         .route(
@@ -139,6 +128,15 @@ async fn main() -> Result<(), anyhow::Error> {
         .route(
             "/admin/delete_waypoints",
             axum::routing::post(crate::web::admin::admin_delete_waypoints),
+        )
+        .route("/login", axum::routing::get(crate::web::login::login))
+        .route(
+            "/login/github",
+            axum::routing::post(crate::web::login::github::login),
+        )
+        .route(
+            "/oauth/callback/github",
+            axum::routing::get(crate::web::login::github::callback),
         )
         .route(
             "/login/twitter",
@@ -157,8 +155,11 @@ async fn main() -> Result<(), anyhow::Error> {
             axum::routing::get(crate::web::login::facebook::callback),
         )
         .route("/logout", axum::routing::post(crate::web::login::logout))
-        .layer(axum_login::AuthManagerLayerBuilder::new(backend, session_layer).build())
-        .layer(tower_http::cors::CorsLayer::very_permissive())
+        .route("/logout", axum::routing::get(crate::web::login::logout))
+        .route(
+            "/version",
+            axum::routing::get(|| async { build::CLAP_LONG_VERSION }),
+        )
         .fallback_service({
             use axum::handler::HandlerWithoutStateExt;
             tower_http::services::ServeDir::new(if cfg!(feature = "local") {
@@ -168,6 +169,7 @@ async fn main() -> Result<(), anyhow::Error> {
             })
             .not_found_service(crate::web::handler_404.into_service())
         })
+        .layer(axum_login::AuthManagerLayerBuilder::new(backend, session_layer).build())
         .layer(tower_http::trace::TraceLayer::new_for_http())
         .layer(tower_http::compression::CompressionLayer::new())
         //.layer(tower_governor::GovernorLayer {

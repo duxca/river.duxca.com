@@ -52,6 +52,7 @@ fn app() -> Html {
                 )
                 .await;
                 if res.is_err() {
+                    page_state.set(PageState::LoggedOut);
                     return;
                 }
                 page_state.set(PageState::LoggedIn(res.unwrap().user));
@@ -356,12 +357,6 @@ fn app() -> Html {
         PageState::LoggedOut => {
             html! {
                 <>
-                <form method="post" action="/login/github">
-                <input type="submit" value="GitHub Login" />
-                </form>
-                <form method="post" action="/login/facebook">
-                    <input type="submit" value="Facebook Login" />
-                </form>
                 <form method="post" action="/login/twitter">
                     <input type="submit" value="twitter Login" />
                 </form>
@@ -383,22 +378,22 @@ fn app() -> Html {
                 )}>
                     {"Home"}
                 </button>
-                <button class="control-top-left-2nd" onclick={Callback::from({
-                    let edit_mode = edit_mode.clone();
-                    move |_| edit_mode.set(EditMode::AddRoute(AddRouteMode::default()))
-                })}>
-                    {"Route"}
-                </button>
-                <button
-                    class="control-top-left-3rd"
-                    onclick={Callback::from({
-                        let edit_mode = edit_mode.clone();
-                        move |_| edit_mode.set(EditMode::AddWaypoint)
-                    })}
-                >
-                    {"Waypoint"}
-                </button>
                 if user.role == 0 {
+                    <button class="control-top-left-2nd" onclick={Callback::from({
+                        let edit_mode = edit_mode.clone();
+                        move |_| edit_mode.set(EditMode::AddRoute(AddRouteMode::default()))
+                    })}>
+                        {"Route"}
+                    </button>
+                    <button
+                        class="control-top-left-3rd"
+                        onclick={Callback::from({
+                            let edit_mode = edit_mode.clone();
+                            move |_| edit_mode.set(EditMode::AddWaypoint)
+                        })}
+                    >
+                        {"Waypoint"}
+                    </button>
                     <button
                         class="control-top-left-4th"
                         onclick={Callback::from({
@@ -413,7 +408,7 @@ fn app() -> Html {
                     </form>
                 }else{
                     <form method="post" action="/logout">
-                        <input class="control-top-left-4th" type="submit" value="Logout" />
+                        <input class="control-top-left-2th" type="submit" value="Logout" />
                     </form>
                 }
                 <div class="control-bottom-left-1st">

@@ -1,9 +1,12 @@
+pub mod create_file;
 pub mod create_river;
 pub mod create_river_track;
 pub mod create_river_waypoint;
+pub mod delete_file;
 pub mod delete_river;
 pub mod delete_river_track;
 pub mod delete_river_waypoint;
+pub mod get_file;
 pub mod get_me;
 pub mod get_river;
 pub mod list_access_logs;

@@ -13,6 +13,7 @@ use web_sys::{Element, HtmlDivElement, HtmlElement, Node};
 use yew::prelude::*;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[allow(dead_code)]
 pub enum MapLayer {
     Gsi,
     Osm,

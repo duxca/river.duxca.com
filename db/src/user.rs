@@ -226,6 +226,36 @@ pub fn list_user_auths<'a, 'c>(
     }
 }
 
+
+#[tracing::instrument(level = "trace", skip(conn))]
+pub fn get_user_auths<'a, 'c>(
+    conn: impl sqlx::Acquire<'c, Database = sqlx::Sqlite> + Send + 'a,
+    user_id: i64,
+) -> impl std::future::Future<Output = Result<Vec<model::user::UserAuth>, anyhow::Error>>
++ Send
++ 'a {
+    async move {
+        let mut conn = conn.acquire().await?;
+        let rows = sqlx::query_as!(
+            model::user::UserAuth,
+            r#"
+            SELECT
+                user_auth_id,
+                user_id,
+                identity_type,
+                identifier,
+                created_at
+            FROM user_auths
+            WHERE user_auths.user_id = ?1
+            "#,
+            user_id
+        )
+        .fetch_all(&mut *conn)
+        .await?;
+        Ok(rows)
+    }
+}
+
 #[tracing::instrument(level = "trace", skip(conn))]
 pub fn delete_user<'a, 'c>(
     conn: impl sqlx::Acquire<'c, Database = sqlx::Sqlite> + Send + 'a,
