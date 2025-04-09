@@ -6,6 +6,7 @@ use gloo::utils::format::JsValueSerdeExt;
 use wasm_bindgen::prelude::*;
 // use web_sys::HtmlInputElement;
 use yew::prelude::*;
+use yew::classes;
 
 mod api;
 mod components;
@@ -14,6 +15,12 @@ enum PageState {
     Loading,
     LoggedOut,
     LoggedIn(model::user::User),
+}
+
+#[derive(Debug, PartialEq, Clone, Eq)]
+enum SideMenuState {
+    Open,
+    Closed,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -37,6 +44,7 @@ fn app() -> Html {
     // Fuji
     let forcus = use_state(|| (35.3622222, 138.7313889));
     let edit_mode = use_state(|| EditMode::Home {});
+    let side_menu_state = use_state(|| SideMenuState::Closed);
     let rivers = use_state(|| Vec::<model::river::River>::new());
     let river_waypoints = use_state(|| Vec::<model::river::RiverWaypoint>::new());
     let river_tracks = use_state(|| Vec::<model::river::RiverTrack>::new());
@@ -96,24 +104,24 @@ fn app() -> Html {
         let river_tracks = river_tracks.clone();
         move |rivers| {
             let rivers = rivers.clone();
-            wasm_bindgen_futures::spawn_local(async move {
-                let mut wpts = vec![];
-                let mut tracks = vec![];
-                for river in &*rivers {
-                    let mut res = crate::api::call::<model::api::get_river::Response>(
-                        model::api::get_river::Request {
-                            river_id: river.river_id,
-                        },
-                    )
-                    .await
-                    .unwrap();
-                    wpts.append(&mut res.waypoints);
-                    tracks.append(&mut res.tracks);
-                }
-                // 都度再描画
-                river_waypoints.set(wpts.clone());
-                river_tracks.set(tracks);
-            });
+            // wasm_bindgen_futures::spawn_local(async move {
+            //     let mut wpts = vec![];
+            //     let mut tracks = vec![];
+            //     for river in &*rivers {
+            //         let mut res = crate::api::call::<model::api::get_river::Response>(
+            //             model::api::get_river::Request {
+            //                 river_id: river.river_id,
+            //             },
+            //         )
+            //         .await
+            //         .unwrap();
+            //         wpts.append(&mut res.waypoints);
+            //         tracks.append(&mut res.tracks);
+            //     }
+            //     // 都度再描画
+            //     river_waypoints.set(wpts.clone());
+            //     river_tracks.set(tracks);
+            // });
         }
     });
 
@@ -366,51 +374,84 @@ fn app() -> Html {
         PageState::LoggedIn(ref user) => {
             html! {
                 <>
+                // ハンバーガーメニューアイコン
+                <button class="hamburger-menu" onclick={Callback::from({
+                    let side_menu_state = side_menu_state.clone();
+                    move |_| {
+                        if *side_menu_state == SideMenuState::Closed {
+                            side_menu_state.set(SideMenuState::Open);
+                        } else {
+                            side_menu_state.set(SideMenuState::Closed);
+                        }
+                    }
+                })}>
+                    <span class="material-icons">{"menu"}</span>
+                </button>
+
+                // サイドメニュー
+                <div class={classes!(
+                    "side-menu",
+                    if *side_menu_state == SideMenuState::Open { "open" } else { "" }
+                )}>
+                    <div class="side-menu-header">
+                        <h2>{"メニュー"}</h2>
+                        <button class="close-menu" onclick={Callback::from({
+                            let side_menu_state = side_menu_state.clone();
+                            move |_| side_menu_state.set(SideMenuState::Closed)
+                        })}>
+                            <span class="material-icons">{"close"}</span>
+                        </button>
+                    </div>
+                    <nav class="side-menu-nav">
+                        <ul>
+                            <li><a href="#"><span class="material-icons">{"home"}</span>{"ホーム"}</a></li>
+                            <li><a href="#"><span class="material-icons">{"map"}</span>{"マップ"}</a></li>
+                            <li><a href="#"><span class="material-icons">{"favorite"}</span>{"お気に入り"}</a></li>
+                            <li><a href="#"><span class="material-icons">{"settings"}</span>{"設定"}</a></li>
+                            <li><a href="#"><span class="material-icons">{"help"}</span>{"ヘルプ"}</a></li>
+                        </ul>
+                    </nav>
+                </div>
+
                 <MapComponent
                     layer={MapLayer::Gsi}
                     forcus={*forcus}
                     tracks={tracks}
                     waypoints={waypoints}
                     on_move={on_move} />
-                <button class="control-top-left-1st" onclick={Callback::from({
-                    let edit_mode = edit_mode.clone();
-                    move |_| edit_mode.set(EditMode::Home)}
-                )}>
-                    {"Home"}
-                </button>
-                if user.role == 0 {
-                    <button class="control-top-left-2nd" onclick={Callback::from({
+                <nav id="bottom-nav-bar">
+                    <button onclick={Callback::from({
+                        let edit_mode = edit_mode.clone();
+                        move |_| edit_mode.set(EditMode::Home)
+                    })} class={if matches!(*edit_mode, EditMode::Home{}) { "active" } else { "" }}>
+                        <span class="material-icons">{"home"}</span>
+                        <span class="label">{"ホーム"}</span>
+                    </button>
+                    <button onclick={Callback::from({
                         let edit_mode = edit_mode.clone();
                         move |_| edit_mode.set(EditMode::AddRoute(AddRouteMode::default()))
-                    })}>
-                        {"Route"}
+                    })} class={if matches!(*edit_mode, EditMode::AddRoute(_)) { "active" } else { "" }}>
+                        <span class="material-icons">{"route"}</span>
+                        <span class="label">{"ルート"}</span>
                     </button>
-                    <button
-                        class="control-top-left-3rd"
-                        onclick={Callback::from({
-                            let edit_mode = edit_mode.clone();
-                            move |_| edit_mode.set(EditMode::AddWaypoint)
-                        })}
-                    >
-                        {"Waypoint"}
+                    <button onclick={Callback::from({
+                        let edit_mode = edit_mode.clone();
+                        move |_| edit_mode.set(EditMode::AddWaypoint)
+                    })} class={if matches!(*edit_mode, EditMode::AddWaypoint) { "active" } else { "" }}>
+                        <span class="material-icons">{"place"}</span>
+                        <span class="label">{"ポイント"}</span>
                     </button>
-                    <button
-                        class="control-top-left-4th"
-                        onclick={Callback::from({
-                            let edit_mode = edit_mode.clone();
-                            move |_| edit_mode.set(EditMode::AddRiver)
-                        })}
-                    >
-                        {"River"}
+                    <button onclick={Callback::from({
+                        let edit_mode = edit_mode.clone();
+                        move |_| edit_mode.set(EditMode::AddRiver)
+                    })} class={if matches!(*edit_mode, EditMode::AddRiver) { "active" } else { "" }}>
+                        <span class="material-icons">{"water"}</span>
+                        <span class="label">{"川"}</span>
                     </button>
-                    <form method="post" action="/logout">
-                        <input class="control-top-left-5th" type="submit" value="Logout" />
-                    </form>
-                }else{
-                    <form method="post" action="/logout">
-                        <input class="control-top-left-2th" type="submit" value="Logout" />
-                    </form>
-                }
+                </nav>
+                <form method="post" action="/logout">
+                    <input class="control-top-left-2th" type="submit" value="Logout" />
+                </form>
                 <div class="control-bottom-left-1st">
                     if let EditMode::Home{} = *edit_mode {
                         <fieldset>

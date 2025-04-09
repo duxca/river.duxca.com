@@ -22,6 +22,14 @@ pub enum MapLayer {
     // AnaglyphmapColor,
     Seamlessphoto,
 }
+
+// 設定画面の表示状態
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+enum SettingsVisibility {
+    Visible,
+    Hidden,
+}
+
 // (lat, lng)
 #[derive(PartialEq, Properties, Clone)]
 pub struct Props {
@@ -50,6 +58,8 @@ pub fn map_component(
     let markers_state = use_state(Vec::<(i64, leaflet::Marker)>::new);
     // 描画中のトラック一覧
     let polylines_state = use_state(Vec::<(i64, leaflet::Polyline)>::new);
+    // 設定画面の表示状態
+    let settings_visibility = use_state(|| SettingsVisibility::Hidden);
 
     // 初回のみ
     use_effect_with((), {
@@ -59,11 +69,16 @@ pub fn map_component(
         let map_state = map_state.clone();
         let on_move = on_move.clone();
         move |()| {
-            let div = node_ref.cast::<HtmlDivElement>().unwrap();
-            let map = Map::new_with_element(&div, &MapOptions::default());
+            let map = {
+                let div = node_ref.cast::<HtmlDivElement>().unwrap();
+                let opt = MapOptions::default();
+                opt.set_zoom_control(false);
+                Map::new_with_element(&div, &opt)
+            };
 
             // 初期位置
             map.set_view(&LatLng::new(lat, lng), 11.0);
+
             let gsi = {
                 let opt = leaflet::TileLayerOptions::new();
                 opt.set_attribution("<a href='https://maps.gsi.go.jp/development/ichiran.html' target='_blank'>地理院タイル</a>".to_string());
@@ -121,7 +136,7 @@ pub fn map_component(
                 MapLayer::Seamlessphoto => seamlessphoto.add_to(&map),
             };
 
-            let control = {
+            let layer_control = {
                 // 生 object でしか設定できない
                 let opt = js_sys::Object::new();
                 js_sys::Reflect::set(&opt, &JsValue::from("OpenStreetMap"), &JsValue::from(osm))
@@ -150,13 +165,23 @@ pub fn map_component(
                 // .unwrap();
                 LayersControl::new(&opt)
             };
-            control.add_to(&map);
+            layer_control.add_to(&map);
 
-            let control = {
+            let scale_control = {
                 let opt = js_sys::Object::new();
+                js_sys::Reflect::set(&opt, &JsValue::from("position"), &JsValue::from("bottomleft"))
+                    .unwrap();
                 ScaleControl::new(&opt.unchecked_into())
             };
-            control.add_to(&map);
+            scale_control.add_to(&map);
+
+            let zoom_control = {
+                let opt = js_sys::Object::new();
+                js_sys::Reflect::set(&opt, &JsValue::from("position"), &JsValue::from("topright"))
+                    .unwrap();
+                ZoomControl::new(&opt.unchecked_into())
+            };
+            zoom_control.add_to(&map);
 
             // TODO: use_effect_with(on_move, ) を使う
             let cb = Closure::<_>::new({
@@ -252,12 +277,70 @@ pub fn map_component(
         }
     });
 
+    // 設定ボタンのクリックハンドラ
+    let toggle_settings = {
+        let settings_visibility = settings_visibility.clone();
+        Callback::from(move |_: MouseEvent| {
+            if *settings_visibility == SettingsVisibility::Hidden {
+                settings_visibility.set(SettingsVisibility::Visible);
+            } else {
+                settings_visibility.set(SettingsVisibility::Hidden);
+            }
+        })
+    };
+
     // この VDOM に変化なければ再描画されない
     html! {
         <>
             <div id="map" ref={node_ref}>
             </div>
             <div class="crosshair">
+            </div>
+            
+            // 設定ボタン
+            <button class="map-settings-button" onclick={toggle_settings.clone()}>
+                <span class="material-icons">{"settings"}</span>
+            </button>
+            
+            // 設定画面
+            <div class={classes!(
+                "map-settings-panel",
+                if *settings_visibility == SettingsVisibility::Visible { "visible" } else { "hidden" }
+            )}>
+                <div class="map-settings-header">
+                    <h3>{"地図設定"}</h3>
+                    <button class="close-settings" onclick={toggle_settings.clone()}>
+                        <span class="material-icons">{"close"}</span>
+                    </button>
+                </div>
+                <div class="map-settings-content">
+                    <div class="settings-group">
+                        <h4>{"表示設定"}</h4>
+                        <div class="setting-item">
+                            <label>
+                                <input type="checkbox" checked={true} />
+                                <span>{"ウェイポイントを表示"}</span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <label>
+                                <input type="checkbox" checked={true} />
+                                <span>{"トラックを表示"}</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="settings-group">
+                        <h4>{"地図スタイル"}</h4>
+                        <div class="setting-item">
+                            <select>
+                                <option value="gsi" selected={true}>{"地理院タイル"}</option>
+                                <option value="osm">{"OpenStreetMap"}</option>
+                                <option value="hillshade">{"陰影起伏図"}</option>
+                                <option value="seamlessphoto">{"航空写真"}</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
             </div>
         </>
     }
@@ -305,5 +388,22 @@ impl LayersControl {
     #[must_use]
     pub fn new(options: &js_sys::Object) -> Self {
         constructor_layers(options)
+    }
+}
+
+#[wasm_bindgen]
+extern "C" {
+    #[derive(Debug, Clone)]
+    #[wasm_bindgen(extends = leaflet::Control, js_namespace = ["L", "Control"])]
+    pub type ZoomControl;
+
+    #[wasm_bindgen(js_namespace = ["L", "control"], js_name = "zoom")]
+    fn constructor_zoom(options: &js_sys::Object) -> ZoomControl;
+}
+
+impl ZoomControl {
+    #[must_use]
+    pub fn new(options: &js_sys::Object) -> Self {
+        constructor_zoom(options)
     }
 }
