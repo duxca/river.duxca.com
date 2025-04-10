@@ -1,4 +1,3 @@
-
 #[tracing::instrument(level = "trace", skip(db, gcs))]
 pub async fn get_file(
     db: &sqlx::Pool<sqlx::Sqlite>,

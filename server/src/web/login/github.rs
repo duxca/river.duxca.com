@@ -5,7 +5,6 @@ const CSRF_STATE_KEY: &str = "oauth.csrf-state";
 // https://github.com/settings/developers
 const REDIRECT_PATH: &str = "/oauth/callback/github";
 
-
 // open redirect 対策
 // #[derive(Debug, serde::Deserialize)]
 // pub struct LoginForm {

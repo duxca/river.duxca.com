@@ -5,8 +5,8 @@ use gloo::utils::document;
 use gloo::utils::format::JsValueSerdeExt;
 use wasm_bindgen::prelude::*;
 // use web_sys::HtmlInputElement;
-use yew::prelude::*;
 use yew::classes;
+use yew::prelude::*;
 
 mod api;
 mod components;
@@ -402,57 +402,6 @@ fn app() -> Html {
                             <span class="material-icons">{"close"}</span>
                         </button>
                     </div>
-                    <nav class="side-menu-nav">
-                        <ul>
-                            <li><a href="#"><span class="material-icons">{"home"}</span>{"ホーム"}</a></li>
-                            <li><a href="#"><span class="material-icons">{"map"}</span>{"マップ"}</a></li>
-                            <li><a href="#"><span class="material-icons">{"favorite"}</span>{"お気に入り"}</a></li>
-                            <li><a href="#"><span class="material-icons">{"settings"}</span>{"設定"}</a></li>
-                            <li><a href="#"><span class="material-icons">{"help"}</span>{"ヘルプ"}</a></li>
-                        </ul>
-                    </nav>
-                </div>
-
-                <MapComponent
-                    layer={MapLayer::Gsi}
-                    forcus={*forcus}
-                    tracks={tracks}
-                    waypoints={waypoints}
-                    on_move={on_move} />
-                <nav id="bottom-nav-bar">
-                    <button onclick={Callback::from({
-                        let edit_mode = edit_mode.clone();
-                        move |_| edit_mode.set(EditMode::Home)
-                    })} class={if matches!(*edit_mode, EditMode::Home{}) { "active" } else { "" }}>
-                        <span class="material-icons">{"home"}</span>
-                        <span class="label">{"ホーム"}</span>
-                    </button>
-                    <button onclick={Callback::from({
-                        let edit_mode = edit_mode.clone();
-                        move |_| edit_mode.set(EditMode::AddRoute(AddRouteMode::default()))
-                    })} class={if matches!(*edit_mode, EditMode::AddRoute(_)) { "active" } else { "" }}>
-                        <span class="material-icons">{"route"}</span>
-                        <span class="label">{"ルート"}</span>
-                    </button>
-                    <button onclick={Callback::from({
-                        let edit_mode = edit_mode.clone();
-                        move |_| edit_mode.set(EditMode::AddWaypoint)
-                    })} class={if matches!(*edit_mode, EditMode::AddWaypoint) { "active" } else { "" }}>
-                        <span class="material-icons">{"place"}</span>
-                        <span class="label">{"ポイント"}</span>
-                    </button>
-                    <button onclick={Callback::from({
-                        let edit_mode = edit_mode.clone();
-                        move |_| edit_mode.set(EditMode::AddRiver)
-                    })} class={if matches!(*edit_mode, EditMode::AddRiver) { "active" } else { "" }}>
-                        <span class="material-icons">{"water"}</span>
-                        <span class="label">{"川"}</span>
-                    </button>
-                </nav>
-                <form method="post" action="/logout">
-                    <input class="control-top-left-2th" type="submit" value="Logout" />
-                </form>
-                <div class="control-bottom-left-1st">
                     if let EditMode::Home{} = *edit_mode {
                         <fieldset>
                             <legend>{"Home"}</legend>
@@ -540,6 +489,46 @@ fn app() -> Html {
                         </fieldset>
                     }
                 </div>
+
+                <MapComponent
+                    layer={MapLayer::Gsi}
+                    forcus={*forcus}
+                    tracks={tracks}
+                    waypoints={waypoints}
+                    on_move={on_move} />
+                <nav id="bottom-nav-bar">
+                    <button onclick={Callback::from({
+                        let edit_mode = edit_mode.clone();
+                        move |_| edit_mode.set(EditMode::Home)
+                    })} class={if matches!(*edit_mode, EditMode::Home{}) { "active" } else { "" }}>
+                        <span class="material-icons">{"home"}</span>
+                        <span class="label">{"ホーム"}</span>
+                    </button>
+                    <button onclick={Callback::from({
+                        let edit_mode = edit_mode.clone();
+                        move |_| edit_mode.set(EditMode::AddRoute(AddRouteMode::default()))
+                    })} class={if matches!(*edit_mode, EditMode::AddRoute(_)) { "active" } else { "" }}>
+                        <span class="material-icons">{"route"}</span>
+                        <span class="label">{"ルート"}</span>
+                    </button>
+                    <button onclick={Callback::from({
+                        let edit_mode = edit_mode.clone();
+                        move |_| edit_mode.set(EditMode::AddWaypoint)
+                    })} class={if matches!(*edit_mode, EditMode::AddWaypoint) { "active" } else { "" }}>
+                        <span class="material-icons">{"place"}</span>
+                        <span class="label">{"ポイント"}</span>
+                    </button>
+                    <button onclick={Callback::from({
+                        let edit_mode = edit_mode.clone();
+                        move |_| edit_mode.set(EditMode::AddRiver)
+                    })} class={if matches!(*edit_mode, EditMode::AddRiver) { "active" } else { "" }}>
+                        <span class="material-icons">{"water"}</span>
+                        <span class="label">{"川"}</span>
+                    </button>
+                </nav>
+                <form method="post" action="/logout">
+                    <input class="control-top-left-2th" type="submit" value="Logout" />
+                </form>
                 </>
             }
         }

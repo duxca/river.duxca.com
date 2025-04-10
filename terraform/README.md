@@ -1,9 +1,8 @@
-# Cloud Run ハイブリッドデプロイメント
+# Cloud Run Terraformデプロイメント
 
-このディレクトリには、Google Cloud Runにサービスをデプロイするためのコードが含まれています。デプロイは以下の2つの部分から構成されています：
+このディレクトリには、Google Cloud Runにサービスをデプロイするためのコードが含まれています。デプロイはTerraformを使用して行われます：
 
-1. **Terraform**: 特定のGCSバケット（`duxca-litestream-sandbox`）へのアクセス権を付与
-2. **gcloud**: Cloud Runサービスのデプロイとシークレットのマウント
+1. **Terraform**: Cloud Runサービスの設定と特定のGCSバケット（`duxca-litestream-sandbox`）へのアクセス権を付与
 
 ## 前提条件
 
@@ -44,14 +43,13 @@ terraform plan
 
 このスクリプトは以下の処理を行います：
 1. Dockerイメージのビルドとプッシュ
-2. Terraformを使用してGCSバケットへのアクセス権を設定
-3. gcloudコマンドを使用してCloud Runサービスをデプロイ（シークレットのマウントを含む）
+2. Terraformを使用してCloud Runサービスの設定とGCSバケットへのアクセス権を設定
+3. デプロイされたサービスのURLを表示
 
 ### 破棄
 
 ```bash
-terraform destroy  # GCSバケットへのアクセス権のみ削除
-gcloud run services delete litestream-sandbox --region=asia-northeast1  # Cloud Runサービスを削除
+terraform destroy  # Cloud RunサービスとGCSバケットへのアクセス権を削除
 ```
 
 ## カスタマイズ
@@ -116,8 +114,6 @@ KEY_JSON=<シークレットの内容>
 
 | 出力名 | 説明 |
 |--------|------|
-| service_url | デプロイされたCloud Runサービスの公開URL |
-| service_name | デプロイされたCloud Runサービスの名前 |
-| service_location | デプロイされたCloud Runサービスのリージョン |
-| latest_revision_name | デプロイされた最新リビジョンの名前 |
-| container_image | デプロイされたコンテナイメージのURL |
+| cloud_run_url | デプロイされたCloud Runサービスの公開URL |
+| cloud_run_service_name | デプロイされたCloud Runサービスの名前 |
+| cloud_run_service_location | デプロイされたCloud Runサービスのリージョン |

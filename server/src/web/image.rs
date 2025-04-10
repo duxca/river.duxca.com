@@ -47,13 +47,8 @@ pub async fn get_image(
     st: axum::extract::State<crate::web::State>,
 ) -> anyhow::Result<axum::response::Response, crate::web::Ise> {
     use axum::response::IntoResponse;
-    let result = service::get_file::get_file(
-        &st.db,
-        &st.gcs,
-        &st.config.gcs_bucket_name,
-        image_id,
-    )
-    .await?;
+    let result =
+        service::get_file::get_file(&st.db, &st.gcs, &st.config.gcs_bucket_name, image_id).await?;
     let Some((content_type, data)) = result else {
         return Ok((axum::http::StatusCode::NOT_FOUND, "404 not found").into_response());
     };

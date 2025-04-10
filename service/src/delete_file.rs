@@ -1,5 +1,3 @@
-
-
 #[tracing::instrument(level = "trace", skip(db, gcs))]
 pub async fn delete_file(
     db: &sqlx::Pool<sqlx::Sqlite>,

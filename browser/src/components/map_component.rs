@@ -169,8 +169,12 @@ pub fn map_component(
 
             let scale_control = {
                 let opt = js_sys::Object::new();
-                js_sys::Reflect::set(&opt, &JsValue::from("position"), &JsValue::from("bottomleft"))
-                    .unwrap();
+                js_sys::Reflect::set(
+                    &opt,
+                    &JsValue::from("position"),
+                    &JsValue::from("bottomleft"),
+                )
+                .unwrap();
                 ScaleControl::new(&opt.unchecked_into())
             };
             scale_control.add_to(&map);
@@ -296,12 +300,12 @@ pub fn map_component(
             </div>
             <div class="crosshair">
             </div>
-            
+
             // 設定ボタン
             <button class="map-settings-button" onclick={toggle_settings.clone()}>
                 <span class="material-icons">{"settings"}</span>
             </button>
-            
+
             // 設定画面
             <div class={classes!(
                 "map-settings-panel",
