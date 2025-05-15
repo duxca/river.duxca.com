@@ -1,32 +1,65 @@
+use wasm_bindgen::JsCast;
 use yew::prelude::*;
 
-#[derive(Debug, PartialEq, Clone, Eq)]
-pub enum SideMenuState {
-    Open,
-    Closed,
-}
-
 #[derive(Properties, PartialEq)]
-pub struct SidebarProps {
-    pub side_menu_state: UseStateHandle<SideMenuState>,
-    #[prop_or_default]
-    pub children: Children,
+pub struct Props {
+    pub selected_river: i64,
+    pub rivers: Vec<(i64, String)>,
+    // latlng
+    pub focus: (f64, f64),
+    pub onsave: Callback<(i64, String)>,
 }
 
-#[function_component(SidebarComponent)]
-pub fn sidebar_component(props: &SidebarProps) -> Html {
+#[function_component(AddWaypoint)]
+pub fn add_waypoint(
+    Props {
+        selected_river,
+        rivers,
+        focus: (lat, lng),
+        onsave,
+    }: &Props,
+) -> Html {
+    let onsave = use_callback(onsave.clone(), move |_e: MouseEvent, onsave| {
+        let river_id = web_sys::window()
+            .unwrap()
+            .document()
+            .unwrap()
+            .get_element_by_id("river")
+            .unwrap()
+            .dyn_into::<web_sys::HtmlSelectElement>()
+            .unwrap()
+            .value()
+            .parse::<i64>()
+            .unwrap();
+        let waypoint_name = web_sys::window()
+            .unwrap()
+            .document()
+            .unwrap()
+            .get_element_by_id("waypoint_name")
+            .unwrap()
+            .dyn_ref::<web_sys::HtmlInputElement>()
+            .unwrap()
+            .value();
+        onsave.emit((river_id, waypoint_name));
+    });
     html! {
-        <fieldset>
-            <legend>{"AddWaypoint"}</legend>
+        <fieldset class="control-bottom-right-1st">
+            <legend>{"addWaypoint"}</legend>
             <div>
                 <label>
                     {"川:"}
                     <select id="river" size="1">
                         <option value="0">{"---"}</option>
                         {
-                            rivers.iter().map(|river|{
-                                html!{
-                                    <option value={river.river_id.to_string()}>{&river.river_name}</option>
+                            rivers.iter().map(|(id, name)|{
+                                if selected_river == id {
+                                    html!{
+                                        <option value={id.to_string()} selected=true>{name}</option>
+                                    }
+                                } else {
+                                    html!{
+                                        <option value={id.to_string()}>{name}</option>
+                                    }
                                 }
                             }).collect::<Html>()
                         }
@@ -39,9 +72,9 @@ pub fn sidebar_component(props: &SidebarProps) -> Html {
                     <input type="text" id="waypoint_name" />
                 </label>
             </div>
-            <div>{{format!("lat: {}", forcus.0)}}</div>
-            <div>{{format!("lng: {}", forcus.1)}}</div>
-            <div><button onclick={props.onclick_add_waypoint_cb.clone()}>{"add point"}</button></div>
+            <div>{{format!("lat: {}", lat)}}</div>
+            <div>{{format!("lng: {}", lng)}}</div>
+            <div><button onclick={onsave}>{"add point"}</button></div>
         </fieldset>
     }
 }

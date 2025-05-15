@@ -8,30 +8,42 @@ pub enum SideMenuState {
 
 #[derive(Properties, PartialEq)]
 pub struct SidebarProps {
-    pub side_menu_state: UseStateHandle<SideMenuState>,
     #[prop_or_default]
     pub children: Children,
 }
 
 #[function_component(SidebarComponent)]
 pub fn sidebar_component(props: &SidebarProps) -> Html {
-    let side_menu_state = props.side_menu_state.clone();
-
+    let side_menu_state = use_state_eq(|| SideMenuState::Closed);
     html! {
         <div class={classes!(
             "side-menu",
             if *side_menu_state == SideMenuState::Open { "open" } else { "" }
         )}>
-            <div class="side-menu-header">
-                <h2>{"メニュー"}</h2>
-                <button class="close-menu" onclick={Callback::from({
-                    let side_menu_state = side_menu_state.clone();
-                    move |_| side_menu_state.set(SideMenuState::Closed)
-                })}>
-                    <span class="material-icons">{"close"}</span>
-                </button>
-            </div>
-            { for props.children.iter() }
+            <button class="hamburger-menu" onclick={Callback::from({
+                let side_menu_state = side_menu_state.clone();
+                move |_| {
+                    if *side_menu_state == crate::components::sidebar_component::SideMenuState::Closed {
+                        side_menu_state.set(crate::components::sidebar_component::SideMenuState::Open);
+                    } else {
+                        side_menu_state.set(crate::components::sidebar_component::SideMenuState::Closed);
+                    }
+                }
+            })}>
+                <span class="material-icons">{"menu"}</span>
+            </button>
+            // <div class="side-menu-header">
+            //     // <h2>{"メニュー"}</h2>
+            //     // <button class="close-menu" onclick={Callback::from({
+            //     //     let side_menu_state = side_menu_state.clone();
+            //     //     move |_| side_menu_state.set(SideMenuState::Closed)
+            //     // })}>
+            //     //     <span class="material-icons">{"close"}</span>
+            //     // </button>
+            // </div>
+            <nav class="side-menu-nav">
+                { for props.children.iter() }
+            </nav>
         </div>
     }
 }

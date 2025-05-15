@@ -1,22 +1,34 @@
+use wasm_bindgen::JsCast;
 use yew::prelude::*;
 
-#[derive(Debug, PartialEq, Clone, Eq)]
-pub enum SideMenuState {
-    Open,
-    Closed,
-}
-
 #[derive(Properties, PartialEq)]
-pub struct SidebarProps {
-    pub side_menu_state: UseStateHandle<SideMenuState>,
-    #[prop_or_default]
-    pub children: Children,
+pub struct Props {
+    // latlng
+    pub focus: (f64, f64),
+    pub onsave: Callback<String>,
 }
 
-#[function_component(SidebarComponent)]
-pub fn sidebar_component(props: &SidebarProps) -> Html {
+#[function_component(AddRiver)]
+pub fn add_river(
+    Props {
+        focus: (lat, lng),
+        onsave,
+    }: &Props,
+) -> Html {
+    let onsave = use_callback(onsave.clone(), move |_e: MouseEvent, onsave| {
+        let river_name = web_sys::window()
+            .unwrap()
+            .document()
+            .unwrap()
+            .get_element_by_id("river_name")
+            .unwrap()
+            .dyn_ref::<web_sys::HtmlInputElement>()
+            .unwrap()
+            .value();
+        onsave.emit(river_name);
+    });
     html! {
-    <fieldset>
+        <fieldset class="control-bottom-right-1st">
             <legend>{"addRiver"}</legend>
             <div>
                 <label>
@@ -24,9 +36,9 @@ pub fn sidebar_component(props: &SidebarProps) -> Html {
                     <input type="text" id={"river_name"} />
                 </label>
             </div>
-            <div>{{format!("lat: {}", forcus.0)}}</div>
-            <div>{{format!("lng: {}", forcus.1)}}</div>
-            <div><button onclick={props.onclick_add_river_cb.clone()}>{"add river"}</button></div>
+            <div>{{format!("lat: {}", lat)}}</div>
+            <div>{{format!("lng: {}", lng)}}</div>
+            <div><button onclick={onsave}>{"add river"}</button></div>
         </fieldset>
     }
 }

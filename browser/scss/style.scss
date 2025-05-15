@@ -15,14 +15,15 @@ body {
 }
 
 #map {
-  height: calc(100% - 5rem);
+  height: 100%;
+  // height: calc(100% - 5rem);
   width: 100%;
 }
 
 @media (max-width: 480px) {
-  #map {
-    height: calc(100% - 4rem);
-  }
+  // #map {
+    // height: calc(100% - 4rem);
+  // }
 }
 
 #bottom-nav-bar {
@@ -130,6 +131,16 @@ body {
   // box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
+.control-bottom-right-1st {
+  position: absolute;
+  bottom: 5em;
+  right: 1em;
+  z-index: 1000;
+  // padding: 10px;
+  // border-radius: 5px;
+  // box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
 .crosshair {
   z-index: 1000;
   position: absolute;
@@ -162,9 +173,9 @@ body {
 
 // ハンバーガーメニュー
 .hamburger-menu {
-  position: fixed;
+  position: absolute;
   top: 1em;
-  left: 1em;
+  right: calc(-20px - 3em - 1em);
   z-index: 2000;
   background-color: white;
   border: none;
@@ -200,7 +211,7 @@ body {
   z-index: 1500;
   box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
   transition: left 0.3s ease;
-  overflow-y: auto;
+  // overflow-y: auto;
 }
 
 .side-menu.open {
@@ -232,27 +243,14 @@ body {
   color: #333;
 }
 
-.side-menu-nav ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.side-menu-nav li {
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.side-menu-nav a {
+.side-menu-nav button {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   padding: 1em;
   color: #333;
   text-decoration: none;
   transition: background-color 0.2s ease;
-}
-
-.side-menu-nav a:hover {
-  background-color: #f5f5f5;
 }
 
 .side-menu-nav .material-icons {

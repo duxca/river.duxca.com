@@ -1,7 +1,10 @@
-// pub mod add_river;
-// pub mod add_waypoint;
+pub mod add_river;
+pub mod add_route;
+pub mod add_waypoint;
 pub mod bottom_app_bar;
+pub mod home;
+pub mod login;
 pub mod map_component;
+pub mod select_river;
 pub mod sidebar_component;
 pub mod user_profile_component;
-pub mod home;

@@ -5,29 +5,18 @@ use yew::prelude::*;
 pub struct Props {
     pub selected_river: i64,
     pub rivers: Vec<(i64, String)>,
-    // latlng
-    pub focus: (f64, f64),
-    pub onclick_add_node: Callback<()>,
-    pub onsave: Callback<i64>,
+    pub onchange: Callback<i64>,
 }
 
-#[function_component(AddRoute)]
-pub fn add_route(
+#[function_component(SelectRiver)]
+pub fn select_river(
     Props {
         selected_river,
         rivers,
-        focus: (lat, lng),
-        onclick_add_node,
-        onsave,
+        onchange,
     }: &Props,
 ) -> Html {
-    let onclick_add_node = use_callback(
-        onclick_add_node.clone(),
-        move |_e: MouseEvent, onclick_add_node| {
-            onclick_add_node.emit(());
-        },
-    );
-    let onsave = use_callback(onsave.clone(), move |_e: MouseEvent, onsave| {
+    let onchange = use_callback(onchange.clone(), move |_e: Event, onchange| {
         let river_id = web_sys::window()
             .unwrap()
             .document()
@@ -39,15 +28,15 @@ pub fn add_route(
             .value()
             .parse::<i64>()
             .unwrap();
-        onsave.emit(river_id);
+        onchange.emit(river_id);
     });
     html! {
         <fieldset class="control-bottom-right-1st">
-            <legend>{"addRoute"}</legend>
+            <legend>{"selectRiver"}</legend>
             <div>
                 <label>
                     {"川:"}
-                    <select id="river" size="1">
+                    <select id="river" size="1" onchange={onchange}>
                         <option value="0">{"---"}</option>
                         {
                             rivers.iter().map(|(id, name)|{
@@ -65,10 +54,6 @@ pub fn add_route(
                     </select>
                 </label>
             </div>
-            <div>{{format!("lat: {}", lat)}}</div>
-            <div>{{format!("lng: {}", lng)}}</div>
-            <div><button onclick={onclick_add_node}>{"add node"}</button></div>
-            <div><button onclick={onsave}>{"save"}</button></div>
         </fieldset>
     }
 }
