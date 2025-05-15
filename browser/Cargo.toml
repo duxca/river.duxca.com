@@ -24,3 +24,4 @@ web-sys = { version = "0.3", features = ["console", "HtmlElement", "MouseEvent",
 yew = { git = "https://github.com/yewstack/yew.git", features = ["csr"], branch = "master" }
 yew-hooks = "0.3.2"
 yew-router = { git = "https://github.com/yewstack/yew.git", branch = "master" }
+ordered-float = "0.5.0"
