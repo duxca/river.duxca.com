@@ -1,3 +1,16 @@
+// #![allow(unused_imports)]
+
+// 基本的な構造体の定義に必要なuseステートメント
+// use gloo::utils::document;
+// use gloo::utils::format::JsValueSerdeExt;
+// use leaflet::{LatLng, MapOptions, TileLayer};
+// use std::fmt::Debug;
+// use wasm_bindgen::closure::Closure;
+// use wasm_bindgen::JsCast;
+// use wasm_bindgen::JsValue;
+// use web_sys::{Element, HtmlDivElement, HtmlElement, Node};
+
+
 //         wasm_bindgen_futures::spawn_local(async move {
 //             let model::api::create_river_track::Response { river_track_id } =
 //                 crate::api::call::<model::api::create_river_track::Response>(
@@ -46,7 +59,7 @@
 //     </fieldset>
 
 // use gloo::utils::format::JsValueSerdeExt;
-// use crate::components::sidebar_component::SidebarComponent;
+// use crate::components::sidebar_component::Sidebar;
 // use gloo::console;
 
 //         wasm_bindgen_futures::spawn_local(async move {

@@ -108,49 +108,49 @@ pub fn home(&Props { ref user }: &Props) -> HtmlResult {
 
     let html = html! {
         <>
-        <crate::components::map_component::MapComponent
-            layer={crate::components::map_component::MapLayer::Gsi}
+        <crate::components::map::Map
+            layer={crate::components::map::MapLayer::Gsi}
             focus={*focus}
             tracks={(*tracks).clone()}
             waypoints={(*waypoints).clone()}
             on_move={on_move}
         />
-        <crate::components::sidebar_component::SidebarComponent>
-            <button onclick={onclick_go_to_home}>{"ホーム"}</button>
-            <button onclick={onclick_go_to_add_route}>{"ルート追加"}</button>
-            <button onclick={onclick_go_to_add_waypoints}>{"ポイント追加"}</button>
-            <button onclick={onclick_go_to_add_river}>{"川追加"}</button>
-            <form method="post" action="/logout">
-                <input class="control-top-left-2th" type="submit" value="Logout" />
-            </form>
-        </crate::components::sidebar_component::SidebarComponent>
-        if *edit_mode == EditMode::Home {
-            <crate::components::select_river::SelectRiver
-                selected_river={*selected_river}
-                rivers={rivers.clone()}
-                onchange={Callback::from(|_|{})}
-            />
-        } else if let EditMode::AddRoute(..) = &*edit_mode {
-            <crate::components::add_route::AddRoute
-                selected_river={*selected_river}
-                rivers={rivers.clone()}
-                focus={*focus}
-                onclick_add_node={Callback::from(|_|{})}
-                onsave={Callback::from(|_|{})}
-            />
-        } else if *edit_mode == EditMode::AddWaypoint {
-            <crate::components::add_waypoint::AddWaypoint
-                selected_river={*selected_river}
-                rivers={rivers.clone()}
-                focus={*focus}
-                onsave={Callback::from(|_|{})}
-            />
-        } else if *edit_mode == EditMode::AddRiver {
-            <crate::components::add_river::AddRiver
-                focus={*focus}
-                onsave={Callback::from(|_|{})}
-            />
-        }
+        // <crate::components::sidebar::Sidebar>
+        //     <button onclick={onclick_go_to_home}>{"ホーム"}</button>
+        //     <button onclick={onclick_go_to_add_route}>{"ルート追加"}</button>
+        //     <button onclick={onclick_go_to_add_waypoints}>{"ポイント追加"}</button>
+        //     <button onclick={onclick_go_to_add_river}>{"川追加"}</button>
+        //     <form method="post" action="/logout">
+        //         <input class="control-top-left-2th" type="submit" value="Logout" />
+        //     </form>
+        // </crate::components::sidebar::Sidebar>
+        // if *edit_mode == EditMode::Home {
+        //     <crate::components::select_river::SelectRiver
+        //         selected_river={*selected_river}
+        //         rivers={rivers.clone()}
+        //         onchange={Callback::from(|_|{})}
+        //     />
+        // } else if let EditMode::AddRoute(..) = &*edit_mode {
+        //     <crate::components::add_route::AddRoute
+        //         selected_river={*selected_river}
+        //         rivers={rivers.clone()}
+        //         focus={*focus}
+        //         onclick_add_node={Callback::from(|_|{})}
+        //         onsave={Callback::from(|_|{})}
+        //     />
+        // } else if *edit_mode == EditMode::AddWaypoint {
+        //     <crate::components::add_waypoint::AddWaypoint
+        //         selected_river={*selected_river}
+        //         rivers={rivers.clone()}
+        //         focus={*focus}
+        //         onsave={Callback::from(|_|{})}
+        //     />
+        // } else if *edit_mode == EditMode::AddRiver {
+        //     <crate::components::add_river::AddRiver
+        //         focus={*focus}
+        //         onsave={Callback::from(|_|{})}
+        //     />
+        // }
         </>
     };
     Ok(html)
