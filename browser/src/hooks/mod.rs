@@ -10,7 +10,6 @@
 // use wasm_bindgen::JsValue;
 // use web_sys::{Element, HtmlDivElement, HtmlElement, Node};
 
-
 //         wasm_bindgen_futures::spawn_local(async move {
 //             let model::api::create_river_track::Response { river_track_id } =
 //                 crate::api::call::<model::api::create_river_track::Response>(
@@ -314,43 +313,230 @@ enum SettingsVisibility {
             </button>
 
             // 設定画面
-            <div class={classes!(
-                "map-settings-panel",
-                if *settings_visibility == SettingsVisibility::Visible { "visible" } else { "hidden" }
-            )}>
-                <div class="map-settings-header">
-                    <h3>{"地図設定"}</h3>
-                    <button class="close-settings" onclick={toggle_settings.clone()}>
-                        <span class="material-icons">{"close"}</span>
-                    </button>
-                </div>
-                <div class="map-settings-content">
-                    <div class="settings-group">
-                        <h4>{"表示設定"}</h4>
-                        <div class="setting-item">
-                            <label>
-                                <input type="checkbox" checked={true} />
-                                <span>{"ウェイポイントを表示"}</span>
-                            </label>
-                        </div>
-                        <div class="setting-item">
-                            <label>
-                                <input type="checkbox" checked={true} />
-                                <span>{"トラックを表示"}</span>
-                            </label>
-                        </div>
-                    </div>
-                    <div class="settings-group">
-                        <h4>{"地図スタイル"}</h4>
-                        <div class="setting-item">
-                            <select>
-                                <option value="gsi" selected={true}>{"地理院タイル"}</option>
-                                <option value="osm">{"OpenStreetMap"}</option>
-                                <option value="hillshade">{"陰影起伏図"}</option>
-                                <option value="seamlessphoto">{"航空写真"}</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-            </div>
+
              */
+
+// #map {
+//   height: 100%;
+//   // height: calc(100% - 5rem);
+//   width: 100%;
+// }
+
+// @media (max-width: 480px) {
+//   // #map {
+//     // height: calc(100% - 4rem);
+//   // }
+// }
+
+// #bottom-nav-bar {
+//   position: fixed;
+//   bottom: 0;
+//   left: 0;
+//   width: 100%;
+//   height: 5rem;
+//   background-color: rgba(255, 255, 255, 0.95);
+//   z-index: 1000;
+//   display: flex;
+//   justify-content: space-around;
+//   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2);
+//   border-top: 1px solid #e0e0e0;
+// }
+
+// #bottom-nav-bar button {
+//   flex: 1;
+//   display: flex;
+//   flex-direction: column;
+//   align-items: center;
+//   justify-content: center;
+//   padding: 0;
+//   background: none;
+//   border: none;
+//   color: #666;
+//   font-size: 0.8em;
+//   transition: all 0.2s ease;
+//   cursor: pointer;
+//   outline: none;
+// }
+
+// #bottom-nav-bar button:hover {
+//   color: #2196F3;
+//   background-color: rgba(33, 150, 243, 0.05);
+// }
+
+// #bottom-nav-bar button.active {
+//   color: #2196F3;
+//   background-color: rgba(33, 150, 243, 0.1);
+// }
+
+// #bottom-nav-bar .material-icons {
+//   font-size: 1.8em;
+//   margin-bottom: 0.2em;
+// }
+
+// #bottom-nav-bar .label {
+//   font-size: 0.9em;
+//   font-weight: 500;
+// }
+
+// @media (max-width: 480px) {
+//   #bottom-nav-bar {
+//     height: 4em;
+//   }
+
+//   #bottom-nav-bar .material-icons {
+//     font-size: 1.5em;
+//   }
+
+//   #bottom-nav-bar .label {
+//     font-size: 0.8em;
+//   }
+// }
+
+// .control-top-left-1st {
+//   position: absolute;
+//   top: 5em;
+//   left: 1em;
+//   z-index: 1000;
+// }
+// .control-top-left-2nd {
+//   position: absolute;
+//   top: 7em;
+//   left: 1em;
+//   z-index: 1000;
+// }
+// .control-top-left-3rd {
+//   position: absolute;
+//   top: 9em;
+//   left: 1em;
+//   z-index: 1000;
+// }
+// .control-top-left-4th {
+//   position: absolute;
+//   top: 11em;
+//   left: 1em;
+//   z-index: 1000;
+// }
+// .control-top-left-5th {
+//   position: absolute;
+//   top: 13em;
+//   left: 1em;
+//   z-index: 1000;
+// }
+
+// .control-bottom-left-1st {
+//   position: absolute;
+//   bottom: 5em;
+//   left: 1em;
+//   z-index: 1000;
+//   // padding: 10px;
+//   // border-radius: 5px;
+//   // box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+// }
+
+// .control-bottom-right-1st {
+//   position: absolute;
+//   bottom: 5em;
+//   right: 1em;
+//   z-index: 1000;
+//   // padding: 10px;
+//   // border-radius: 5px;
+//   // box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+// }
+
+// // 設定ボタン
+// .map-settings-button {
+//   position: fixed;
+//   top: 1em;
+//   right: 1em;
+//   z-index: 1000;
+//   background-color: white;
+//   border: none;
+//   border-radius: 50%;
+//   width: 3em;
+//   height: 3em;
+//   display: flex;
+//   align-items: center;
+//   justify-content: center;
+//   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+//   cursor: pointer;
+//   transition: all 0.3s ease;
+// }
+
+// .map-settings-button:hover {
+//   background-color: #f5f5f5;
+//   transform: scale(1.05);
+// }
+
+// .map-settings-button .material-icons {
+//   font-size: 1.5em;
+//   color: #333;
+// }
+
+// // 設定パネル
+
+// .map-settings-panel.hidden {
+//   opacity: 0;
+//   visibility: hidden;
+// }
+
+// .map-settings-panel.visible {
+//   opacity: 1;
+//   visibility: visible;
+// }
+
+// .close-settings {
+//   background: none;
+//   border: none;
+//   cursor: pointer;
+//   color: #666;
+//   padding: 0.5em;
+//   display: flex;
+//   align-items: center;
+//   justify-content: center;
+// }
+
+// .close-settings:hover {
+//   color: #333;
+// }
+
+// .map-settings-content {
+//   padding: 1em;
+// }
+
+// .settings-group {
+//   margin-bottom: 1.5em;
+// }
+
+// .settings-group h4 {
+//   margin: 0 0 0.5em 0;
+//   font-size: 1em;
+//   color: #555;
+// }
+
+// .setting-item {
+//   margin-bottom: 0.8em;
+// }
+
+// .setting-item label {
+//   display: flex;
+//   align-items: center;
+//   cursor: pointer;
+// }
+
+// .setting-item input[type="checkbox"] {
+//   margin-right: 0.5em;
+// }
+
+// .setting-item select {
+//   width: 100%;
+//   padding: 0.5em;
+//   border: 1px solid #ddd;
+//   border-radius: 4px;
+//   background-color: #f9f9f9;
+// }
+
+// @media (max-width: 480px) {
+//   .map-settings-panel {
+//     width: 90%;
+//   }
+// }

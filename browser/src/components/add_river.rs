@@ -1,3 +1,4 @@
+use stylist::yew::use_style;
 use wasm_bindgen::JsCast;
 use yew::prelude::*;
 
@@ -27,8 +28,19 @@ pub fn add_river(
             .value();
         onsave.emit(river_name);
     });
+    let style = use_style!(
+        r#"
+        position: absolute;
+        bottom: 5em;
+        right: 1em;
+        z-index: 1000;
+        border-radius: 5px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        background-color: white;
+        "#,
+    );
     html! {
-        <fieldset class="control-bottom-right-1st">
+        <fieldset class={style}>
             <legend>{"addRiver"}</legend>
             <div>
                 <label>

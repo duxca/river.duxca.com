@@ -23,15 +23,15 @@ struct Config {
 async fn main() -> Result<(), anyhow::Error> {
     shadow_rs::shadow!(build);
     dotenvy::dotenv().ok();
-    env_logger::init();
-    // tracing_subscriber::fmt()
-    //     .with_timer(tracing_subscriber::fmt::time::LocalTime::rfc_3339())
-    //     .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
-    //     .with_file(true)
-    //     .with_line_number(true)
-    //     .with_thread_names(true)
-    //     .with_thread_ids(true)
-    //     .init();
+    // env_logger::init();
+    tracing_subscriber::fmt()
+        .with_timer(tracing_subscriber::fmt::time::LocalTime::rfc_3339())
+        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+        .with_file(true)
+        .with_line_number(true)
+        .with_thread_names(true)
+        .with_thread_ids(true)
+        .init();
     let config = envy::from_env::<Config>()?;
     log::debug!("config: {:#?}", config);
 
@@ -175,6 +175,14 @@ async fn main() -> Result<(), anyhow::Error> {
         //.layer(tower_governor::GovernorLayer {
         //    config: governor_conf,
         //})
+        .layer(tower_default_headers::DefaultHeadersLayer::new({
+            let mut default_headers = axum::http::header::HeaderMap::new();
+            default_headers.insert(
+                axum::http::header::CACHE_CONTROL,
+                axum::http::header::HeaderValue::from_static("no-store"),
+            );
+            default_headers
+        }))
         .with_state({
             // 一般のリクエストで DB にアクセスするための State
             crate::web::State::new(config.clone(), pool, gcs)?

@@ -3483,6 +3483,7 @@ dependencies = [
  "tokio 1.45.0",
  "tokio-stream",
  "tower",
+ "tower-default-headers",
  "tower-http",
  "tower-sessions",
  "tower-sessions-core",
@@ -4443,6 +4444,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "tower-default-headers"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4c0ee01216c770b930e0d0b23e7a7b8c30b61f4ae550dd9c8d543b488863c40d"
+dependencies = [
+ "futures-util",
+ "http 1.3.1",
+ "pin-project",
+ "tower-layer",
+ "tower-service",
+]
+
+[[package]]
 name = "tower-http"
 version = "0.6.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5354,7 +5368,7 @@ dependencies = [
 [[package]]
 name = "yew"
 version = "0.21.0"
-source = "git+https://github.com/yewstack/yew.git?branch=master#433a0f2eca42c665bea30de9d68cab63b50fafcf"
+source = "git+https://github.com/yewstack/yew.git?branch=master#122684babe9995a2be5991c28c17f4fd475bd9c8"
 dependencies = [
  "console_error_panic_hook",
  "futures 0.3.31",
@@ -5394,7 +5408,7 @@ dependencies = [
 [[package]]
 name = "yew-macro"
 version = "0.21.0"
-source = "git+https://github.com/yewstack/yew.git?branch=master#433a0f2eca42c665bea30de9d68cab63b50fafcf"
+source = "git+https://github.com/yewstack/yew.git?branch=master#122684babe9995a2be5991c28c17f4fd475bd9c8"
 dependencies = [
  "once_cell",
  "prettyplease",

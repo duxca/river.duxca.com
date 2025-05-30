@@ -3,7 +3,7 @@ set -euxvo pipefail
 
 {
     cd server;
-    export RUST_LOG=service=trace,db=trace,server=trace,model=trace;
+    export RUST_LOG=service=trace,db=trace,server=trace,model=trace,tower_sessions=trace;
     cargo watch -x "run --features=local";
 } & {
     cd browser;

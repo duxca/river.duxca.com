@@ -45,9 +45,9 @@ pub fn login() -> HtmlResult {
         }
         PageState::LoggedIn(user) => {
             html! {
-                <>
-                <crate::components::home::Home user={user.clone()}/>
-                </>
+                <crate::components::home::Home
+                    user={user.clone()}
+                />
             }
         }
     };

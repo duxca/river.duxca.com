@@ -2,6 +2,7 @@ mod api;
 mod components;
 mod hooks;
 
+use wasm_bindgen::prelude::*;
 use yew::prelude::*;
 
 #[function_component(App)]
@@ -15,7 +16,10 @@ fn app() -> HtmlResult {
     Ok(html)
 }
 
-fn main() {
+#[wasm_bindgen(main)]
+async fn main() -> Result<(), JsValue> {
     wasm_logger::init(wasm_logger::Config::default());
+    gloo::timers::future::sleep(std::time::Duration::from_millis(1)).await;
     yew::Renderer::<App>::new().render();
+    Ok(())
 }

@@ -8,3 +8,4 @@ target
 key.json
 *.db*
 .*.db*
+.aider*

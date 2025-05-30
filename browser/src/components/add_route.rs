@@ -1,3 +1,4 @@
+use stylist::yew::use_style;
 use wasm_bindgen::JsCast;
 use yew::prelude::*;
 
@@ -41,8 +42,20 @@ pub fn add_route(
             .unwrap();
         onsave.emit(river_id);
     });
+    let style = use_style!(
+        r#"
+        position: absolute;
+        bottom: 5em;
+        right: 1em;
+        z-index: 1000;
+        padding: 10px;
+        border-radius: 5px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        background-color: white;
+        "#,
+    );
     html! {
-        <fieldset class="control-bottom-right-1st">
+        <fieldset class={style}>
             <legend>{"addRoute"}</legend>
             <div>
                 <label>
@@ -50,7 +63,7 @@ pub fn add_route(
                     <select id="river" size="1">
                         <option value="0">{"---"}</option>
                         {
-                            rivers.iter().map(|(id, name)|{
+                            for rivers.iter().map(|(id, name)|{
                                 if selected_river == id {
                                     html!{
                                         <option value={id.to_string()} selected=true>{name}</option>
@@ -60,7 +73,7 @@ pub fn add_route(
                                         <option value={id.to_string()}>{name}</option>
                                     }
                                 }
-                            }).collect::<Html>()
+                            })
                         }
                     </select>
                 </label>
