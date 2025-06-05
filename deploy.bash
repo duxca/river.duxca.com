@@ -11,7 +11,7 @@ gcloud run deploy litestream-sandbox\
   --cpu=1 \
   --memory=256Mi \
   --timeout=3s \
-  --concurrency=128 \
+  --concurrency=1 \
   --max-instances=1 \
   --min-instances=0 \
   --no-cpu-boost \

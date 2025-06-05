@@ -1,7 +1,24 @@
 # Google Cloudプロバイダーの設定
 provider "google" {
-  project = "duxca-298210"
-  region  = "asia-northeast1"
+  project = var.project_id
+  region  = var.region
+}
+
+# Enable required APIs
+resource "google_project_service" "cloud_run_api" {
+  service = "run.googleapis.com"
+}
+
+resource "google_project_service" "secret_manager_api" {
+  service = "secretmanager.googleapis.com"
+}
+
+resource "google_project_service" "artifact_registry_api" {
+  service = "artifactregistry.googleapis.com"
+}
+
+resource "google_project_service" "storage_api" {
+  service = "storage.googleapis.com"
 }
 
 # Cloud Runサービスのデプロイ
@@ -20,15 +37,28 @@ provider "google" {
 resource "google_cloud_run_service" "litestream_sandbox" {
   name     = "litestream-sandbox"
   location = "asia-northeast1"
+  
+  lifecycle {
+    ignore_changes = [
+      template[0].spec[0].containers[0].resources[0].limits,
+      autogenerate_revision_name,
+      template[0].spec[0].container_concurrency,
+      template[0].spec[0].timeout_seconds,
+      template[0].metadata[0].annotations
+    ]
+  }
 
   template {
     spec {
+      container_concurrency = 1
+      timeout_seconds       = 3
+      
       containers {
-        image = "asia-northeast1-docker.pkg.dev/duxca-298210/cloud-run-source-deploy/litestream-sandbox:latest"
+        image = var.container_image
         
         resources {
           limits = {
-            cpu    = "1000m"
+            cpu    = "1"
             memory = "256Mi"
           }
         }
@@ -105,18 +135,18 @@ resource "google_cloud_run_service" "litestream_sandbox" {
         }
       }
 
-      service_account_name = "river-container@duxca-298210.iam.gserviceaccount.com"
+      service_account_name = google_service_account.river_container.email
     }
 
     metadata {
       annotations = {
-        "autoscaling.knative.dev/maxScale"      = "1"
-        "autoscaling.knative.dev/minScale"      = "0"
-        "run.googleapis.com/cpu-throttling"     = "true"
-        "run.googleapis.com/cpu-boost"          = "false"
+        "autoscaling.knative.dev/maxScale"         = "1"
+        "autoscaling.knative.dev/minScale"         = "0"
+        "run.googleapis.com/cpu-throttling"        = "true"
+        "run.googleapis.com/cpu-boost"             = "false"
         "run.googleapis.com/execution-environment" = "gen1"
-        "run.googleapis.com/container-concurrency" = "128"
-        "run.googleapis.com/timeout"            = "3s"
+        "run.googleapis.com/timeout"               = "3s"
+        "run.googleapis.com/container-concurrency" = "1"
       }
     }
   }
@@ -126,7 +156,7 @@ resource "google_cloud_run_service" "litestream_sandbox" {
     latest_revision = true
   }
 
-  autogenerate_revision_name = true
+  autogenerate_revision_name = false
 }
 
 # Cloud Runサービスに対する認証なしアクセスの許可
@@ -137,21 +167,21 @@ resource "google_cloud_run_service_iam_member" "public_access" {
   member   = "allUsers"
 }
 
-# 特定のGCSバケットへのアクセス権を付与
+# GCSバケットへのアクセス権を付与
 resource "google_storage_bucket_iam_member" "bucket_object_admin" {
-  bucket = "duxca-litestream-sandbox"
+  bucket = google_storage_bucket.litestream_bucket.name
   role   = "roles/storage.objectAdmin"
-  member = "serviceAccount:river-container@duxca-298210.iam.gserviceaccount.com"
+  member = "serviceAccount:${google_service_account.river_container.email}"
 }
 
 resource "google_storage_bucket_iam_member" "bucket_legacy_reader" {
-  bucket = "duxca-litestream-sandbox"
+  bucket = google_storage_bucket.litestream_bucket.name
   role   = "roles/storage.legacyBucketReader"
-  member = "serviceAccount:river-container@duxca-298210.iam.gserviceaccount.com"
+  member = "serviceAccount:${google_service_account.river_container.email}"
 }
 
 resource "google_storage_bucket_iam_member" "bucket_legacy_writer" {
-  bucket = "duxca-litestream-sandbox"
+  bucket = google_storage_bucket.litestream_bucket.name
   role   = "roles/storage.legacyBucketWriter"
-  member = "serviceAccount:river-container@duxca-298210.iam.gserviceaccount.com"
+  member = "serviceAccount:${google_service_account.river_container.email}"
 }
