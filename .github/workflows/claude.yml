@@ -37,5 +37,49 @@ jobs:
           claude_refresh_token: ${{ secrets.CLAUDE_REFRESH_TOKEN }}
           claude_expires_at: ${{ secrets.CLAUDE_EXPIRES_AT }}
           model: claude-sonnet-4-20250514
-          
           timeout_minutes: "60"
+          mcp_config: |
+            {
+              "mcpServers": {
+                "brave-search": {
+                  "command": "docker",
+                  "args": [
+                    "run",
+                    "-i",
+                    "--rm",
+                    "-e",
+                    "BRAVE_API_KEY",
+                    "mcp/brave-search"
+                  ],
+                  "env": {
+                    "BRAVE_API_KEY": "${{ secrets.BRAVE_API_KEY }}"
+                  },
+                  "alwaysAllow": [
+                    "brave_web_search"
+                  ]
+                },
+                "fetch": {
+                  "command": "docker",
+                  "args": [
+                    "run",
+                    "-i",
+                    "--rm",
+                    "mcp/fetch"
+                  ],
+                  "alwaysAllow": [
+                    "fetch"
+                  ]
+                },
+                "sequentialthinking": {
+                  "command": "docker",
+                  "args": [
+                    "run",
+                    "--rm",
+                    "-i",
+                    "mcp/sequentialthinking"
+                  ]
+                }
+              }
+            }
+          allowed_tools: "mcp__sequential-thinking__sequentialthinking,mcp__brave-search__brave_web_search,mcp__brave-search__brave_local_search,mcp__fetch__fetch"
+
