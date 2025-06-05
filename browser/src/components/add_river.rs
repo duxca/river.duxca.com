@@ -6,6 +6,7 @@ use yew::prelude::*;
 pub struct Props {
     // latlng
     pub focus: (f64, f64),
+    #[prop_or_default]
     pub onsave: Callback<String>,
 }
 
@@ -40,7 +41,7 @@ pub fn add_river(
         "#,
     );
     html! {
-        <fieldset class={style}>
+        <fieldset>
             <legend>{"addRiver"}</legend>
             <div>
                 <label>

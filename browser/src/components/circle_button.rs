@@ -12,6 +12,7 @@ pub enum CircleButtonIcon {
 
 #[derive(Clone, PartialEq, Properties)]
 pub struct Props {
+    #[prop_or_default]
     pub onclick: Callback<MouseEvent>,
     #[prop_or(CircleButtonIcon::Plus)]
     pub icon: CircleButtonIcon,

@@ -10,6 +10,7 @@ enum EditMode {
 
 #[derive(Debug, PartialEq, Clone, Default)]
 struct AddRouteMode {
+    editing: bool,
     track: Vec<(f64, f64)>,
     distance: f64,
 }
@@ -45,7 +46,7 @@ pub fn home(Props { user: _ }: &Props) -> HtmlResult {
     });
     let onclick_go_to_add_route = use_callback(edit_mode.clone(), {
         move |_ev: MouseEvent, edit_mode| {
-            edit_mode.set(EditMode::AddRoute(AddRouteMode::default()));
+            edit_mode.set(EditMode::AddRoute(AddRouteMode{editing:true, ..Default::default()}));
         }
     });
     let onclick_go_to_add_waypoints = use_callback(edit_mode.clone(), {
@@ -99,45 +100,82 @@ pub fn home(Props { user: _ }: &Props) -> HtmlResult {
             on_move={on_move}
         />
         <crate::components::sidebar::Sidebar>
-            <button onclick={onclick_go_to_home}>{"ホーム"}</button>
-            <button onclick={onclick_go_to_add_route}>{"ルート追加"}</button>
-            <button onclick={onclick_go_to_add_waypoints}>{"ポイント追加"}</button>
-            <button onclick={onclick_go_to_add_river}>{"川追加"}</button>
             <form method="post" action="/logout">
                 <input class="control-top-left-2th" type="submit" value="Logout" />
             </form>
         </crate::components::sidebar::Sidebar>
         if *edit_mode == EditMode::Home {
-            <crate::components::circle_button::CircleButton onclick={Callback::from(|_e|{})} bottom={1} />
-            <crate::components::circle_button::CircleButton onclick={Callback::from(|_e|{})} bottom={2} icon={crate::components::circle_button::CircleButtonIcon::Flag} />
-            <crate::components::circle_button::CircleButton onclick={Callback::from(|_e|{})} bottom={3} icon={crate::components::circle_button::CircleButtonIcon::Polyline} />
+            // <crate::components::circle_button::CircleButton onclick={onclick_go_to_add_river} bottom={1} icon={crate::components::circle_button::CircleButtonIcon::Plus} />
+            <crate::components::circle_button::CircleButton onclick={onclick_go_to_add_waypoints} bottom={1} icon={crate::components::circle_button::CircleButtonIcon::Flag} />
+            <crate::components::circle_button::CircleButton onclick={onclick_go_to_add_route} bottom={2} icon={crate::components::circle_button::CircleButtonIcon::Polyline} />
             // <crate::components::select_river::SelectRiver
             //     selected_river={*selected_river}
             //     rivers={rivers.clone()}
             //     onchange={Callback::from(|_|{})}
             // />
-        } else if let EditMode::AddRoute(..) = &*edit_mode {
-            <crate::components::add_route::AddRoute
-                selected_river={*selected_river}
-                rivers={rivers.clone()}
-                focus={*focus}
-                onclick_add_node={Callback::from(|_|{})}
-                onsave={Callback::from(|_|{})}
-            />
+        } else if let EditMode::AddRoute(AddRouteMode{editing, ..}) = &*edit_mode {
+            // edit_mode.set(EditMode::AddRoute(AddRouteMode{editing:true, ..Default::default()}));
+            if *editing {
+                <crate::components::circle_button::CircleButton onclick={onclick_add_route_point} bottom={1} icon={crate::components::circle_button::CircleButtonIcon::Plus} />
+                <crate::components::circle_button::CircleButton onclick={onclick_save_route} bottom={2} icon={crate::components::circle_button::CircleButtonIcon::Polyline} />
+            }else{
+                <crate::components::dialog::Dialog title={"道程追加"} onclose={onclick_go_to_home.clone()}>
+                    <crate::components::add_route::AddRoute
+                        selected_river={*selected_river}
+                        rivers={rivers.clone()}
+                        focus={*focus}
+                        onclick_add_node={Callback::from(|_|{})}
+                        onsave={Callback::from(|_|{})}
+                    />
+                </crate::components::dialog::Dialog>
+            }
         } else if *edit_mode == EditMode::AddWaypoint {
-            <crate::components::add_waypoint::AddWaypoint
-                selected_river={*selected_river}
-                rivers={rivers.clone()}
-                focus={*focus}
-                onsave={Callback::from(|_|{})}
-            />
+            <crate::components::dialog::Dialog title={"地点追加"} onclose={onclick_go_to_home.clone()}>
+                <crate::components::add_waypoint::AddWaypoint
+                    selected_river={*selected_river}
+                    rivers={rivers.clone()}
+                    focus={*focus}
+                    onsave={Callback::from(|_|{})}
+                />
+            </crate::components::dialog::Dialog>
         } else if *edit_mode == EditMode::AddRiver {
-            <crate::components::add_river::AddRiver
-                focus={*focus}
-                onsave={Callback::from(|_|{})}
-            />
+            <crate::components::dialog::Dialog title={"川追加"} onclose={onclick_go_to_home.clone()}>
+                <crate::components::add_river::AddRiver
+                    focus={*focus}
+                    onsave={Callback::from(|_|{})}
+                />
+            </crate::components::dialog::Dialog>
         }
-        <crate::components::dialog::Dialog />
+        if false {
+            <crate::components::dialog::Dialog title={"設定"} onclose={onclick_go_to_home}>
+                <div class="settings-group">
+                    <h4>{"表示設定"}</h4>
+                    <div class="setting-item">
+                        <label>
+                            <input type="checkbox" checked={true} />
+                            <span>{"ウェイポイントを表示"}</span>
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <label>
+                            <input type="checkbox" checked={true} />
+                            <span>{"トラックを表示"}</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="settings-group">
+                    <h4>{"地図スタイル"}</h4>
+                    <div class="setting-item">
+                        <select>
+                            <option value="gsi" selected={true}>{"地理院タイル"}</option>
+                            <option value="osm">{"OpenStreetMap"}</option>
+                            <option value="hillshade">{"陰影起伏図"}</option>
+                            <option value="seamlessphoto">{"航空写真"}</option>
+                        </select>
+                    </div>
+                </div>
+            </crate::components::dialog::Dialog>
+        }
         </>
     };
     Ok(html)

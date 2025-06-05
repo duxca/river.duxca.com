@@ -6,6 +6,7 @@ use yew::prelude::*;
 pub struct Props {
     pub selected_river: i64,
     pub rivers: Vec<(i64, String)>,
+    #[prop_or_default]
     pub onchange: Callback<i64>,
 }
 
