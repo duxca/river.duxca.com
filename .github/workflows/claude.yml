@@ -81,5 +81,5 @@ jobs:
                 }
               }
             }
-          allowed_tools: "mcp__sequential-thinking__sequentialthinking,mcp__brave-search__brave_web_search,mcp__brave-search__brave_local_search,mcp__fetch__fetch"
+          allowed_tools: "Bash(cargo:*),mcp__sequential-thinking__sequentialthinking,mcp__brave-search__brave_web_search,mcp__brave-search__brave_local_search,mcp__fetch__fetch"
 

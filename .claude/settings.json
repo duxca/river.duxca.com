@@ -1,6 +1,11 @@
 {
   "permissions": {
     "allow": [
+      "Bash(ls:*)",
+      "Bash(mv:*)",
+      "WebFetch(domain:docs.rs)",
+      "Bash(find:*)",
+      "WebFetch(domain:docs.anthropic.com)",
       "Bash(cargo:*)"
     ],
     "deny": []
