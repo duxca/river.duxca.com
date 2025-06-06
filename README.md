@@ -1,5 +1,7 @@
 ![workflow](https://github.com/legokichi/river.duxca.com/actions/workflows/rust.yml/badge.svg)
 
+<!-- CI credentials test -->
+
 # River.duxca.com プロジェクト概要
 
 このソフトウェアは川の地図情報を処理するWebアプリケーションです。カヌー、カヤック、SUPなどの川遊びに役立つ情報を地図上に表示し、ユーザーが情報を追加・共有できるプラットフォームを提供します。
