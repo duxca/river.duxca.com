@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: read
+      pull-requests: write
       id-token: write
     steps:
       - name: Checkout repository
@@ -92,11 +92,26 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: read
+      pull-requests: write
       id-token: write
+    env:
+      PROJECT_ID: duxca-298210
+      PROJECT_NUMBER: 93254674393
+      POOL_ID: githubaction
+      PROVIDER_ID: github
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+      
+      # Google Cloud authentication
+      - uses: "google-github-actions/auth@v2"
+        with:
+          workload_identity_provider: projects/${{ env.PROJECT_NUMBER }}/locations/global/workloadIdentityPools/${{ env.POOL_ID }}/providers/${{ env.PROVIDER_ID }}
+          project_id: ${{ env.PROJECT_ID }}
+          
+      # Google Cloud SDK setup
+      - uses: google-github-actions/setup-gcloud@v2
+      
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
