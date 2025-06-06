@@ -18,4 +18,9 @@ watch:
 
 .PHONY:check
 check:
-	cargo clippy -- -D warnings`
+	cargo clippy -- -D warnings
+
+.PHONY:all
+all:
+	cargo build --workspace
+	cd browser && trunk build --release

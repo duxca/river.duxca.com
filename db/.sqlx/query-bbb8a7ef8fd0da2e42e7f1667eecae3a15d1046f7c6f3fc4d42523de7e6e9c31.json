@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT\n                COUNT(*) AS total\n            FROM users\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "total",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "bbb8a7ef8fd0da2e42e7f1667eecae3a15d1046f7c6f3fc4d42523de7e6e9c31"
+}

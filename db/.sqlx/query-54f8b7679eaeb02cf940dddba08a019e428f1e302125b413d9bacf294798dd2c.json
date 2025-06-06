@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            INSERT INTO rivers (user_id, river_name, waypoint, description)\n            VALUES (?1, ?2, ?3, ?4)\n            RETURNING river_id;\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "river_id",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "54f8b7679eaeb02cf940dddba08a019e428f1e302125b413d9bacf294798dd2c"
+}

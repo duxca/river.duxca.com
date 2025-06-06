@@ -6,6 +6,8 @@ env:
   POOL_ID: githubaction
   PROVIDER_ID: github
   NAME: asia-northeast1-docker.pkg.dev/duxca-298210/cloud-run-source-deploy/litestream-sandbox:latest
+  CARGO_TERM_COLOR: always
+  SQLX_OFFLINE: true
 
 on:
   push:

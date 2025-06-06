@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            UPDATE river_tracks\n            SET track_name = ?1, track = ?2, description = ?3\n            WHERE river_track_id = ?4\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "5e973a0da92e475b5fa153e8e096b58560818a83ed496d1c3a51b00ece32ae08"
+}

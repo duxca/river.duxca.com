@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                SELECT\n                    access_logs.access_log_id AS access_log_id,\n                    access_logs.user_id AS user_id,\n                    access_logs.request AS request,\n                    access_logs.created_at AS created_at\n                FROM access_logs\n                ORDER BY access_log_id ASC\n                LIMIT ?1 OFFSET ?2\n                ",
+  "describe": {
+    "columns": [
+      {
+        "name": "access_log_id",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "user_id",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "request",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "created_at",
+        "ordinal": 3,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "bbd421df5a64d536a6339138c2631b3fe2ae18b1b2131c11a4bf500143c33499"
+}

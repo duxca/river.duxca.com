@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            INSERT INTO access_logs ( user_id, request )\n            VALUES ( ?1, ?2 )\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "5cce59c99ee6e49b2987c4d55495149e813c33f7a95b0dc3f334f0cb34f83d5c"
+}
