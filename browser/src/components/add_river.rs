@@ -29,7 +29,7 @@ pub fn add_river(
             .value();
         onsave.emit(river_name);
     });
-    let style = use_style!(
+    let _style = use_style!(
         r#"
         position: absolute;
         bottom: 5em;

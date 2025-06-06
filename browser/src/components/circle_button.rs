@@ -2,6 +2,7 @@ use stylist::yew::use_style;
 use yew::prelude::*;
 
 #[derive(Clone, PartialEq)]
+#[allow(dead_code)]
 pub enum CircleButtonIcon {
     Plus,
     Polyline,
@@ -62,8 +63,8 @@ pub fn circle_button(
     "#,
         bottom = bottom * (16 + 56),
         color = color,
-        hover_color = darken_color(&color, 10),
-        active_color = darken_color(&color, 20)
+        hover_color = darken_color(color, 10),
+        active_color = darken_color(color, 20)
     );
 
     html! {
@@ -93,7 +94,7 @@ fn darken_color(color: &str, percent: i32) -> String {
 
         let darken = |v: i32| -> i32 {
             let v = v - (v * percent / 100);
-            v.max(0).min(255)
+            v.clamp(0, 255)
         };
 
         let r = darken(r);

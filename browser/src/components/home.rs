@@ -54,9 +54,19 @@ pub fn home(Props { user: _ }: &Props) -> HtmlResult {
             edit_mode.set(EditMode::AddWaypoint);
         }
     });
-    let onclick_go_to_add_river = use_callback(edit_mode.clone(), {
+    let _onclick_go_to_add_river = use_callback(edit_mode.clone(), {
         move |_ev: MouseEvent, edit_mode| {
             edit_mode.set(EditMode::AddRiver);
+        }
+    });
+    let onclick_add_route_point = use_callback(edit_mode.clone(), {
+        move |_ev: MouseEvent, _edit_mode| {
+            // TODO: Implement route point adding functionality
+        }
+    });
+    let onclick_save_route = use_callback(edit_mode.clone(), {
+        move |_ev: MouseEvent, edit_mode| {
+            edit_mode.set(EditMode::Home);
         }
     });
     let selected_river = use_state_eq(|| 0);

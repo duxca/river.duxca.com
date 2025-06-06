@@ -44,7 +44,7 @@ pub fn add_route(
             .unwrap();
         onsave.emit(river_id);
     });
-    let style = use_style!(
+    let _style = use_style!(
         r#"
         position: absolute;
         bottom: 5em;
