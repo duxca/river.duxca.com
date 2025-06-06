@@ -1,12 +1,5 @@
 name: Rust
 
-env:
-  PROJECT_ID: duxca-298210
-  PROJECT_NUMBER: 93254674393
-  POOL_ID: githubaction
-  PROVIDER_ID: github
-  NAME: asia-northeast1-docker.pkg.dev/duxca-298210/cloud-run-source-deploy/litestream-sandbox:latest
-
 on:
   push:
     branches: [ "main" ]
@@ -56,21 +49,3 @@ jobs:
     - run: cargo install cross --git https://github.com/cross-rs/cross
     - run: CROSS_NO_WARNINGS=0 make all
 
-  deploy:
-    if: ${{ github.ref == 'refs/heads/production' || github.base_ref == 'production' }}
-    needs: [ fmt, clippy, test ]
-    runs-on: ubuntu-24.04
-    steps:
-    - uses: actions/checkout@v4
-    - uses: "google-github-actions/auth@v2"
-      with:
-        workload_identity_provider: projects/${{ env.PROJECT_NUMBER }}/locations/global/workloadIdentityPools/${{ env.POOL_ID }}/providers/${{ env.PROVIDER_ID }}
-        project_id: ${{ env.PROJECT_ID }}
-    - uses: google-github-actions/setup-gcloud@v2
-    - run: gcloud auth configure-docker
-    - run: |
-        docker build . --tag=${{ env.NAME }}
-        docker push ${{ env.NAME }}
-    - uses: google-github-actions/deploy-cloudrun@v2
-      with:
-        metadata: assets/metadata.yaml
