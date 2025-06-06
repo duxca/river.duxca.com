@@ -46,7 +46,10 @@ pub fn home(Props { user: _ }: &Props) -> HtmlResult {
     });
     let onclick_go_to_add_route = use_callback(edit_mode.clone(), {
         move |_ev: MouseEvent, edit_mode| {
-            edit_mode.set(EditMode::AddRoute(AddRouteMode{editing:true, ..Default::default()}));
+            edit_mode.set(EditMode::AddRoute(AddRouteMode {
+                editing: true,
+                ..Default::default()
+            }));
         }
     });
     let onclick_go_to_add_waypoints = use_callback(edit_mode.clone(), {

@@ -38,11 +38,11 @@ sqlx = { version = "0.8", features = ["runtime-tokio", "sqlite", "chrono", "json
 thiserror = "2.0.12"
 tokio = { version = "1", features = ["full"] }
 tokio-stream = { version = "0.1", features = ["full"] }
+tower-default-headers = "0.2"
 tower-http = { version = "0.6.2", features = ["trace", "compression-zstd", "cors", "fs"] }
 tower-sessions = { version = "0.14.0", features = ["signed", ] }
 tower-sessions-core = { version = "0.14.0", features = ["deletion-task"] }
 tower-sessions-sqlx-store = { version = "0.15", features = ["sqlite"] }
-tower-default-headers = "0.2"
 tower_governor = "0.7"
 tracing = "0.1"
 tracing-futures = { version = "0.2.5", features = ["tokio"] }
