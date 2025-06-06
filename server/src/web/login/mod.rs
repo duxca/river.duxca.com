@@ -51,7 +51,7 @@ pub async fn logout(
 ) -> Result<impl axum::response::IntoResponse, crate::web::Ise> {
     auth_session.logout().await?;
     session.flush().await?;
-    Ok(axum::response::Redirect::to(&"/"))
+    Ok(axum::response::Redirect::to("/"))
 }
 
 #[derive(Debug, thiserror::Error)]

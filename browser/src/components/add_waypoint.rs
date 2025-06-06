@@ -44,7 +44,7 @@ pub fn add_waypoint(
             .value();
         onsave.emit((river_id, waypoint_name));
     });
-    let style = use_style!(
+    let _style = use_style!(
         r#"
         position: absolute;
         bottom: 5em;
