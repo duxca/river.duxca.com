@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            DELETE FROM rivers\n            WHERE river_id = ?1\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "231869dd617d05b2d8126e4f6ccdc1d703bdb4109ac8efce8b5c149c5a27e7bd"
+}
