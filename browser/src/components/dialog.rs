@@ -11,7 +11,13 @@ pub struct Props {
 }
 
 #[function_component(Dialog)]
-pub fn dialog(Props {title, children, onclose}: &Props) -> Html {
+pub fn dialog(
+    Props {
+        title,
+        children,
+        onclose,
+    }: &Props,
+) -> Html {
     let pane_style = use_style!(
         r#"
         position: fixed;
