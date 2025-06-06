@@ -102,10 +102,13 @@ jobs:
         with:
           terraform_version: 1.6.0
       - name: Terraform Init
+        working-directory: ./terraform
         run: terraform init
       - name: Terraform Plan
+        working-directory: ./terraform
         run: terraform plan -out=tfplan.binary
       - name: Convert Plan to JSON
+        working-directory: ./terraform
         run: terraform show -json tfplan.binary > tfplan.json
       - name: Claude Code Review
         uses: anthropics/claude-code-action@beta
