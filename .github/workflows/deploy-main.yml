@@ -1,0 +1,87 @@
+name: Deploy to Main
+
+env:
+  PROJECT_ID: duxca-298210
+  PROJECT_NUMBER: 93254674393
+  POOL_ID: githubaction
+  PROVIDER_ID: github
+  NAME: asia-northeast1-docker.pkg.dev/duxca-298210/cloud-run-source-deploy/litestream-sandbox:latest
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  fmt:
+    runs-on: ubuntu-24.04
+    steps:
+    - uses: actions/checkout@v4
+    - uses: dtolnay/rust-toolchain@stable
+      with:
+        components: rustfmt
+    - uses: Swatinem/rust-cache@v2
+    - run: cargo install cargo-tomlfmt
+    - run: cargo fmt --all -- --check
+    - run: find . -name Cargo.toml -execdir cargo tomlfmt -d \;
+
+  clippy:
+    runs-on: ubuntu-24.04
+    steps:
+    - uses: actions/checkout@v4
+    - uses: dtolnay/rust-toolchain@stable
+      with:
+        components: clippy
+    - uses: Swatinem/rust-cache@v2
+    - run: sudo apt-get update && sudo apt-get install -y libudev-dev
+    - run: cargo clippy --all-targets --all-features -- -Dwarnings
+
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+    - uses: actions/checkout@v4
+    - uses: dtolnay/rust-toolchain@stable
+    - uses: Swatinem/rust-cache@v2
+    - run: sudo apt-get update && sudo apt-get install -y libudev-dev
+    - run: cargo test
+
+  deploy:
+    needs: [ fmt, clippy, test ]
+    runs-on: ubuntu-24.04
+    steps:
+    - uses: actions/checkout@v4
+    
+    # Google Cloud認証
+    - uses: "google-github-actions/auth@v2"
+      with:
+        workload_identity_provider: projects/${{ env.PROJECT_NUMBER }}/locations/global/workloadIdentityPools/${{ env.POOL_ID }}/providers/${{ env.PROVIDER_ID }}
+        project_id: ${{ env.PROJECT_ID }}
+        
+    # Google Cloud SDKセットアップ
+    - uses: google-github-actions/setup-gcloud@v2
+    
+    # Dockerレジストリ認証
+    - run: gcloud auth configure-docker asia-northeast1-docker.pkg.dev
+    
+    # Dockerイメージビルドとプッシュ
+    - run: |
+        docker build . --tag=${{ env.NAME }}
+        docker push ${{ env.NAME }}
+    
+    # Terraformセットアップ
+    - uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: "1.5.0"
+    
+    # Terraformでデプロイ
+    - name: Terraform Init and Apply
+      working-directory: ./terraform
+      run: |
+        terraform init
+        terraform apply -auto-approve
+        
+    # デプロイ結果の出力
+    - name: Output Service URL
+      working-directory: ./terraform
+      run: |
+        echo "✅ デプロイが完了しました！"
+        echo "🌐 サービスURL: $(terraform output -raw cloud_run_url)"
