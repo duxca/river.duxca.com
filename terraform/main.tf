@@ -50,7 +50,7 @@ resource "google_cloud_run_service" "litestream_sandbox" {
 
   template {
     spec {
-      container_concurrency = 1
+      container_concurrency = 128
       timeout_seconds       = 3
       
       containers {
@@ -146,7 +146,7 @@ resource "google_cloud_run_service" "litestream_sandbox" {
         "run.googleapis.com/cpu-boost"             = "false"
         "run.googleapis.com/execution-environment" = "gen1"
         "run.googleapis.com/timeout"               = "3s"
-        "run.googleapis.com/container-concurrency" = "1"
+        "run.googleapis.com/container-concurrency" = "128"
       }
     }
   }

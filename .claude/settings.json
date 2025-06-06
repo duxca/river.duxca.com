@@ -3,10 +3,27 @@
     "allow": [
       "Bash(ls:*)",
       "Bash(mv:*)",
-      "WebFetch(domain:docs.rs)",
+      "Bash(cat:*)",
       "Bash(find:*)",
+      "Bash(rg:*)",
+      "Bash(fd:*)",
+      "Bash(cargo test:*)",
+      "Bash(cargo build:*)",
+      "Bash(cargo clippy:*)",
+      "Bash(git commit:*)",
+      "Bash(git checkout:*)",
+      "Bash(git grep:*)",
+      "Bash(git ls-files:*)",
       "WebFetch(domain:docs.anthropic.com)",
-      "Bash(cargo:*)"
+      "WebFetch(domain:docs.rs)",
+      "WebFetch(domain:crates.io)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:githubusercontent.com)",
+      "mcp__puppeteer",
+      "mcp__sequential-thinking",
+      "mcp__brave-search",
+      "mcp__fetch"
+
     ],
     "deny": []
   }
