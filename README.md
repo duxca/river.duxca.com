@@ -1,7 +1,7 @@
 [![workflow](https://github.com/legokichi/river.duxca.com/actions/workflows/check.yml/badge.svg)](https://github.com/legokichi/river.duxca.com/actions/workflows/check.yml)
 [![deploy](https://github.com/legokichi/river.duxca.com/actions/workflows/deploy-main.yml/badge.svg)](https://github.com/legokichi/river.duxca.com/actions/workflows/deploy-main.yml)
 
-# 開発環境のセットアップ
+## 開発環境のセットアップ
 
 ### ローカル開発用の fake-gcs-server
 
