@@ -1,5 +1,113 @@
 [![workflow](https://github.com/legokichi/river.duxca.com/actions/workflows/check.yml/badge.svg)](https://github.com/legokichi/river.duxca.com/actions/workflows/check.yml)
 [![deploy](https://github.com/legokichi/river.duxca.com/actions/workflows/deploy-main.yml/badge.svg)](https://github.com/legokichi/river.duxca.com/actions/workflows/deploy-main.yml)
+
+# 開発環境のセットアップ
+
+### ローカル開発用の fake-gcs-server
+
+Google Cloud Storage のエミュレーターとして fake-gcs-server を使用します。以下のコマンドで起動できます：
+
+```bash
+docker-compose up -d
+```
+
+サーバーは http://localhost:4443 で利用可能です。このエミュレーターは開発時の GCS 操作のテストに使用されます。
+
+## cloud run 環境作成までの道のり
+
+### サービスアカウントの作成
+- ふたつ作る必要がある
+- cloudrun 実行用のやつ、deployの引数にわたす
+  - https://zenn.dev/nbstsh/scraps/96a5919e94ac2f
+  - `roles/secretmanager.secretAccessor`
+- litestream用のやつ、secret managerでマウントしてファイルで渡す
+  - cloud run 環境内から gcp へアクセスするため
+  - storage access(管理者)が必要
+    - storage.buckets.get
+    - storage.buckets.getIamPolicy
+    - storage.buckets.update
+    - storage.objects.create
+    - storage.objects.delete
+    - storage.objects.get
+    - storage.objects.getIamPolicy
+    - storage.objects.list
+    - storage.objects.update
+    - resourcemanager.projects.get
+    - resourcemanager.projects.list
+    - storage.managedFolders.get
+    - storage.managedFolders.list
+
+
+```
+gcloud iam service-accounts create ...
+gcloud secrets add-iam-policy-binding ...
+```
+
+### secret manager の設定
+
+- cloud run から secret manager へアクセスするためのクレデンシャルをコンテナ内部に渡す方法
+- https://blog.g-gen.co.jp/entry/secret-manager-with-cloud-run
+
+```
+gcloud secrets create ...
+```
+
+- cloud run ごとにシークレットは共通状態なので管理はデプロイとは別にしないとけない
+- https://cloud.google.com/run/docs/configuring/services/secrets?hl=ja
+
+```
+gcloud run services update ... \
+  --clear-secrets --clear-volumes --clear-volume-mounts --clear-env-vars
+gcloud run services describe ...
+```
+
+### gar へ docker push するための設定
+
+```
+gcloud artifacts repositories create ...
+gcloud auth configure-docker ...
+docker build ...
+docker push ...
+```
+
+### デプロイ
+
+- 環境変数とか https://cloud.google.com/run/docs/configuring/services/secrets?hl=ja
+
+```
+gcloud run deploy ... \
+  --image ... \
+  --service-account ... \
+  --update-env-vars=GOOGLE_APPLICATION_CREDENTIALS=/etc/key.json \
+  --update-secrets=/etc/key.json=GOOGLE_APPLICATION_CREDENTIALS:1 \
+  --update-secrets=FACEBOOK_CLIENT_ID=FACEBOOK_CLIENT_ID:1 \
+```
+
+### 起動時のプローブのタイムアウトの設定
+```
+gcloud run services describe litestream-sandbox --format export > service.yaml
+```
+
+- service.yaml をごにょごにょする
+- https://cloud.google.com/run/docs/configuring/healthchecks?hl=ja
+
+```
+gcloud run services replace service.yaml
+```
+
+### custom domain mapping で dns の設定
+
+- https://zenn.dev/mseto/articles/cloud-run-domain
+
+## github action から deploy するための設定
+- https://docs.github.com/ja/actions/security-for-github-actions/security-hardening-your-deployments/configuring-openid-connect-in-google-cloud-platform
+- https://github.com/google-github-actions/deploy-cloudrun
+- https://zenn.dev/cloud_ace/articles/7fe428ac4f25c8
+- https://zenn.dev/marblet/articles/e61c0dcafc3dba
+- Artifact Registry 書き込み
+- Cloud Run 管理者
+- サービス アカウント ユーザー`:
+
 ## tips
 
 ### river
