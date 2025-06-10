@@ -9,6 +9,8 @@ pub enum CircleButtonIcon {
     Flag,
     Delete,
     Settings,
+    Search,
+    Save,
 }
 
 #[derive(Clone, PartialEq, Properties)]
@@ -79,6 +81,8 @@ pub fn circle_button(
                     CircleButtonIcon::Flag => "flag",
                     CircleButtonIcon::Delete => "delete",
                     CircleButtonIcon::Settings => "settings",
+                    CircleButtonIcon::Search => "search",
+                    CircleButtonIcon::Save => "save",
                 }}
             </span>
         </button>

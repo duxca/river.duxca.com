@@ -6,10 +6,6 @@ use yew::prelude::*;
 pub struct Props {
     pub selected_river: i64,
     pub rivers: Vec<(i64, String)>,
-    // latlng
-    pub focus: (f64, f64),
-    #[prop_or_default]
-    pub onclick_add_node: Callback<()>,
     #[prop_or_default]
     pub onsave: Callback<i64>,
 }
@@ -19,17 +15,9 @@ pub fn add_route(
     Props {
         selected_river,
         rivers,
-        focus: (lat, lng),
-        onclick_add_node,
         onsave,
     }: &Props,
 ) -> Html {
-    let onclick_add_node = use_callback(
-        onclick_add_node.clone(),
-        move |_e: MouseEvent, onclick_add_node| {
-            onclick_add_node.emit(());
-        },
-    );
     let onsave = use_callback(onsave.clone(), move |_e: MouseEvent, onsave| {
         let river_id = web_sys::window()
             .unwrap()
@@ -44,20 +32,12 @@ pub fn add_route(
             .unwrap();
         onsave.emit(river_id);
     });
-    let _style = use_style!(
+    let style = use_style!(
         r#"
-        position: absolute;
-        bottom: 5em;
-        right: 1em;
-        z-index: 1000;
-        padding: 10px;
-        border-radius: 5px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-        background-color: white;
         "#,
     );
     html! {
-        <fieldset>
+        <fieldset class={style}>
             <legend>{"addRoute"}</legend>
             <div>
                 <label>
@@ -80,9 +60,6 @@ pub fn add_route(
                     </select>
                 </label>
             </div>
-            <div>{{format!("lat: {}", lat)}}</div>
-            <div>{{format!("lng: {}", lng)}}</div>
-            <div><button onclick={onclick_add_node}>{"add node"}</button></div>
             <div><button onclick={onsave}>{"save"}</button></div>
         </fieldset>
     }

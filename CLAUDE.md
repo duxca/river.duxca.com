@@ -2,6 +2,15 @@
 
 This file provides guidance to Claude Code when working with this repository.
 
+## 🔨 Most Important Rule - Process for Adding New Rules
+
+When receiving instructions from a user that seem to require consistent application beyond a one-time request:
+
+1. Ask, "Would you like this to be a standard rule?"
+2. If the response is YES, add it as an additional rule in `CLAUDE.md`.
+3. Apply it consistently as a standard rule thereafter.
+
+This process allows for continuous improvement of the project's rules.
 ## Project Overview
 
 River.duxca.com is a web application for processing river map information. It provides a platform for displaying information useful for river activities like canoeing, kayaking, and SUP on maps, allowing users to add and share information.
