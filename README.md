@@ -1,73 +1,5 @@
-[![workflow](https://github.com/legokichi/river.duxca.com/actions/workflows/rust.yml/badge.svg)](https://github.com/legokichi/river.duxca.com/actions/workflows/rust.yml)
+[![workflow](https://github.com/legokichi/river.duxca.com/actions/workflows/check.yml/badge.svg)](https://github.com/legokichi/river.duxca.com/actions/workflows/check.yml)
 [![deploy](https://github.com/legokichi/river.duxca.com/actions/workflows/deploy-main.yml/badge.svg)](https://github.com/legokichi/river.duxca.com/actions/workflows/deploy-main.yml)
-
-# River.duxca.com プロジェクト概要
-
-このソフトウェアは川の地図情報を処理するWebアプリケーションです。カヌー、カヤック、SUPなどの川遊びに役立つ情報を地図上に表示し、ユーザーが情報を追加・共有できるプラットフォームを提供します。
-
-## プロジェクト構成
-
-### サーバーサイド (server/)
-- Rustの**axum**フレームワークを使用したWebサーバー
-- OAuth認証（GitHub、Facebook、Twitter）によるユーザー認証
-- RESTful APIエンドポイントの提供
-- 管理者向け管理画面の提供
-
-### フロントエンド (browser/)
-- Rustの**Yew**フレームワークを使用したSPA（Single Page Application）
-- **leaflet.js**のRustラッパーライブラリを使用した地図表示
-- 地理院タイル、OpenStreetMapなど複数の地図レイヤー対応
-- 川の情報、ウェイポイント、トラック（ルート）の表示・編集機能
-
-### データベース (db/)
-- **SQLite3**データベースを使用したデータ永続化
-- **sqlx**を使用したRustからのデータベースアクセス
-- **Litestream**を使用したGCSへのデータベースレプリケーション
-- マイグレーションスクリプトによるスキーマ管理（db/migrations/）
-- マイグレーションの実行方法：`cd db && sqlx migrate run; cd ..`
-- データベースのリセット方法：`cd db && sqlx database reset; cd ..`
-
-### ドメインモデル (model/)
-- サーバー、ブラウザ、データベース間で共有される型定義
-- 川（River）、ウェイポイント（RiverWaypoint）、トラック（RiverTrack）などの構造体
-- APIリクエスト/レスポンスの型定義
-- ユーザー認証関連の型定義
-
-### サービス層 (service/)
-- Webサーバーが提供するAPIの具体的な処理実装
-- ユーザー権限チェック
-- データベースとの連携処理
-- ビジネスロジックの実装
-
-## 主要機能
-
-1. **地図表示**：地理院タイル、OpenStreetMap、航空写真などの複数レイヤー表示
-2. **川情報管理**：川の名前、位置情報、説明の登録・表示
-3. **ウェイポイント管理**：川の特定地点（入出艇場所、危険箇所など）の登録・表示
-4. **トラック管理**：川のルート情報の登録・表示
-5. **ユーザー認証**：GitHub、Facebook、Twitterを使用したOAuth認証
-6. **権限管理**：一般ユーザーと管理者の権限分け
-7. **アクセスログ**：ユーザーのAPIアクセスログ記録
-
-## デプロイ環境
-
-- Google Cloud Run上で動作
-- GitHub Actionsによる自動デプロイ
-- Litestreamを使用したSQLiteデータベースのGCSへのバックアップ
-- カスタムドメイン設定
-
-## 技術スタック
-
-- **言語**：Rust
-- **サーバーフレームワーク**：axum
-- **フロントエンドフレームワーク**：Yew（WebAssembly）
-- **地図ライブラリ**：leaflet.js（Rustラッパー）
-- **データベース**：SQLite3、sqlx
-- **バックアップ**：Litestream
-- **認証**：axum-login、OAuth（GitHub、Facebook、Twitter）
-- **テンプレートエンジン**：askama
-- **ビルドツール**：trunk（WebAssembly）
-- **クラウド**：Google Cloud Run、Google Cloud Storage
 
 ## 開発環境のセットアップ
 
@@ -127,7 +59,6 @@ gcloud secrets create ...
 gcloud run services update ... \
   --clear-secrets --clear-volumes --clear-volume-mounts --clear-env-vars
 gcloud run services describe ...
-
 ```
 
 ### gar へ docker push するための設定
@@ -150,7 +81,6 @@ gcloud run deploy ... \
   --update-env-vars=GOOGLE_APPLICATION_CREDENTIALS=/etc/key.json \
   --update-secrets=/etc/key.json=GOOGLE_APPLICATION_CREDENTIALS:1 \
   --update-secrets=FACEBOOK_CLIENT_ID=FACEBOOK_CLIENT_ID:1 \
-
 ```
 
 ### 起動時のプローブのタイムアウトの設定
@@ -176,7 +106,7 @@ gcloud run services replace service.yaml
 - https://zenn.dev/marblet/articles/e61c0dcafc3dba
 - Artifact Registry 書き込み
 - Cloud Run 管理者
-- サービス アカウント ユーザー
+- サービス アカウント ユーザー`:
 
 ## tips
 
