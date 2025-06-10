@@ -1,4 +1,4 @@
-[![workflow](https://github.com/legokichi/river.duxca.com/actions/workflows/rust.yml/badge.svg)](https://github.com/legokichi/river.duxca.com/actions/workflows/rust.yml)
+[![workflow](https://github.com/legokichi/river.duxca.com/actions/workflows/check.yml/badge.svg)](https://github.com/legokichi/river.duxca.com/actions/workflows/check.yml)
 [![deploy](https://github.com/legokichi/river.duxca.com/actions/workflows/deploy-main.yml/badge.svg)](https://github.com/legokichi/river.duxca.com/actions/workflows/deploy-main.yml)
 
 # River.duxca.com プロジェクト概要
