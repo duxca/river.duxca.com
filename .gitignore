@@ -9,3 +9,6 @@ key.json
 *.db*
 .*.db*
 .aider*
+backup
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
