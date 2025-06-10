@@ -1,4 +1,4 @@
-name: Claude Review - Specific Authors
+name: Specific Authors
 
 on:
   pull_request:
@@ -32,35 +32,6 @@ jobs:
           mcp_config: |
             {
               "mcpServers": {
-                "brave-search": {
-                  "command": "docker",
-                  "args": [
-                    "run",
-                    "-i",
-                    "--rm",
-                    "-e",
-                    "BRAVE_API_KEY",
-                    "mcp/brave-search"
-                  ],
-                  "env": {
-                    "BRAVE_API_KEY": "${{ secrets.BRAVE_API_KEY }}"
-                  },
-                  "alwaysAllow": [
-                    "brave_web_search"
-                  ]
-                },
-                "fetch": {
-                  "command": "docker",
-                  "args": [
-                    "run",
-                    "-i",
-                    "--rm",
-                    "mcp/fetch"
-                  ],
-                  "alwaysAllow": [
-                    "fetch"
-                  ]
-                },
                 "sequentialthinking": {
                   "command": "docker",
                   "args": [
@@ -72,7 +43,7 @@ jobs:
                 }
               }
             }
-          allowed_tools: "mcp__sequential-thinking__sequentialthinking,mcp__brave-search__brave_web_search,mcp__brave-search__brave_local_search,mcp__fetch__fetch"
+          allowed_tools: "mcp__sequential-thinking__sequentialthinking",
           direct_prompt: |
             Please provide a thorough review of this pull request.
 
