@@ -37,6 +37,13 @@ trunk watch --features=local  # Development server with hot reload
 trunk build --release        # Production build
 ```
 
+### Git Operations
+```bash
+# Before pushing changes, update Claude credentials
+./update_claude_credentials.bash
+git push
+```
+
 ### Testing
 - No automated test suite is currently configured
 - Manual testing via browser and API endpoints
