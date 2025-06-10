@@ -41,8 +41,10 @@ pub fn home(Props { user: _ }: &Props) -> HtmlResult {
     // map の中心座標 (デフォは富士山) (lat, lng)
     let focus = use_state_eq(|| (35.3622222, 138.7313889));
 
-    let on_move = use_callback(focus.clone(), {
-        move |(lat, lng): (f64, f64), focus| {
+    let on_move = use_callback((), {
+        // use_callback に focus を置くと都度 callback が再生成されちゃう
+        let focus = focus.clone();
+        move |(lat, lng): (f64, f64), ()| {
             web_sys::window()
                 .unwrap()
                 .location()
@@ -67,11 +69,30 @@ pub fn home(Props { user: _ }: &Props) -> HtmlResult {
             edit_mode.set(EditMode::AddRoute(AddRouteMode::default()));
         }
     });
-    let onclick_add_route_point = use_callback(edit_mode.clone(), {
-        move |_ev: MouseEvent, _edit_mode| {
-            // TODO: Implement route point adding functionality
+    let onclick_add_route_point = use_callback((),{
+            let edit_mode = edit_mode.clone();
+            let tracks = tracks.clone();
+            let focus = focus.clone();
+            move |_ev: MouseEvent, ()| {
+                if let EditMode::AddRoute(ref add_route_mode) = *edit_mode {
+                    if add_route_mode.state == AddRouteModeState::Editing {
+                        // bug
+                        let (lat, lng) = *focus;
+                        let mut tmp_track = add_route_mode.track.clone();
+                        let mut tmp_tracks = (*tracks).clone();
+                        tmp_track.push((lat, lng));
+                        tmp_tracks.insert(0, tmp_track.clone());
+                        tracks.set(tmp_tracks.clone());
+                        edit_mode.set(EditMode::AddRoute(AddRouteMode {
+                            track: tmp_track,
+                            ..add_route_mode.clone()
+                        }));
+                        // TODO: upload the new waypoint to the server
+                    }
+                }
+            }
         }
-    });
+    );
     let onclick_saving_route = use_callback(edit_mode.clone(), {
         move |_ev: MouseEvent, edit_mode| {
             if let EditMode::AddRoute(ref add_route_mode) = **edit_mode {
