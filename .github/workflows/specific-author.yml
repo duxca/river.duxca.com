@@ -43,7 +43,7 @@ jobs:
                 }
               }
             }
-          allowed_tools: "mcp__sequential-thinking__sequentialthinking",
+          allowed_tools: "mcp__sequential-thinking__sequentialthinking"
           direct_prompt: |
             Please provide a thorough review of this pull request.
 
