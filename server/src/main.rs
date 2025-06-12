@@ -1,4 +1,6 @@
-use server::{Config, web};
+use server::Config;
+
+mod web;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), anyhow::Error> {
@@ -45,7 +47,7 @@ async fn main() -> Result<(), anyhow::Error> {
         session_layer = session_layer.with_secure(true).with_http_only(true);
     }
     let backend_settings = if cfg!(feature = "local") {
-        web::login::BackendSettings {
+        crate::web::login::BackendSettings {
             facebook_client_id: config.facebook_client_id.clone(),
             facebook_client_secret: config.facebook_client_secret.clone(),
             twitter_client_id: config.twitter_client_id.clone(),
@@ -55,7 +57,7 @@ async fn main() -> Result<(), anyhow::Error> {
             base_url: config.local_base_url.clone(),
         }
     } else {
-        web::login::BackendSettings {
+        crate::web::login::BackendSettings {
             facebook_client_id: config.facebook_client_id.clone(),
             facebook_client_secret: config.facebook_client_secret.clone(),
             twitter_client_id: config.twitter_client_id.clone(),
@@ -65,7 +67,7 @@ async fn main() -> Result<(), anyhow::Error> {
             base_url: config.base_url.clone(),
         }
     };
-    let backend = web::login::Backend::new(pool.clone(), backend_settings);
+    let backend = crate::web::login::Backend::new(pool.clone(), backend_settings);
 
     // on にすると Unable To Extract Key!
     //let governor_conf = tower_governor::governor::GovernorConfigBuilder::default()
@@ -87,56 +89,56 @@ async fn main() -> Result<(), anyhow::Error> {
     //});
 
     let app = axum::Router::new()
-        .route("/api", axum::routing::post(web::api::api))
+        .route("/api", axum::routing::post(crate::web::api::api))
         .layer(tower_http::cors::CorsLayer::very_permissive())
         .route(
             "/image",
-            axum::routing::post(web::image::upload_image),
+            axum::routing::post(crate::web::image::upload_image),
         )
         .route(
             "/image/{image_id}",
-            axum::routing::get(web::image::get_image),
+            axum::routing::get(crate::web::image::get_image),
         )
         .route(
             "/image/{image_id}",
-            axum::routing::delete(web::image::delete_image),
+            axum::routing::delete(crate::web::image::delete_image),
         )
-        .route("/admin", axum::routing::get(web::admin::admin))
+        .route("/admin", axum::routing::get(crate::web::admin::admin))
         .route(
             "/admin/apply",
-            axum::routing::post(web::admin::admin_apply),
+            axum::routing::post(crate::web::admin::admin_apply),
         )
         .route(
             "/admin/delete_waypoints",
-            axum::routing::post(web::admin::admin_delete_waypoints),
+            axum::routing::post(crate::web::admin::admin_delete_waypoints),
         )
-        .route("/login", axum::routing::get(web::login::login))
+        .route("/login", axum::routing::get(crate::web::login::login))
         .route(
             "/login/github",
-            axum::routing::post(web::login::github::login),
+            axum::routing::post(crate::web::login::github::login),
         )
         .route(
             "/oauth/callback/github",
-            axum::routing::get(web::login::github::callback),
+            axum::routing::get(crate::web::login::github::callback),
         )
         .route(
             "/login/twitter",
-            axum::routing::post(web::login::twitter::login),
+            axum::routing::post(crate::web::login::twitter::login),
         )
         .route(
             "/oauth/callback/twitter",
-            axum::routing::get(web::login::twitter::callback),
+            axum::routing::get(crate::web::login::twitter::callback),
         )
         .route(
             "/login/facebook",
-            axum::routing::post(web::login::facebook::login),
+            axum::routing::post(crate::web::login::facebook::login),
         )
         .route(
             "/oauth/callback/facebook",
-            axum::routing::get(web::login::facebook::callback),
+            axum::routing::get(crate::web::login::facebook::callback),
         )
-        .route("/logout", axum::routing::post(web::login::logout))
-        .route("/logout", axum::routing::get(web::login::logout))
+        .route("/logout", axum::routing::post(crate::web::login::logout))
+        .route("/logout", axum::routing::get(crate::web::login::logout))
         .route(
             "/version",
             axum::routing::get(|| async { build::CLAP_LONG_VERSION }),
@@ -148,7 +150,7 @@ async fn main() -> Result<(), anyhow::Error> {
             } else {
                 "dist"
             })
-            .not_found_service(web::handler_404.into_service())
+            .not_found_service(crate::web::handler_404.into_service())
         })
         .layer(axum_login::AuthManagerLayerBuilder::new(backend, session_layer).build())
         .layer(tower_http::trace::TraceLayer::new_for_http())
@@ -166,7 +168,7 @@ async fn main() -> Result<(), anyhow::Error> {
         }))
         .with_state({
             // 一般のリクエストで DB にアクセスするための State
-            web::State::new(config.clone(), pool, gcs)?
+            crate::web::State::new(config.clone(), pool, gcs)?
         });
 
     let listener = tokio::net::TcpListener::bind(config.host_addr).await?;
