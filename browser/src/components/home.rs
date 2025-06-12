@@ -31,10 +31,8 @@ pub struct Props {
 #[allow(clippy::redundant_closure)]
 pub fn home(Props { user: _ }: &Props) -> HtmlResult {
     let edit_mode = use_state_eq(|| EditMode::Home);
-
     let selected_river = use_state_eq(|| 0);
-    let rivers = use_state_eq(Vec::<model::river::River<(f64, f64)>>::new);
-
+    let rivers = use_state_eq(Vec::<(i64, String)>::new);
     // map に表示する waypoints と tracks
     let waypoints = use_state_eq(std::collections::HashMap::<i64, (String, (f64, f64))>::new);
     let tracks = use_state_eq(std::collections::HashMap::<i64, Vec<(f64, f64)>>::new);
@@ -120,31 +118,59 @@ pub fn home(Props { user: _ }: &Props) -> HtmlResult {
             edit_mode.set(EditMode::AddWaypoint);
         }
     });
-    
+
+    // initial fetch
     use_effect_with((), {
         let rivers = rivers.clone();
+        let waypoints = waypoints.clone();
+        let tracks = tracks.clone();
         move |()| {
             let rivers = rivers.clone();
+            let waypoints = waypoints.clone();
+            let tracks = tracks.clone();
             wasm_bindgen_futures::spawn_local(async move {
                 let res = crate::api::call::<model::api::list_rivers::Response>(
                     model::api::list_rivers::Request {},
                 )
                 .await
                 .unwrap();
-                let s = res
+                let mut wpts = vec![];
+                let mut trks = vec![];
+                for river in &res.rivers {
+                    let mut res = crate::api::call::<model::api::get_river::Response>(
+                        model::api::get_river::Request {
+                            river_id: river.river_id,
+                        },
+                    )
+                    .await
+                    .unwrap();
+                    wpts.append(&mut res.waypoints);
+                    trks.append(&mut res.tracks);
+                }
+                let tmp_river = res
                     .rivers
                     .into_iter()
                     .map(model::river::River::<(f64, f64)>::from)
+                    .map(|river| (river.river_id, river.river_name.clone()))
                     .collect::<Vec<_>>();
-                rivers.set(s);
+                rivers.set(tmp_river);
+
+                let tmp_wpts = wpts
+                    .into_iter()
+                    .map(|a| model::river::RiverWaypoint::<(f64, f64)>::from(a))
+                    .map(|wpt| (wpt.river_waypoint_id, (wpt.waypoint_name, wpt.waypoint)))
+                    .collect::<std::collections::HashMap<_, _>>();
+                let tmp_tracks = trks
+                    .into_iter()
+                    .map(model::river::RiverTrack::<Vec<(f64, f64)>>::from)
+                    .map(|track| (track.river_track_id, track.track))
+                    .collect::<std::collections::HashMap<_, _>>();
+
+                waypoints.set(tmp_wpts);
+                tracks.set(tmp_tracks);
             });
         }
     });
-    let rivers = rivers
-        .iter()
-        .map(|river| (river.river_id, river.river_name.clone()))
-        .collect::<Vec<_>>();
-
 
     log::debug!("edit_mode: {:?}", edit_mode);
     log::debug!("tracks: {:?}", *tracks);
@@ -161,7 +187,6 @@ pub fn home(Props { user: _ }: &Props) -> HtmlResult {
         />
         <crate::components::sidebar::Sidebar>
             // TODO:ユーザ情報を載せる
-
             <form method="post" action="/logout">
                 <input class="control-top-left-2th" type="submit" value="Logout" />
             </form>
@@ -200,19 +225,19 @@ pub fn home(Props { user: _ }: &Props) -> HtmlResult {
             <crate::components::dialog::Dialog title={"川検索"} onclose={onclick_go_to_home.clone()}>
                 <crate::components::select_river::SelectRiver
                     selected_river={*selected_river}
-                    rivers={rivers.clone()}
+                    rivers={(*rivers).clone()}
                     onchange={Callback::from(|_|{})}
                 />
             </crate::components::dialog::Dialog>
         } else if let EditMode::AddRoute(AddRouteMode{state, ..}) = &*edit_mode {
-            if *state == AddRouteModeState::Editing {
+           if *state == AddRouteModeState::Editing {
                 <crate::components::circle_button::CircleButton onclick={onclick_add_route_point} bottom={1} icon={crate::components::circle_button::CircleButtonIcon::Plus} />
                 <crate::components::circle_button::CircleButton onclick={onclick_saving_route} bottom={2} icon={crate::components::circle_button::CircleButtonIcon::Save} />
             }else if *state == AddRouteModeState::Saving {
                 <crate::components::dialog::Dialog title={"道程追加"} onclose={onclick_go_to_home.clone()}>
                     <crate::components::add_route::AddRoute
                         selected_river={*selected_river}
-                        rivers={rivers.clone()}
+                        rivers={(*rivers).clone()}
                         onsave={onclick_save_route}
                     />
                 </crate::components::dialog::Dialog>
@@ -221,7 +246,7 @@ pub fn home(Props { user: _ }: &Props) -> HtmlResult {
             <crate::components::dialog::Dialog title={"地点追加"} onclose={onclick_go_to_home.clone()}>
                 <crate::components::add_waypoint::AddWaypoint
                     selected_river={*selected_river}
-                    rivers={rivers.clone()}
+                    rivers={(*rivers).clone()}
                     focus={*focus}
                     onsave={Callback::from(|_|{})}
                 />
