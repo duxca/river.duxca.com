@@ -102,7 +102,6 @@ pub fn home(Props { user: _ }: &Props) -> HtmlResult {
                         state: AddRouteModeState::Saving,
                         ..add_route_mode.clone()
                     }));
-                    return;
                 }
             }
         }
