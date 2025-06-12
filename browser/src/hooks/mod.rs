@@ -117,7 +117,6 @@
 // //}
 // );
 
-
 // let onclick_go_to_river = Callback::from({
 //     let edit_mode = edit_mode.clone();
 //     let rivers = rivers.clone();
@@ -174,8 +173,6 @@
 //             });
 //             river_waypoints.set(wpts);
 //         });
-
-
 
 //         //             if let EditMode::Home{} = *edit_mode {
 //         //     <fieldset>
