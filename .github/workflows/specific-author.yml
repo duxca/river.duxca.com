@@ -11,7 +11,7 @@ jobs:
       github.event.pull_request.user.login == 'legokichi'
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       pull-requests: write
       id-token: write
     steps:
@@ -19,7 +19,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
-
       - name: Review PR from Specific Author
         uses: grll/claude-code-action@beta
         with:
@@ -29,21 +28,7 @@ jobs:
           claude_expires_at: ${{ secrets.CLAUDE_EXPIRES_AT }}
           model: claude-sonnet-4-20250514
           timeout_minutes: "60"
-          mcp_config: |
-            {
-              "mcpServers": {
-                "sequentialthinking": {
-                  "command": "docker",
-                  "args": [
-                    "run",
-                    "--rm",
-                    "-i",
-                    "mcp/sequentialthinking"
-                  ]
-                }
-              }
-            }
-          allowed_tools: "mcp__sequential-thinking__sequentialthinking"
+          allowed_tools: "Bash(git:*),Edit,Replace"
           direct_prompt: |
             Please provide a thorough review of this pull request.
 
