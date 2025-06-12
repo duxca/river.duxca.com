@@ -277,6 +277,7 @@ pub fn map_component(
     use_effect_with(tracks.clone(), {
         let map_state = map_state.clone();
         move |tracks| {
+            gloo::console::log!("tracks changed: {:?}", tracks);
             let Some(map) = map_state.as_ref() else {
                 return;
             };
