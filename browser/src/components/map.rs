@@ -45,6 +45,7 @@ pub fn map_component(
         let focus = *focus;
         let layer = *layer;
         let map_state = map_state.clone();
+        let on_move = on_move.clone();
         move |()| {
             let (lat, lng) = focus;
             let map = {
@@ -179,6 +180,20 @@ pub fn map_component(
             };
             layer_control.add_to(&map);
 
+            let cb = Closure::<_>::new({
+                let map = map.clone();
+                let on_move = on_move.clone();
+                move |_| {
+                    let latlng = map.get_center();
+                    gloo::console::log!("map move: lat={}, lng={}", latlng.lat(), latlng.lng());
+                    if let Some(on_move) = on_move.as_ref() {
+                        on_move.emit((latlng.lat(), latlng.lng()));
+                    }
+                }
+            });
+            map.add_event_listener("move", &cb);
+            cb.forget(); // Closure を保持しておく
+
             map_state.set(Some(map.clone()));
             move || {
                 let Some(map) = map_state.as_ref() else {
@@ -191,33 +206,8 @@ pub fn map_component(
 
     // on_move が変化したら設定変更のみ
     use_effect_with(on_move.clone(), {
-        let map_state = map_state.clone();
-        move |on_move| {
-            let cb = if let Some(map) = map_state.as_ref() {
-                let cb = Closure::<_>::new({
-                    let map = map.clone();
-                    let on_move = on_move.clone();
-                    move |_| {
-                        let latlng = map.get_center();
-                        if let Some(on_move) = on_move.as_ref() {
-                            on_move.emit((latlng.lat(), latlng.lng()));
-                        }
-                    }
-                });
-                map.add_event_listener("move", &cb);
-                Some(cb)
-            } else {
-                None
-            };
-            move || {
-                let Some(map) = map_state.as_ref() else {
-                    return;
-                };
-                let Some(cb) = cb else {
-                    return;
-                };
-                map.remove_event_listener("move", &cb);
-            }
+        move |_on_move| {
+            log::warn!("on_move changing is not implemented yet");
         }
     });
 
@@ -283,6 +273,7 @@ pub fn map_component(
     use_effect_with(tracks.clone(), {
         let map_state = map_state.clone();
         move |tracks| {
+            log::debug!("tracks changed: {:?}", tracks);
             let Some(map) = map_state.as_ref() else {
                 return;
             };
@@ -311,12 +302,12 @@ pub fn map_component(
                     opt.set_opacity(0.5);
                     leaflet::Polyline::new_with_options(&track, &opt)
                 };
+                gloo::console::log!(&polyline);
                 polyline.add_to(map);
                 polylines.insert(*id, polyline.clone());
             }
         }
     });
-    log::debug!("map, {:?}", gloo::utils::window().inner_width());
 
     // この VDOM に変化なければ再描画されない
     let map_style = use_style!(

@@ -117,32 +117,6 @@
 // //}
 // );
 
-// use_effect_with(rivers.clone(), {
-//     let river_waypoints = river_waypoints.clone();
-//     let river_tracks = river_tracks.clone();
-//     move |rivers| {
-//         let rivers = rivers.clone();
-//         // wasm_bindgen_futures::spawn_local(async move {
-//         //     let mut wpts = vec![];
-//         //     let mut tracks = vec![];
-//         //     for river in &*rivers {
-//         //         let mut res = crate::api::call::<model::api::get_river::Response>(
-//         //             model::api::get_river::Request {
-//         //                 river_id: river.river_id,
-//         //             },
-//         //         )
-//         //         .await
-//         //         .unwrap();
-//         //         wpts.append(&mut res.waypoints);
-//         //         tracks.append(&mut res.tracks);
-//         //     }
-//         //     // 都度再描画
-//         //     river_waypoints.set(wpts.clone());
-//         //     river_tracks.set(tracks);
-//         // });
-//     }
-// });
-
 // let onclick_go_to_river = Callback::from({
 //     let edit_mode = edit_mode.clone();
 //     let rivers = rivers.clone();
@@ -199,28 +173,6 @@
 //             });
 //             river_waypoints.set(wpts);
 //         });
-
-// let mut waypoints = vec![];
-// let mut tracks = vec![];
-// for river in &*rivers {
-//     let (lat, long) = serde_json::from_value::<(f64, f64)>(river.waypoint.clone()).unwrap();
-//     waypoints.push((river.river_id, river.river_name.clone(), (lat, long)));
-// }
-// for wpt in &*river_waypoints {
-//     let (lat, long) = serde_json::from_value::<(f64, f64)>(wpt.waypoint.clone()).unwrap();
-//     waypoints.push((
-//         wpt.river_waypoint_id,
-//         wpt.waypoint_name.clone(),
-//         (lat, long),
-//     ));
-// }
-// for trk in &*river_tracks {
-//     let track = serde_json::from_value::<Vec<(f64, f64)>>(trk.track.clone()).unwrap();
-//     tracks.push((trk.river_track_id, track));
-// }
-// if let EditMode::AddRoute(ref o) = *edit_mode {
-//     tracks.push((0, o.track.clone()));
-// }
 
 //         //             if let EditMode::Home{} = *edit_mode {
 //         //     <fieldset>
