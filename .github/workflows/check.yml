@@ -76,6 +76,17 @@ jobs:
       - uses: google-github-actions/setup-gcloud@v2
       - name: Use gcloud CLI
         run: gcloud info
+      - name: Test GCP Authentication
+        run: |
+          echo "Testing GCP authentication and permissions..."
+          gcloud auth list
+          gcloud config list
+          echo "Testing storage access..."
+          gcloud storage ls
+          echo "Testing terraform state bucket access..."
+          gcloud storage ls gs://duxca-terraform-state/
+          echo "Testing bucket permissions..."
+          gcloud storage ls gs://duxca-terraform-state/river.duxca.com/
       - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.12.2
