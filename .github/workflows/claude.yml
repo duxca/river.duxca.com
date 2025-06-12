@@ -9,6 +9,8 @@ on:
     types: [opened, assigned]
   pull_request_review:
     types: [submitted]
+  pull_request:
+    types: [opened, synchronize]
 
 jobs:
   claude-code-action:
@@ -38,4 +40,42 @@ jobs:
           model: claude-sonnet-4-20250514
           timeout_minutes: "60"
           allowed_tools: "Bash(git:*),Edit,Replace"
+
+  review-by-author:
+    # Only run for PRs from specific authors
+    if: |
+      github.event_name == 'pull_request' && 
+      github.event.pull_request.user.login == 'legokichi'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: Review PR from Specific Author
+        uses: grll/claude-code-action@beta
+        with:
+          use_oauth: true
+          claude_access_token: ${{ secrets.CLAUDE_ACCESS_TOKEN }}
+          claude_refresh_token: ${{ secrets.CLAUDE_REFRESH_TOKEN }}
+          claude_expires_at: ${{ secrets.CLAUDE_EXPIRES_AT }}
+          model: claude-sonnet-4-20250514
+          timeout_minutes: "60"
+          allowed_tools: "Bash(git:*),Edit,Replace"
+          direct_prompt: |
+            Please provide a thorough review of this pull request.
+
+            Since this is from a specific author that requires careful review,
+            please pay extra attention to:
+            - Adherence to project coding standards
+            - Proper error handling
+            - Security best practices
+            - Test coverage
+            - Documentation
+
+            Provide detailed feedback and suggestions for improvement.
 
