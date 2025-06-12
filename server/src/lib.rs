@@ -31,8 +31,14 @@ impl Config {
             twitter_client_id: oauth2::ClientId::new("test_twitter_client_id".to_string()),
             twitter_client_secret: oauth2::ClientSecret::new("test_twitter_client_secret".to_string()),
             base_url: "http://localhost:3000".to_string(),
-            local_client_id: oauth2::ClientId::new("test_local_client_id".to_string()),
-            local_client_secret: oauth2::ClientSecret::new("test_local_client_secret".to_string()),
+            local_client_id: oauth2::ClientId::new(
+                std::env::var("LOCAL_CLIENT_ID")
+                    .unwrap_or_else(|_| "test_local_client_id".to_string())
+            ),
+            local_client_secret: oauth2::ClientSecret::new(
+                std::env::var("LOCAL_CLIENT_SECRET")
+                    .unwrap_or_else(|_| "test_local_client_secret".to_string())
+            ),
             local_base_url: "http://localhost:3000".to_string(),
             local_dist_path: "dist".to_string(),
             gcs_bucket_name: "test_bucket".to_string(),
@@ -61,9 +67,9 @@ pub async fn create_test_app() -> Result<axum::Router, anyhow::Error> {
         facebook_client_secret: config.facebook_client_secret.clone(),
         twitter_client_id: config.twitter_client_id.clone(),
         twitter_client_secret: config.twitter_client_secret.clone(),
-        github_client_id: config.github_client_id.clone(),
-        github_client_secret: config.github_client_secret.clone(),
-        base_url: config.base_url.clone(),
+        github_client_id: config.local_client_id.clone(),
+        github_client_secret: config.local_client_secret.clone(),
+        base_url: config.local_base_url.clone(),
     };
     
     let backend = web::login::Backend::new(pool.clone(), backend_settings);
