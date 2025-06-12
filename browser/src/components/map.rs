@@ -185,11 +185,7 @@ pub fn map_component(
                 let on_move = on_move.clone();
                 move |_| {
                     let latlng = map.get_center();
-                    gloo::console::log!(
-                        "map move: lat={}, lng={}",
-                        latlng.lat(),
-                        latlng.lng()
-                    );
+                    gloo::console::log!("map move: lat={}, lng={}", latlng.lat(), latlng.lng());
                     if let Some(on_move) = on_move.as_ref() {
                         on_move.emit((latlng.lat(), latlng.lng()));
                     }
@@ -277,7 +273,7 @@ pub fn map_component(
     use_effect_with(tracks.clone(), {
         let map_state = map_state.clone();
         move |tracks| {
-            gloo::console::log!("tracks changed: {:?}", tracks);
+            log::debug!("tracks changed: {:?}", tracks);
             let Some(map) = map_state.as_ref() else {
                 return;
             };
@@ -306,6 +302,7 @@ pub fn map_component(
                     opt.set_opacity(0.5);
                     leaflet::Polyline::new_with_options(&track, &opt)
                 };
+                gloo::console::log!(&polyline);
                 polyline.add_to(map);
                 polylines.insert(*id, polyline.clone());
             }
