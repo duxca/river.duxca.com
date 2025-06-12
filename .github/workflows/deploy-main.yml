@@ -5,6 +5,7 @@ env:
   PROJECT_NUMBER: 93254674393
   POOL_ID: githubaction
   PROVIDER_ID: github
+  SERVICE_ACCOUNT: github-action-river@duxca-298210.iam.gserviceaccount.com
   NAME: asia-northeast1-docker.pkg.dev/duxca-298210/cloud-run-source-deploy/litestream-sandbox:latest
   CARGO_TERM_COLOR: always
   SQLX_OFFLINE: true
@@ -57,7 +58,8 @@ jobs:
       with:
         workload_identity_provider: projects/${{ env.PROJECT_NUMBER }}/locations/global/workloadIdentityPools/${{ env.POOL_ID }}/providers/${{ env.PROVIDER_ID }}
         project_id: ${{ env.PROJECT_ID }}
-        
+        service_account: ${{ env.SERVICE_ACCOUNT }}
+
     # Google Cloud SDKセットアップ
     - uses: google-github-actions/setup-gcloud@v2
     
