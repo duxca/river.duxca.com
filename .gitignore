@@ -12,3 +12,5 @@ key.json
 backup
 terraform/terraform.tfstate
 terraform/terraform.tfstate.backup
+terraform/.terraform/
+terraform/bootstrap/.terraform/
