@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "sqlite": {
+      "command": "docker",
+      "args": [
+        "run",
+        "--rm",
+        "-i",
+        "-v",
+        "/home/legokichi/Github/river.duxca.com/db:/mcp",
+        "mcp/sqlite",
+        "--db-path",
+        "/mcp/river.db"
+      ]
+    }
+  }
+}
