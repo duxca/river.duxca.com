@@ -67,32 +67,35 @@ pub fn home(Props { user: _ }: &Props) -> HtmlResult {
     let onclick_go_to_add_route = use_callback(edit_mode.clone(), {
         move |_ev: MouseEvent, edit_mode| {
             edit_mode.set(EditMode::AddRoute(AddRouteMode::default()));
+            log::debug!("onclick_go_to_add_route: {:?}", edit_mode);
         }
     });
-    let onclick_add_route_point = use_callback((),{
-            let edit_mode = edit_mode.clone();
-            let tracks = tracks.clone();
-            let focus = focus.clone();
-            move |_ev: MouseEvent, ()| {
-                if let EditMode::AddRoute(ref add_route_mode) = *edit_mode {
-                    if add_route_mode.state == AddRouteModeState::Editing {
-                        // bug
-                        let (lat, lng) = *focus;
-                        let mut tmp_track = add_route_mode.track.clone();
-                        let mut tmp_tracks = (*tracks).clone();
-                        tmp_track.push((lat, lng));
-                        tmp_tracks.insert(0, tmp_track.clone());
-                        tracks.set(tmp_tracks.clone());
-                        edit_mode.set(EditMode::AddRoute(AddRouteMode {
-                            track: tmp_track,
-                            ..add_route_mode.clone()
-                        }));
-                        // TODO: upload the new waypoint to the server
-                    }
+    let onclick_add_route_point = use_callback(edit_mode.clone(), {
+        //let edit_mode = edit_mode.clone();
+        let tracks = tracks.clone();
+        let focus = focus.clone();
+        move |_ev: MouseEvent, edit_mode| {
+            log::debug!("Add route point clicked, {:?}", edit_mode);
+            if let EditMode::AddRoute(ref add_route_mode) = **edit_mode {
+                log::debug!("Add route point clicked {:?}", add_route_mode);
+                if add_route_mode.state == AddRouteModeState::Editing {
+                    log::debug!("Adding route point");
+                    // bug
+                    let (lat, lng) = *focus;
+                    let mut tmp_track = add_route_mode.track.clone();
+                    let mut tmp_tracks = (*tracks).clone();
+                    tmp_track.push((lat, lng));
+                    tmp_tracks.insert(0, tmp_track.clone());
+                    tracks.set(tmp_tracks.clone());
+                    edit_mode.set(EditMode::AddRoute(AddRouteMode {
+                        track: tmp_track,
+                        ..add_route_mode.clone()
+                    }));
+                    // TODO: upload the new waypoint to the server
                 }
             }
         }
-    );
+    });
     let onclick_saving_route = use_callback(edit_mode.clone(), {
         move |_ev: MouseEvent, edit_mode| {
             if let EditMode::AddRoute(ref add_route_mode) = **edit_mode {
@@ -143,6 +146,9 @@ pub fn home(Props { user: _ }: &Props) -> HtmlResult {
         .collect::<Vec<_>>();
 
 
+    log::debug!("edit_mode: {:?}", edit_mode);
+    log::debug!("tracks: {:?}", *tracks);
+    log::debug!("waypoint: {:?}", *waypoints);
 
     let html = html! {
         <>
