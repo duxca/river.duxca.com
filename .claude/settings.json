@@ -20,9 +20,7 @@
       "WebFetch(domain:github.com)",
       "WebFetch(domain:githubusercontent.com)",
       "mcp__puppeteer",
-      "mcp__sequential-thinking",
-      "mcp__brave-search",
-      "mcp__fetch"
+      "mcp__sequential-thinking"
 
     ],
     "deny": []
