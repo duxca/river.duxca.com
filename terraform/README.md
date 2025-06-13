@@ -117,5 +117,3 @@ KEY_JSON=<シークレットの内容>
 | cloud_run_url | デプロイされたCloud Runサービスの公開URL |
 | cloud_run_service_name | デプロイされたCloud Runサービスの名前 |
 | cloud_run_service_location | デプロイされたCloud Runサービスのリージョン |
-
-# Test terraform permissions
