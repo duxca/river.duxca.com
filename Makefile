@@ -2,6 +2,7 @@
 fmt:
 	cargo fmt
 	find . -name Cargo.toml -execdir cargo tomlfmt \;
+	terraform -chdir=terraform fmt -recursive
 
 .PHONY:sweep
 sweep:
@@ -19,6 +20,8 @@ watch:
 .PHONY:check
 check:
 	cargo clippy -- -D warnings
+	cargo fmt --all -- --check
+	terraform -chdir=terraform fmt -recursive -check
 
 .PHONY:all
 all:

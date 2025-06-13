@@ -1,7 +1,7 @@
 # Secret Manager secrets for OAuth credentials
 resource "google_secret_manager_secret" "facebook_client_id" {
   secret_id = "FACEBOOK_CLIENT_ID"
-  
+
   replication {
     auto {}
   }
@@ -9,7 +9,7 @@ resource "google_secret_manager_secret" "facebook_client_id" {
 
 resource "google_secret_manager_secret" "facebook_client_secret" {
   secret_id = "FACEBOOK_CLIENT_SECRET"
-  
+
   replication {
     auto {}
   }
@@ -17,7 +17,7 @@ resource "google_secret_manager_secret" "facebook_client_secret" {
 
 resource "google_secret_manager_secret" "github_client_id" {
   secret_id = "GITHUB_CLIENT_ID"
-  
+
   replication {
     auto {}
   }
@@ -25,7 +25,7 @@ resource "google_secret_manager_secret" "github_client_id" {
 
 resource "google_secret_manager_secret" "github_client_secret" {
   secret_id = "GITHUB_CLIENT_SECRET"
-  
+
   replication {
     auto {}
   }
@@ -33,7 +33,7 @@ resource "google_secret_manager_secret" "github_client_secret" {
 
 resource "google_secret_manager_secret" "twitter_client_id" {
   secret_id = "TWITTER_CLIENT_ID"
-  
+
   replication {
     auto {}
   }
@@ -41,7 +41,7 @@ resource "google_secret_manager_secret" "twitter_client_id" {
 
 resource "google_secret_manager_secret" "twitter_client_secret" {
   secret_id = "TWITTER_CLIENT_SECRET"
-  
+
   replication {
     auto {}
   }
@@ -49,7 +49,7 @@ resource "google_secret_manager_secret" "twitter_client_secret" {
 
 resource "google_secret_manager_secret" "google_application_credentials" {
   secret_id = "GOOGLE_APPLICATION_CREDENTIALS"
-  
+
   replication {
     auto {}
   }
