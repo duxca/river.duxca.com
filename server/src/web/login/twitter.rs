@@ -4,11 +4,9 @@ const TOKEN_URL: &str = "https://api.x.com/2/oauth2/token";
 // https://docs.x.com/x-api/users/lookup/quickstart/authenticated-lookup
 // https://docs.x.com/x-api/users/user-lookup-me
 const USER_URL: &str = "https://api.x.com/2/users/me";
-#[allow(dead_code)]
 const CSRF_STATE_KEY: &str = "oauth.csrf-state";
 // https://developer.x.com/en/portal/projects-and-apps
 const REDIRECT_PATH: &str = "/oauth/callback/twitter";
-#[allow(dead_code)]
 const PKCE_CODE_VERIFIER: &str = "PKCE";
 
 // #[derive(Debug, serde::Deserialize)]
@@ -85,11 +83,8 @@ pub async fn login(
 
 // OAuth2 の認可コードを受け取るためのクエリパラメータ
 #[derive(Debug, Clone, serde::Deserialize)]
-#[allow(dead_code)]
 pub struct AuthzRequestQuery {
-    #[allow(dead_code)]
     pub code: oauth2::AuthorizationCode,
-    #[allow(dead_code)]
     pub state: oauth2::CsrfToken,
 }
 

@@ -1,11 +1,11 @@
-use std::ffi::OsStr;
 use std::time::Duration;
+use std::ffi::OsStr;
 
-use headless_chrome::{Browser, LaunchOptions};
 use http_body_util::BodyExt;
 use hyper::{Method, Request, StatusCode};
 use hyper_util::{client::legacy::Client, rt::TokioExecutor};
 use tokio::net::TcpListener;
+use headless_chrome::{Browser, LaunchOptions};
 
 async fn spawn_test_server() -> anyhow::Result<(String, tokio::task::JoinHandle<()>)> {
     env_logger::builder().is_test(true).try_init().ok();
@@ -256,7 +256,7 @@ async fn test_full_login_flow_with_browser() -> anyhow::Result<()> {
             OsStr::new("--disable-features=TranslateUI"),
         ])
         .build()?;
-
+    
     let browser = match Browser::new(options) {
         Ok(b) => b,
         Err(e) => {
@@ -265,7 +265,7 @@ async fn test_full_login_flow_with_browser() -> anyhow::Result<()> {
             return Ok(());
         }
     };
-
+    
     let tab = match browser.new_tab() {
         Ok(t) => t,
         Err(e) => {
@@ -278,58 +278,41 @@ async fn test_full_login_flow_with_browser() -> anyhow::Result<()> {
     // Test 1: Navigate to login page
     let login_page_url = format!("{}/login", server_url);
     if let Err(e) = tab.navigate_to(&login_page_url) {
-        eprintln!(
-            "Failed to navigate to login page: {}. Skipping browser test.",
-            e
-        );
+        eprintln!("Failed to navigate to login page: {}. Skipping browser test.", e);
         handle.abort();
         return Ok(());
     }
-
+    
     if let Err(e) = tab.wait_for_element("body") {
-        eprintln!(
-            "Failed to wait for body element: {}. Skipping browser test.",
-            e
-        );
+        eprintln!("Failed to wait for body element: {}. Skipping browser test.", e);
         handle.abort();
         return Ok(());
     }
-
+    
     let page_title = tab.get_title().unwrap_or_else(|_| "Unknown".to_string());
     println!("Login page title: {}", page_title);
 
     // Test 2: Check login buttons are present
     let github_button = tab.find_element("form[action='/login/github'] button");
-    assert!(
-        github_button.is_ok(),
-        "GitHub login button should be present"
-    );
-
+    assert!(github_button.is_ok(), "GitHub login button should be present");
+    
     let facebook_button = tab.find_element("form[action='/login/facebook'] button");
-    assert!(
-        facebook_button.is_ok(),
-        "Facebook login button should be present"
-    );
-
+    assert!(facebook_button.is_ok(), "Facebook login button should be present");
+    
     let twitter_button = tab.find_element("form[action='/login/twitter'] button");
-    assert!(
-        twitter_button.is_ok(),
-        "Twitter login button should be present"
-    );
+    assert!(twitter_button.is_ok(), "Twitter login button should be present");
 
     // Test 3: Test OAuth initiation flow (GitHub)
     let github_btn = tab.find_element("form[action='/login/github'] button")?;
     github_btn.click()?;
-
+    
     // Wait for redirect to GitHub OAuth
     std::thread::sleep(Duration::from_millis(2000));
     let current_url = tab.get_url();
-
+    
     // Should be redirected to GitHub OAuth or error page
     assert!(
-        current_url.contains("github.com")
-            || current_url.contains("error")
-            || current_url.contains("login"),
+        current_url.contains("github.com") || current_url.contains("error") || current_url.contains("login"),
         "Should redirect to GitHub OAuth or show error, current URL: {}",
         current_url
     );
@@ -337,7 +320,7 @@ async fn test_full_login_flow_with_browser() -> anyhow::Result<()> {
     // Test 4: Test logout functionality if we can access it
     tab.navigate_to(&format!("{}/logout", server_url))?;
     std::thread::sleep(Duration::from_millis(1000));
-
+    
     let logout_url = tab.get_url();
     assert!(
         logout_url.contains("login") || logout_url.contains("/"),
@@ -348,33 +331,30 @@ async fn test_full_login_flow_with_browser() -> anyhow::Result<()> {
     // Test 5: Test protected API access without authentication
     tab.navigate_to(&format!("{}/api", server_url))?;
     std::thread::sleep(Duration::from_millis(1000));
-
+    
     let api_response = tab.get_content()?;
     // Should be redirected to login or get unauthorized response
     assert!(
-        api_response.contains("Unauthorized")
-            || api_response.contains("login")
-            || tab.get_url().contains("login"),
+        api_response.contains("Unauthorized") || 
+        api_response.contains("login") ||
+        tab.get_url().contains("login"),
         "Unauthenticated API access should be blocked"
     );
 
     // Test 6: Verify session handling
     tab.navigate_to(&login_page_url)?;
     tab.wait_for_element("body")?;
-
+    
     // Check if session cookies are set
     let cookies = tab.get_cookies()?;
-    let has_session_cookie = cookies.iter().any(|cookie| {
-        cookie.name.contains("session")
-            || cookie.name.contains("tower")
-            || cookie.name.to_lowercase().contains("auth")
-    });
-
+    let has_session_cookie = cookies.iter().any(|cookie| 
+        cookie.name.contains("session") || 
+        cookie.name.contains("tower") ||
+        cookie.name.to_lowercase().contains("auth")
+    );
+    
     if has_session_cookie {
-        println!(
-            "Session cookies found: {:?}",
-            cookies.iter().map(|c| &c.name).collect::<Vec<_>>()
-        );
+        println!("Session cookies found: {:?}", cookies.iter().map(|c| &c.name).collect::<Vec<_>>());
     }
 
     // Test 7: Test form CSRF protection
@@ -412,17 +392,14 @@ async fn test_full_login_flow_with_browser() -> anyhow::Result<()> {
     let js_result = tab.evaluate("typeof window !== 'undefined'", false);
     if js_result.is_ok() {
         println!("JavaScript environment is available");
-
+        
         // Test if any client-side form validation exists
         let form_validation = tab.evaluate(
             "document.querySelector('form[action*=\"/login/\"]') !== null",
-            false,
+            false
         );
         if let Ok(has_forms) = form_validation {
-            println!(
-                "Login forms detected via JavaScript: {}",
-                has_forms.value.unwrap_or_default()
-            );
+            println!("Login forms detected via JavaScript: {}", has_forms.value.unwrap_or_default());
         }
     }
 
@@ -445,7 +422,7 @@ async fn test_login_flow_error_handling() -> anyhow::Result<()> {
             OsStr::new("--disable-setuid-sandbox"),
         ])
         .build()?;
-
+    
     let browser = match Browser::new(options) {
         Ok(b) => b,
         Err(e) => {
@@ -454,7 +431,7 @@ async fn test_login_flow_error_handling() -> anyhow::Result<()> {
             return Ok(());
         }
     };
-
+    
     let tab = match browser.new_tab() {
         Ok(t) => t,
         Err(e) => {
@@ -465,50 +442,48 @@ async fn test_login_flow_error_handling() -> anyhow::Result<()> {
     };
 
     // Test 1: Invalid OAuth callback
-    let invalid_callback_url = format!(
-        "{}/oauth/callback/github?code=invalid&state=invalid",
-        server_url
-    );
+    let invalid_callback_url = format!("{}/oauth/callback/github?code=invalid&state=invalid", server_url);
     if let Err(e) = tab.navigate_to(&invalid_callback_url) {
-        eprintln!(
-            "Failed to navigate to callback URL: {}. Skipping browser test.",
-            e
-        );
+        eprintln!("Failed to navigate to callback URL: {}. Skipping browser test.", e);
         handle.abort();
         return Ok(());
     }
     std::thread::sleep(Duration::from_millis(1000));
-
+    
     let error_content = tab.get_content()?;
     let current_url = tab.get_url();
-
+    
     // Should show error or redirect to login
     assert!(
-        error_content.contains("error")
-            || error_content.contains("Error")
-            || current_url.contains("login")
-            || current_url.contains("error"),
+        error_content.contains("error") || 
+        error_content.contains("Error") ||
+        current_url.contains("login") ||
+        current_url.contains("error"),
         "Invalid OAuth callback should show error or redirect to login"
     );
 
     // Test 2: Direct access to protected endpoints
-    let protected_endpoints = vec!["/api", "/admin", "/user/profile"];
-
+    let protected_endpoints = vec![
+        "/api",
+        "/admin", 
+        "/user/profile"
+    ];
+    
     for endpoint in protected_endpoints {
         let protected_url = format!("{}{}", server_url, endpoint);
         tab.navigate_to(&protected_url)?;
         std::thread::sleep(Duration::from_millis(500));
-
+        
         let protected_content = tab.get_content()?;
         let protected_url_current = tab.get_url();
-
+        
         // Should be redirected to login or show unauthorized
         assert!(
-            protected_content.contains("Unauthorized")
-                || protected_content.contains("login")
-                || protected_url_current.contains("login")
-                || protected_content.contains("403")
-                || protected_content.contains("401"),
+            protected_content.contains("Unauthorized") ||
+            protected_content.contains("login") ||
+            protected_url_current.contains("login") ||
+            protected_content.contains("403") ||
+            protected_content.contains("401"),
             "Protected endpoint {} should require authentication",
             endpoint
         );
@@ -518,12 +493,12 @@ async fn test_login_flow_error_handling() -> anyhow::Result<()> {
     let malformed_login_url = format!("{}/login/nonexistent", server_url);
     tab.navigate_to(&malformed_login_url)?;
     std::thread::sleep(Duration::from_millis(500));
-
+    
     let malformed_content = tab.get_content()?;
     assert!(
-        malformed_content.contains("404")
-            || malformed_content.contains("Not Found")
-            || tab.get_url().contains("login"),
+        malformed_content.contains("404") ||
+        malformed_content.contains("Not Found") ||
+        tab.get_url().contains("login"),
         "Malformed login URL should return 404 or redirect"
     );
 
@@ -546,7 +521,7 @@ async fn test_login_ui_interactions() -> anyhow::Result<()> {
             OsStr::new("--disable-setuid-sandbox"),
         ])
         .build()?;
-
+    
     let browser = match Browser::new(options) {
         Ok(b) => b,
         Err(e) => {
@@ -555,7 +530,7 @@ async fn test_login_ui_interactions() -> anyhow::Result<()> {
             return Ok(());
         }
     };
-
+    
     let tab = match browser.new_tab() {
         Ok(t) => t,
         Err(e) => {
@@ -567,19 +542,13 @@ async fn test_login_ui_interactions() -> anyhow::Result<()> {
 
     let login_page_url = format!("{}/login", server_url);
     if let Err(e) = tab.navigate_to(&login_page_url) {
-        eprintln!(
-            "Failed to navigate to login page: {}. Skipping browser test.",
-            e
-        );
+        eprintln!("Failed to navigate to login page: {}. Skipping browser test.", e);
         handle.abort();
         return Ok(());
     }
-
+    
     if let Err(e) = tab.wait_for_element("body") {
-        eprintln!(
-            "Failed to wait for body element: {}. Skipping browser test.",
-            e
-        );
+        eprintln!("Failed to wait for body element: {}. Skipping browser test.", e);
         handle.abort();
         return Ok(());
     }
@@ -588,11 +557,11 @@ async fn test_login_ui_interactions() -> anyhow::Result<()> {
     if let Ok(github_btn) = tab.find_element("form[action='/login/github'] button") {
         // Test button is present and accessible
         // Note: is_enabled not available in current headless_chrome API
-
+        
         // Test button focus
         github_btn.focus()?;
         std::thread::sleep(Duration::from_millis(100));
-
+        
         // Verify button styling/attributes
         let button_type = github_btn.get_attribute_value("type")?;
         assert!(
@@ -610,32 +579,36 @@ async fn test_login_ui_interactions() -> anyhow::Result<()> {
                 "Form {} should have proper action attribute",
                 i
             );
-
+            
             let method = form.get_attribute_value("method")?;
-            assert!(method.is_some(), "Form {} should have method attribute", i);
+            assert!(
+                method.is_some(),
+                "Form {} should have method attribute",
+                i
+            );
         }
     }
 
     // Test 3: Page navigation and back button
     if let Ok(github_btn) = tab.find_element("form[action='/login/github'] button") {
         let initial_url = tab.get_url();
-
+        
         // Click login button
         github_btn.click()?;
         std::thread::sleep(Duration::from_millis(1000));
-
+        
         let after_click_url = tab.get_url();
         assert!(
             initial_url != after_click_url,
             "URL should change after clicking login button"
         );
-
+        
         // Test back navigation
         // Note: go_back not available in current headless_chrome API
         // Navigate back to login page manually
         tab.navigate_to(&login_page_url)?;
         std::thread::sleep(Duration::from_millis(500));
-
+        
         let back_url = tab.get_url();
         assert!(
             back_url.contains("login"),
@@ -647,10 +620,10 @@ async fn test_login_ui_interactions() -> anyhow::Result<()> {
     let second_tab = browser.new_tab()?;
     second_tab.navigate_to(&login_page_url)?;
     second_tab.wait_for_element("body")?;
-
+    
     let first_content = tab.get_content()?;
     let second_content = second_tab.get_content()?;
-
+    
     // Both tabs should show login page
     assert!(
         first_content.len() > 0 && second_content.len() > 0,

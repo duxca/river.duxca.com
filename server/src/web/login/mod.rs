@@ -83,7 +83,6 @@ impl Backend {
 }
 
 #[derive(Debug)]
-#[allow(dead_code)]
 pub enum Credentials {
     Github(github::Credentials),
     Twitter(twitter::Credentials),

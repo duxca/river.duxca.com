@@ -70,13 +70,9 @@ pub async fn admin(
 }
 
 #[derive(Debug, serde::Deserialize)]
-#[allow(dead_code)]
 pub struct ApplyForm {
-    #[allow(dead_code)]
     river_csv: Option<String>,
-    #[allow(dead_code)]
     river_waypoints_csv: Option<String>,
-    #[allow(dead_code)]
     river_tracks_csv: Option<String>,
 }
 
@@ -225,9 +221,7 @@ pub async fn admin_apply(
 }
 
 #[derive(Debug, serde::Deserialize)]
-#[allow(dead_code)]
 pub struct ApiForm {
-    #[allow(dead_code)]
     pub waypoint_ids: Vec<i64>,
 }
 
