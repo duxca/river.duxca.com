@@ -653,7 +653,7 @@ async fn test_login_ui_interactions() -> anyhow::Result<()> {
 
     // Both tabs should show login page
     assert!(
-        first_content.len() > 0 && second_content.len() > 0,
+        !first_content.is_empty() && !second_content.is_empty(),
         "Both tabs should load login page content"
     );
 
