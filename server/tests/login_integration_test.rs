@@ -6,7 +6,9 @@ use tokio::net::TcpListener;
 use http_body_util::BodyExt;
 
 async fn spawn_test_server() -> anyhow::Result<(String, tokio::task::JoinHandle<()>)> {
-    let app = server::create_test_app().await?;
+    env_logger::builder().is_test(true).try_init().ok();
+    let config = server::Config::test_config();
+    let app = server::create_app(config).await?;
     
     let listener = TcpListener::bind("127.0.0.1:0").await?;
     let addr = listener.local_addr()?;
