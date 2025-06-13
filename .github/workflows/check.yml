@@ -1,4 +1,4 @@
-name: Rust
+name: Check Code
 
 env:
   CARGO_TERM_COLOR: always
