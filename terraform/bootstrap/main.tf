@@ -3,7 +3,7 @@
 
 terraform {
   required_version = ">= 1.0.0"
-  
+
   required_providers {
     google = {
       source  = "hashicorp/google"
@@ -21,28 +21,28 @@ provider "google" {
 resource "google_storage_bucket" "terraform_state" {
   name     = var.terraform_state_bucket
   location = var.region
-  
+
   # Force destroy for easier management
   force_destroy = false
-  
+
   # Prevent accidental deletion
   lifecycle {
     prevent_destroy = true
   }
-  
+
   # Versioning for state file history
   versioning {
     enabled = true
   }
-  
+
   # Enable uniform bucket-level access
   uniform_bucket_level_access = true
-  
+
   # Lifecycle management for old state versions
   lifecycle_rule {
     condition {
-      age                   = 30
-      num_newer_versions    = 5
+      age                = 30
+      num_newer_versions = 5
     }
     action {
       type = "Delete"

@@ -37,7 +37,7 @@ resource "google_project_service" "storage_api" {
 resource "google_cloud_run_service" "litestream_sandbox" {
   name     = "litestream-sandbox"
   location = "asia-northeast1"
-  
+
   lifecycle {
     ignore_changes = [
       template[0].spec[0].containers[0].resources[0].limits,
@@ -52,10 +52,10 @@ resource "google_cloud_run_service" "litestream_sandbox" {
     spec {
       container_concurrency = 128
       timeout_seconds       = 3
-      
+
       containers {
         image = var.container_image
-        
+
         resources {
           limits = {
             cpu    = "1"
