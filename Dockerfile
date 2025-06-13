@@ -11,8 +11,10 @@ RUN curl -o /tmp/sccache.tgz -L https://github.com/mozilla/sccache/releases/down
 RUN \
   --mount=type=cache,target=/var/lib/apt,sharing=locked \
   --mount=type=cache,target=/var/cache/apt,sharing=locked \
+  curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - && \
   apt-get update && apt-get install -y \
-  libsqlite3-dev
+  libsqlite3-dev \
+  nodejs
 
 ADD https://github.com/benbjohnson/litestream/releases/download/v0.3.13/litestream-v0.3.13-linux-amd64.tar.gz /tmp/litestream.tar.gz
 RUN tar -C ./ -xzf /tmp/litestream.tar.gz
@@ -39,6 +41,10 @@ RUN \
   --mount=type=cache,target=/var/cache/cargo \
   --mount=type=cache,target=/var/cache/sccache \
   cargo fetch --locked
+
+RUN \
+  --mount=type=cache,target=/root/.npm \
+  cd browser && npm install
 
 RUN \
   #--mount=type=cache,target=./target \
