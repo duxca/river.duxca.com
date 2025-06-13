@@ -1,6 +1,7 @@
 const AUTH_URL: &str = "https://github.com/login/oauth/authorize";
 const TOKEN_URL: &str = "https://github.com/login/oauth/access_token";
 const USER_URL: &str = "https://api.github.com/user";
+#[allow(dead_code)]
 const CSRF_STATE_KEY: &str = "oauth.csrf-state";
 // https://github.com/settings/developers
 const REDIRECT_PATH: &str = "/oauth/callback/github";
@@ -54,8 +55,11 @@ pub async fn login(
 
 // OAuth2 の認可コードを受け取るためのクエリパラメータ
 #[derive(Debug, Clone, serde::Deserialize)]
+#[allow(dead_code)]
 pub struct AuthzRequestQuery {
+    #[allow(dead_code)]
     pub code: oauth2::AuthorizationCode,
+    #[allow(dead_code)]
     pub state: oauth2::CsrfToken,
 }
 

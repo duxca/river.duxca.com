@@ -1,6 +1,7 @@
 const AUTH_URL: &str = "https://www.facebook.com/v20.0/dialog/oauth";
 const TOKEN_URL: &str = "https://graph.facebook.com/v20.0/oauth/access_token";
 const USER_URL: &str = "https://graph.facebook.com/v20.0/me";
+#[allow(dead_code)]
 const CSRF_STATE_KEY: &str = "oauth.csrf-state";
 // https://developers.facebook.com/apps/?show_reminder=true&locale=ja_JP
 const REDIRECT_PATH: &str = "/oauth/callback/facebook";
@@ -53,8 +54,11 @@ pub async fn login(
 
 // OAuth2 の認可コードを受け取るためのクエリパラメータ
 #[derive(Debug, Clone, serde::Deserialize)]
+#[allow(dead_code)]
 pub struct AuthzRequestQuery {
+    #[allow(dead_code)]
     pub code: oauth2::AuthorizationCode,
+    #[allow(dead_code)]
     pub state: oauth2::CsrfToken,
 }
 

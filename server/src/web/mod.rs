@@ -4,12 +4,14 @@ pub mod image;
 pub mod login;
 
 #[derive(Clone)]
+#[allow(dead_code)]
 pub struct State {
     pub db: sqlx::sqlite::SqlitePool,
     pub gcs: google_cloud_storage::client::Client,
     pub config: crate::Config,
 }
 impl State {
+    #[allow(dead_code)]
     pub fn new(
         config: crate::Config,
         db: sqlx::sqlite::SqlitePool,
@@ -42,6 +44,7 @@ where
     }
 }
 
+#[allow(dead_code)]
 pub async fn handler_404() -> impl axum::response::IntoResponse {
     (axum::http::StatusCode::NOT_FOUND, "404 not found")
 }
