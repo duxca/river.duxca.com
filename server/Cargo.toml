@@ -51,11 +51,11 @@ tracing-subscriber = { version = "0.3", features = ["std", "env-filter", "time",
 uuid = { version = "1", features = ["serde", "v4"] }
 
 [dev-dependencies]
+headless_chrome = "1.0.15"
 http-body-util = "0.1.0"
 hyper = { version = "1.0.0", features = ["full"] }
 hyper-util = { version = "0.1", features = ["client", "http1", "client-legacy"] }
 tower = { version = "0.5", features = ["util"] }
-headless_chrome = "1.0.15"
 
 [build-dependencies]
 shadow-rs = "1.1.1"
