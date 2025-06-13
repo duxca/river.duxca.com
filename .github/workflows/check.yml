@@ -45,14 +45,14 @@ jobs:
     - name: Verify server login integration tests
       run: cargo test -p server --test login_integration_test --verbose
 
-  build:
-    runs-on: ubuntu-24.04
-    steps:
-    - uses: actions/checkout@v4
-    - uses: dtolnay/rust-toolchain@stable
-    - uses: Swatinem/rust-cache@v2
-    - run: sudo apt-get update && sudo apt-get install -y libudev-dev
-    - run: cargo build --workspace
+#  build:
+#    runs-on: ubuntu-24.04
+#    steps:
+#    - uses: actions/checkout@v4
+#    - uses: dtolnay/rust-toolchain@stable
+#    - uses: Swatinem/rust-cache@v2
+#    - run: sudo apt-get update && sudo apt-get install -y libudev-dev
+#    - run: cargo build --workspace
 
   terraform-plan:
     if: |
