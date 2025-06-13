@@ -25,19 +25,25 @@ impl Config {
             host_addr: "127.0.0.1:0".to_string(),
             database_url: ":memory:".to_string(),
             github_client_id: oauth2::ClientId::new("test_github_client_id".to_string()),
-            github_client_secret: oauth2::ClientSecret::new("test_github_client_secret".to_string()),
+            github_client_secret: oauth2::ClientSecret::new(
+                "test_github_client_secret".to_string(),
+            ),
             facebook_client_id: oauth2::ClientId::new("test_facebook_client_id".to_string()),
-            facebook_client_secret: oauth2::ClientSecret::new("test_facebook_client_secret".to_string()),
+            facebook_client_secret: oauth2::ClientSecret::new(
+                "test_facebook_client_secret".to_string(),
+            ),
             twitter_client_id: oauth2::ClientId::new("test_twitter_client_id".to_string()),
-            twitter_client_secret: oauth2::ClientSecret::new("test_twitter_client_secret".to_string()),
+            twitter_client_secret: oauth2::ClientSecret::new(
+                "test_twitter_client_secret".to_string(),
+            ),
             base_url: "http://localhost:3000".to_string(),
             local_client_id: oauth2::ClientId::new(
                 std::env::var("LOCAL_CLIENT_ID")
-                    .unwrap_or_else(|_| "test_local_client_id".to_string())
+                    .unwrap_or_else(|_| "test_local_client_id".to_string()),
             ),
             local_client_secret: oauth2::ClientSecret::new(
                 std::env::var("LOCAL_CLIENT_SECRET")
-                    .unwrap_or_else(|_| "test_local_client_secret".to_string())
+                    .unwrap_or_else(|_| "test_local_client_secret".to_string()),
             ),
             local_base_url: "http://localhost:3000".to_string(),
             local_dist_path: "dist".to_string(),
@@ -52,17 +58,21 @@ pub async fn create_app(config: Config) -> Result<axum::Router, anyhow::Error> {
     Ok(app)
 }
 
-pub async fn create_app_with_session_store(config: Config) -> Result<(axum::Router, tower_sessions_sqlx_store::SqliteStore), anyhow::Error> {
-    let gcs = if config.gcp_credentials_file.is_empty() || config.gcp_credentials_file == "test_credentials.json" {
+pub async fn create_app_with_session_store(
+    config: Config,
+) -> Result<(axum::Router, tower_sessions_sqlx_store::SqliteStore), anyhow::Error> {
+    let gcs = if config.gcp_credentials_file.is_empty()
+        || config.gcp_credentials_file == "test_credentials.json"
+    {
         // For testing - use anonymous client
-        let conf = google_cloud_storage::client::ClientConfig::default()
-            .anonymous();
+        let conf = google_cloud_storage::client::ClientConfig::default().anonymous();
         google_cloud_storage::client::Client::new(conf)
     } else {
         // For production - use credentials file
         let cred = google_cloud_auth::credentials::CredentialsFile::new_from_file(
             config.gcp_credentials_file.clone(),
-        ).await?;
+        )
+        .await?;
         let conf = google_cloud_storage::client::ClientConfig::default()
             .with_credentials(cred)
             .await?;
@@ -78,11 +88,11 @@ pub async fn create_app_with_session_store(config: Config) -> Result<(axum::Rout
         .with_expiry(tower_sessions::Expiry::OnInactivity(
             std::time::Duration::from_secs(7 * 24 * 60 * 60).try_into()?,
         ));
-    
+
     if cfg!(not(feature = "local")) {
         session_layer = session_layer.with_secure(true).with_http_only(true);
     }
-    
+
     let backend_settings = if cfg!(feature = "local") {
         web::login::BackendSettings {
             facebook_client_id: config.facebook_client_id.clone(),
@@ -104,30 +114,58 @@ pub async fn create_app_with_session_store(config: Config) -> Result<(axum::Rout
             base_url: config.base_url.clone(),
         }
     };
-    
+
     let backend = web::login::Backend::new(pool.clone(), backend_settings);
 
     let app = axum::Router::new()
         .route("/api", axum::routing::post(web::api::api))
         .layer(tower_http::cors::CorsLayer::very_permissive())
         .route("/image", axum::routing::post(web::image::upload_image))
-        .route("/image/{image_id}", axum::routing::get(web::image::get_image))
-        .route("/image/{image_id}", axum::routing::delete(web::image::delete_image))
+        .route(
+            "/image/{image_id}",
+            axum::routing::get(web::image::get_image),
+        )
+        .route(
+            "/image/{image_id}",
+            axum::routing::delete(web::image::delete_image),
+        )
         .route("/admin", axum::routing::get(web::admin::admin))
         .route("/admin/apply", axum::routing::post(web::admin::admin_apply))
-        .route("/admin/delete_waypoints", axum::routing::post(web::admin::admin_delete_waypoints))
+        .route(
+            "/admin/delete_waypoints",
+            axum::routing::post(web::admin::admin_delete_waypoints),
+        )
         .route("/login", axum::routing::get(web::login::login))
-        .route("/login/github", axum::routing::post(web::login::github::login))
-        .route("/oauth/callback/github", axum::routing::get(web::login::github::callback))
-        .route("/login/twitter", axum::routing::post(web::login::twitter::login))
-        .route("/oauth/callback/twitter", axum::routing::get(web::login::twitter::callback))
-        .route("/login/facebook", axum::routing::post(web::login::facebook::login))
-        .route("/oauth/callback/facebook", axum::routing::get(web::login::facebook::callback))
+        .route(
+            "/login/github",
+            axum::routing::post(web::login::github::login),
+        )
+        .route(
+            "/oauth/callback/github",
+            axum::routing::get(web::login::github::callback),
+        )
+        .route(
+            "/login/twitter",
+            axum::routing::post(web::login::twitter::login),
+        )
+        .route(
+            "/oauth/callback/twitter",
+            axum::routing::get(web::login::twitter::callback),
+        )
+        .route(
+            "/login/facebook",
+            axum::routing::post(web::login::facebook::login),
+        )
+        .route(
+            "/oauth/callback/facebook",
+            axum::routing::get(web::login::facebook::callback),
+        )
         .route("/logout", axum::routing::post(web::login::logout))
         .route("/logout", axum::routing::get(web::login::logout))
-        .route("/version", axum::routing::get(|| async { 
-            env!("CARGO_PKG_VERSION")
-        }))
+        .route(
+            "/version",
+            axum::routing::get(|| async { env!("CARGO_PKG_VERSION") }),
+        )
         .fallback_service({
             use axum::handler::HandlerWithoutStateExt;
             tower_http::services::ServeDir::new(if cfg!(feature = "local") {
