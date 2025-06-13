@@ -1,4 +1,6 @@
-pub mod web;
+shadow_rs::shadow!(build);
+
+mod web;
 
 #[derive(serde::Deserialize, Debug, Clone)]
 pub struct Config {
@@ -23,6 +25,7 @@ pub async fn create_app(
     config: Config,
     pool: sqlx::sqlite::SqlitePool,
     session_store: tower_sessions_sqlx_store::SqliteStore,
+    gcs: google_cloud_storage::client::Client,
 ) -> Result<axum::Router, anyhow::Error> {
     let mut session_layer = tower_sessions::SessionManagerLayer::new(session_store.clone())
         .with_same_site(tower_sessions::cookie::SameSite::Lax)
@@ -137,5 +140,5 @@ pub async fn create_app(
             crate::web::State::new(config.clone(), pool, gcs)?
         });
 
-    Ok((app, session_store))
+    Ok(app)
 }
