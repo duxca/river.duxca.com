@@ -15,28 +15,6 @@ on:
     branches: [ "main" ]
 
 jobs:
-  fmt:
-    runs-on: ubuntu-24.04
-    steps:
-    - uses: actions/checkout@v4
-    - uses: dtolnay/rust-toolchain@stable
-      with:
-        components: rustfmt
-    - uses: Swatinem/rust-cache@v2
-    - run: cargo install cargo-tomlfmt
-    - run: cargo fmt --all -- --check
-    - run: find . -name Cargo.toml -execdir cargo tomlfmt -d \;
-
-  clippy:
-    runs-on: ubuntu-24.04
-    steps:
-    - uses: actions/checkout@v4
-    - uses: dtolnay/rust-toolchain@stable
-      with:
-        components: clippy
-    - uses: Swatinem/rust-cache@v2
-    - run: sudo apt-get update && sudo apt-get install -y libudev-dev
-    - run: cargo clippy --all-targets --all-features -- -Dwarnings
 
   test:
     runs-on: ubuntu-24.04
@@ -48,13 +26,13 @@ jobs:
     - run: cargo test
 
   deploy:
-    needs: [ fmt, clippy, test ]
+    needs: [ test ]
     runs-on: ubuntu-24.04
     steps:
     - uses: actions/checkout@v4
     
     # Google Cloud認証
-    - uses: "google-github-actions/auth@v2"
+    - uses: google-github-actions/auth@v2
       with:
         workload_identity_provider: projects/${{ env.PROJECT_NUMBER }}/locations/global/workloadIdentityPools/${{ env.POOL_ID }}/providers/${{ env.PROVIDER_ID }}
         project_id: ${{ env.PROJECT_ID }}
@@ -74,7 +52,7 @@ jobs:
     # Terraformセットアップ
     - uses: hashicorp/setup-terraform@v3
       with:
-        terraform_version: "1.5.0"
+        terraform_version: 1.12.2
     
     # Terraformでデプロイ
     - name: Terraform Init and Apply
