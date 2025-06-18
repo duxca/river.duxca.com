@@ -1,3 +1,40 @@
+//! Modal dialog component with header and close functionality.
+//!
+//! # Usage
+//!
+//! ```rust
+//! use yew::prelude::*;
+//!
+//! #[function_component(MyComponent)]
+//! pub fn my_component() -> Html {
+//!     let show_dialog = use_state(|| false);
+//!     let onclose = {
+//!         let show_dialog = show_dialog.clone();
+//!         Callback::from(move |_: MouseEvent| {
+//!             show_dialog.set(false);
+//!         })
+//!     };
+//!
+//!     html! {
+//!         <>
+//!             if *show_dialog {
+//!                 <Dialog title={"My Dialog"} onclose={onclose}>
+//!                     <p>{"Dialog content goes here..."}</p>
+//!                     <button>{"OK"}</button>
+//!                 </Dialog>
+//!             }
+//!         </>
+//!     }
+//! }
+//! ```
+//!
+//! ## Features
+//! - Centered modal overlay
+//! - Header with title and close button
+//! - Responsive sizing (80% width, max 400px)
+//! - Smooth fade transitions
+//! - Scrollable content area
+
 use stylist::yew::use_style;
 use yew::prelude::*;
 

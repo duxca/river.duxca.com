@@ -1,3 +1,25 @@
+//! Bottom app bar components for the river application.
+//!
+//! # Usage
+//!
+//! ```rust
+//! use yew::prelude::*;
+//!
+//! #[function_component(MyComponent)]
+//! pub fn my_component() -> Html {
+//!     html! {
+//!         <BottomAppBar>
+//!             <BottomAppBarItem>
+//!                 <button>{"Home"}</button>
+//!             </BottomAppBarItem>
+//!             <BottomAppBarItem>
+//!                 <button>{"Settings"}</button>
+//!             </BottomAppBarItem>
+//!         </BottomAppBar>
+//!     }
+//! }
+//! ```
+
 use yew::prelude::*;
 
 #[derive(Properties, PartialEq)]
@@ -21,7 +43,17 @@ pub struct BottomAppBarItemProps {
     pub children: Children,
 }
 
-/// BottomAppBar is a reusable component for a bottom app bar.
+/// Individual item component for the bottom app bar.
+///
+/// # Usage
+///
+/// ```rust
+/// html! {
+///     <BottomAppBarItem>
+///         <button onclick={my_callback}>{"Action"}</button>
+///     </BottomAppBarItem>
+/// }
+/// ```
 #[function_component(BottomAppBarItem)]
 pub fn bottom_app_bar_item(props: &BottomAppBarItemProps) -> Html {
     html! {

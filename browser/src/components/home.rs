@@ -1,3 +1,38 @@
+//! Main application home component managing the river map interface.
+//!
+//! # Usage
+//!
+//! ```rust
+//! use yew::prelude::*;
+//!
+//! #[function_component(App)]
+//! pub fn app() -> Html {
+//!     let user = model::user::User {
+//!         user_id: 1,
+//!         user_name: "John Doe".to_string(),
+//!         // ... other user fields
+//!     };
+//!
+//!     html! {
+//!         <Home user={user} />
+//!     }
+//! }
+//! ```
+//!
+//! ## Features
+//! - Interactive map with multiple layers
+//! - Sidebar with user settings and controls
+//! - Multiple editing modes (Home, Search, AddRoute, AddWaypoint)
+//! - Floating action buttons for different operations
+//! - Dialog-based forms for adding rivers, routes, and waypoints
+//! - Real-time data fetching and display of rivers, waypoints, and tracks
+//!
+//! ## Edit Modes
+//! - **Home**: Default view with action buttons
+//! - **Search**: River search and selection dialog
+//! - **AddRoute**: Route creation with point-by-point editing
+//! - **AddWaypoint**: Waypoint creation at current map center
+
 use yew::prelude::*;
 
 #[derive(Debug, PartialEq, Clone)]

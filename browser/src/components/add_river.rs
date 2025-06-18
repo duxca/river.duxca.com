@@ -1,3 +1,32 @@
+//! Form component for adding new rivers at specific coordinates.
+//!
+//! # Usage
+//!
+//! ```rust
+//! use yew::prelude::*;
+//!
+//! #[function_component(MyComponent)]
+//! pub fn my_component() -> Html {
+//!     let focus = (35.3622222, 138.7313889); // Coordinates (lat, lng)
+//!     let onsave = Callback::from(|river_name: String| {
+//!         log::info!("Adding river: {}", river_name);
+//!         // Handle river creation logic
+//!     });
+//!
+//!     html! {
+//!         <AddRiver
+//!             focus={focus}
+//!             onsave={onsave}
+//!         />
+//!     }
+//! }
+//! ```
+//!
+//! This component provides a form for creating new rivers with:
+//! - Text input for river name
+//! - Display of current latitude/longitude coordinates
+//! - Save button to trigger river creation
+
 use stylist::yew::use_style;
 use wasm_bindgen::JsCast;
 use yew::prelude::*;

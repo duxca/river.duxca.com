@@ -1,3 +1,38 @@
+//! Interactive map component using Leaflet.js.
+//!
+//! # Usage
+//!
+//! ```rust
+//! use yew::prelude::*;
+//! use std::collections::HashMap;
+//!
+//! #[function_component(MyComponent)]
+//! pub fn my_component() -> Html {
+//!     let waypoints = HashMap::new();
+//!     let tracks = HashMap::new();
+//!     let on_move = Callback::from(|(lat, lng): (f64, f64)| {
+//!         log::info!("Map moved to: {}, {}", lat, lng);
+//!     });
+//!
+//!     html! {
+//!         <Map
+//!             layer={MapLayer::Gsi}
+//!             focus={(35.3622222, 138.7313889)}
+//!             waypoints={waypoints}
+//!             tracks={tracks}
+//!             on_move={Some(on_move)}
+//!         />
+//!     }
+//! }
+//! ```
+//!
+//! ## Features
+//! - Multiple map layers (GSI tiles, OpenStreetMap, aerial photos, etc.)
+//! - Waypoint markers with custom icons
+//! - Track polylines visualization
+//! - Interactive controls (zoom, scale, layer switcher)
+//! - Crosshair overlay for precise positioning
+
 use stylist::yew::use_style;
 use wasm_bindgen::prelude::*;
 use yew::prelude::*;
