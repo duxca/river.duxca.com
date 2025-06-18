@@ -69,7 +69,7 @@ pub fn add_waypoint(
             .unwrap()
             .value()
             .parse::<i64>()
-            .unwrap();
+            .unwrap_or(0); // Default to 0 for river-independent markers
         let waypoint_name = web_sys::window()
             .unwrap()
             .document()
@@ -94,12 +94,12 @@ pub fn add_waypoint(
     );
     html! {
         <fieldset>
-            <legend>{"addWaypoint"}</legend>
+            <legend>{"マーカーを追加"}</legend>
             <div>
                 <label>
                     {"川:"}
                     <select id="river" size="1">
-                        <option value="0">{"---"}</option>
+                        <option value="0">{"川を選択してください"}</option>
                         {
                             rivers.iter().map(|(id, name)|{
                                 if selected_river == id {
@@ -118,13 +118,13 @@ pub fn add_waypoint(
             </div>
             <div>
                 <label>
-                    {"地点:"}
-                    <input type="text" id="waypoint_name" />
+                    {"地点名:"}
+                    <input type="text" id="waypoint_name" placeholder="名所、景勝地、危険箇所など" />
                 </label>
             </div>
-            <div>{{format!("lat: {}", lat)}}</div>
-            <div>{{format!("lng: {}", lng)}}</div>
-            <div><button onclick={onsave}>{"add point"}</button></div>
+            <div>{{format!("緯度: {:.6}", lat)}}</div>
+            <div>{{format!("経度: {:.6}", lng)}}</div>
+            <div><button onclick={onsave}>{"マーカーを配置"}</button></div>
         </fieldset>
     }
 }
