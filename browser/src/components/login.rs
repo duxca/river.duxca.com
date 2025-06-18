@@ -30,15 +30,32 @@ enum PageState {
 
 #[hook]
 fn use_user() -> yew::suspense::SuspensionResult<Option<model::user::User>> {
-    let s = use_future(|| async {
-        let res =
-            crate::api::call::<model::api::get_me::Response>(model::api::get_me::Request {}).await;
-        match res {
-            Ok(res) => Some(res.user),
-            Err(_) => None,
-        }
-    })?;
-    Ok((*s).clone())
+    #[cfg(feature = "test-mode")]
+    {
+        let test_user = model::user::User {
+            id: 1,
+            name: "Test User".to_string(),
+            email: Some("test@example.com".to_string()),
+            image_url: None,
+            role: model::user::Role::User,
+            created_at: "2024-01-01T00:00:00Z".to_string(),
+            updated_at: "2024-01-01T00:00:00Z".to_string(),
+        };
+        return Ok(Some(test_user));
+    }
+    
+    #[cfg(not(feature = "test-mode"))]
+    {
+        let s = use_future(|| async {
+            let res =
+                crate::api::call::<model::api::get_me::Response>(model::api::get_me::Request {}).await;
+            match res {
+                Ok(res) => Some(res.user),
+                Err(_) => None,
+            }
+        })?;
+        Ok((*s).clone())
+    }
 }
 
 #[function_component(Login)]
