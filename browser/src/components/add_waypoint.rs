@@ -1,3 +1,40 @@
+//! Form component for adding waypoints to rivers at specific coordinates.
+//!
+//! # Usage
+//!
+//! ```rust
+//! use yew::prelude::*;
+//!
+//! #[function_component(MyComponent)]
+//! pub fn my_component() -> Html {
+//!     let rivers = vec![
+//!         (1, "River A".to_string()),
+//!         (2, "River B".to_string()),
+//!     ];
+//!     let selected_river = 1;
+//!     let focus = (35.3622222, 138.7313889); // Current map center (lat, lng)
+//!     let onsave = Callback::from(|(river_id, waypoint_name): (i64, String)| {
+//!         log::info!("Adding waypoint '{}' to river {}", waypoint_name, river_id);
+//!         // Handle waypoint creation logic
+//!     });
+//!
+//!     html! {
+//!         <AddWaypoint
+//!             selected_river={selected_river}
+//!             rivers={rivers}
+//!             focus={focus}
+//!             onsave={onsave}
+//!         />
+//!     }
+//! }
+//! ```
+//!
+//! This component provides a form for creating waypoints with:
+//! - River selection dropdown
+//! - Text input for waypoint name
+//! - Display of current latitude/longitude coordinates
+//! - Save button to trigger waypoint creation
+
 use stylist::yew::use_style;
 use wasm_bindgen::JsCast;
 use yew::prelude::*;

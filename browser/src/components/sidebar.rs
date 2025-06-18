@@ -1,3 +1,24 @@
+//! Sidebar component with hamburger menu toggle functionality.
+//!
+//! # Usage
+//!
+//! ```rust
+//! use yew::prelude::*;
+//!
+//! #[function_component(MyComponent)]
+//! pub fn my_component() -> Html {
+//!     html! {
+//!         <Sidebar>
+//!             <div>{"Menu Item 1"}</div>
+//!             <div>{"Menu Item 2"}</div>
+//!             <form method="post" action="/logout">
+//!                 <button type="submit">{"Logout"}</button>
+//!             </form>
+//!         </Sidebar>
+//!     }
+//! }
+//! ```
+
 use stylist::yew::use_style;
 use yew::prelude::*;
 

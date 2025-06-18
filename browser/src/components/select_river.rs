@@ -1,3 +1,31 @@
+//! River selection dropdown component.
+//!
+//! # Usage
+//!
+//! ```rust
+//! use yew::prelude::*;
+//!
+//! #[function_component(MyComponent)]
+//! pub fn my_component() -> Html {
+//!     let rivers = vec![
+//!         (1, "River A".to_string()),
+//!         (2, "River B".to_string()),
+//!     ];
+//!     let selected_river = 1;
+//!     let onchange = Callback::from(|river_id: i64| {
+//!         log::info!("Selected river: {}", river_id);
+//!     });
+//!
+//!     html! {
+//!         <SelectRiver
+//!             selected_river={selected_river}
+//!             rivers={rivers}
+//!             onchange={onchange}
+//!         />
+//!     }
+//! }
+//! ```
+
 use stylist::yew::use_style;
 use wasm_bindgen::JsCast;
 use yew::prelude::*;

@@ -1,3 +1,41 @@
+//! Floating action button component with material design icons.
+//!
+//! # Usage
+//!
+//! ```rust
+//! use yew::prelude::*;
+//!
+//! #[function_component(MyComponent)]
+//! pub fn my_component() -> Html {
+//!     let onclick = Callback::from(|_: MouseEvent| {
+//!         log::info!("Button clicked!");
+//!     });
+//!
+//!     html! {
+//!         <>
+//!             <CircleButton
+//!                 onclick={onclick.clone()}
+//!                 icon={CircleButtonIcon::Plus}
+//!                 color={"#2196f3".to_string()}
+//!                 bottom={1}
+//!             />
+//!             <CircleButton
+//!                 onclick={onclick}
+//!                 icon={CircleButtonIcon::Save}
+//!                 color={"#4caf50".to_string()}
+//!                 bottom={2}
+//!             />
+//!         </>
+//!     }
+//! }
+//! ```
+//!
+//! ## Available Icons
+//! - Plus, Polyline, Flag, Delete, Settings, Search, Save
+//!
+//! ## Positioning
+//! The `bottom` prop stacks buttons vertically, with each increment adding button height + margin.
+
 use stylist::yew::use_style;
 use yew::prelude::*;
 

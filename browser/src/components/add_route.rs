@@ -1,3 +1,35 @@
+//! Form component for adding new river routes.
+//!
+//! # Usage
+//!
+//! ```rust
+//! use yew::prelude::*;
+//!
+//! #[function_component(MyComponent)]
+//! pub fn my_component() -> Html {
+//!     let rivers = vec![
+//!         (1, "River A".to_string()),
+//!         (2, "River B".to_string()),
+//!     ];
+//!     let selected_river = 1;
+//!     let onsave = Callback::from(|river_id: i64| {
+//!         log::info!("Saving route for river: {}", river_id);
+//!         // Handle route saving logic
+//!     });
+//!
+//!     html! {
+//!         <AddRoute
+//!             selected_river={selected_river}
+//!             rivers={rivers}
+//!             onsave={onsave}
+//!         />
+//!     }
+//! }
+//! ```
+//!
+//! This component provides a form with a river selection dropdown and save button.
+//! It's typically used within a Dialog component for route creation workflows.
+
 use stylist::yew::use_style;
 use wasm_bindgen::JsCast;
 use yew::prelude::*;

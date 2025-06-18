@@ -1,3 +1,24 @@
+//! Login component handling user authentication.
+//!
+//! # Usage
+//!
+//! ```rust
+//! use yew::prelude::*;
+//!
+//! #[function_component(App)]
+//! pub fn app() -> Html {
+//!     html! {
+//!         <Suspense fallback={html!{<div>{"Loading..."}</div>}}>
+//!             <Login />
+//!         </Suspense>
+//!     }
+//! }
+//! ```
+//!
+//! The Login component automatically checks authentication status and renders either:
+//! - Login form with Twitter/GitHub OAuth buttons when logged out
+//! - Home component when logged in
+
 use yew::prelude::*;
 use yew::suspense::use_future;
 
