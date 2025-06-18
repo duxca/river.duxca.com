@@ -11,7 +11,25 @@ on:
     branches: [ "main" ]
 
 jobs:
+  changes:
+    runs-on: ubuntu-24.04
+    outputs:
+      rust: ${{ steps.changes.outputs.rust }}
+    steps:
+    - uses: actions/checkout@v4
+    - uses: dorny/paths-filter@v3
+      id: changes
+      with:
+        filters: |
+          rust:
+            - '**/*.rs'
+            - '**/Cargo.toml'
+            - '**/Cargo.lock'
+            - 'rust-toolchain.toml'
+
   fmt:
+    needs: changes
+    if: ${{ needs.changes.outputs.rust == 'true' }}
     runs-on: ubuntu-24.04
     steps:
     - uses: actions/checkout@v4
@@ -24,6 +42,8 @@ jobs:
     - run: find . -name Cargo.toml -execdir cargo tomlfmt -d \;
 
   clippy:
+    needs: changes
+    if: ${{ needs.changes.outputs.rust == 'true' }}
     runs-on: ubuntu-24.04
     steps:
     - uses: actions/checkout@v4
@@ -34,6 +54,8 @@ jobs:
     - run: cargo clippy --all-targets --all-features -- -Dwarnings
 
   test:
+    needs: changes
+    if: ${{ needs.changes.outputs.rust == 'true' }}
     runs-on: ubuntu-24.04
     steps:
     - uses: actions/checkout@v4
