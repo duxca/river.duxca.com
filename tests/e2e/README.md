@@ -58,3 +58,11 @@ The tests use a `test-mode` feature flag that:
 - `playwright.config.ts` - Main Playwright configuration
 - `package.json` - Node.js dependencies and scripts
 - `run-tests.sh` - Test execution script
+
+## CI/CD
+
+Tests run automatically on:
+- Push to main branch
+- Pull requests to main branch
+
+See `.github/workflows/e2e-tests.yml` for CI configuration.
