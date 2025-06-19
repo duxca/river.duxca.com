@@ -1,0 +1,84 @@
+name: E2E Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  e2e-tests:
+    runs-on: ubuntu-latest
+    
+    services:
+      fake-gcs:
+        image: fsouza/fake-gcs-server
+        ports:
+          - 4443:4443
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: stable
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: tests/e2e/package-lock.json
+    
+    - name: Install trunk
+      run: cargo install trunk --locked
+    
+    - name: Install dependencies
+      run: |
+        cd tests/e2e
+        npm ci
+    
+    - name: Install Playwright Browsers
+      run: |
+        cd tests/e2e
+        npx playwright install --with-deps
+    
+    - name: Build browser with test-mode
+      run: |
+        cd browser
+        trunk build --features=test-mode --release
+    
+    - name: Start server in background
+      run: |
+        cd server
+        cargo run &
+        echo $! > ../server.pid
+      env:
+        DATABASE_URL: sqlite:../river.db
+        FAKE_GCS_ENDPOINT: http://localhost:4443
+    
+    - name: Wait for server to be ready
+      run: |
+        timeout 30 sh -c 'until curl -s http://localhost:8080 > /dev/null; do sleep 1; done' || echo "Server might not be ready, continuing anyway..."
+    
+    - name: Run Playwright tests
+      run: |
+        cd tests/e2e
+        npx playwright test
+    
+    - name: Stop server
+      if: always()
+      run: |
+        if [ -f server.pid ]; then
+          kill $(cat server.pid) || true
+          rm server.pid
+        fi
+    
+    - name: Upload Playwright Report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: playwright-report
+        path: tests/e2e/playwright-report/
+        retention-days: 30

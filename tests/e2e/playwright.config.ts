@@ -27,7 +27,7 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: 'cd ../../ && ./run_local.bash',
+      command: 'cd ../../server && RUST_LOG=info cargo run --features=local',
       port: 8080,
       reuseExistingServer: !process.env.CI,
       timeout: 120 * 1000,

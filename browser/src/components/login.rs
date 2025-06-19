@@ -20,6 +20,8 @@
 //! - Home component when logged in
 
 use yew::prelude::*;
+
+#[cfg(not(feature = "test-mode"))]
 use yew::suspense::use_future;
 
 #[derive(Debug, PartialEq, Clone)]
@@ -33,13 +35,10 @@ fn use_user() -> yew::suspense::SuspensionResult<Option<model::user::User>> {
     #[cfg(feature = "test-mode")]
     {
         let test_user = model::user::User {
-            id: 1,
-            name: "Test User".to_string(),
-            email: Some("test@example.com".to_string()),
-            image_url: None,
-            role: model::user::Role::User,
-            created_at: "2024-01-01T00:00:00Z".to_string(),
-            updated_at: "2024-01-01T00:00:00Z".to_string(),
+            user_id: 1,
+            nickname: "Test User".to_string(),
+            role: 1, // 1 = user, 0 = admin
+            created_at: 1704067200, // 2024-01-01T00:00:00Z in unix timestamp
         };
         return Ok(Some(test_user));
     }
