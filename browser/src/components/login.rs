@@ -37,17 +37,18 @@ fn use_user() -> yew::suspense::SuspensionResult<Option<model::user::User>> {
         let test_user = model::user::User {
             user_id: 1,
             nickname: "Test User".to_string(),
-            role: 1, // 1 = user, 0 = admin
+            role: 1,                // 1 = user, 0 = admin
             created_at: 1704067200, // 2024-01-01T00:00:00Z in unix timestamp
         };
         return Ok(Some(test_user));
     }
-    
+
     #[cfg(not(feature = "test-mode"))]
     {
         let s = use_future(|| async {
             let res =
-                crate::api::call::<model::api::get_me::Response>(model::api::get_me::Request {}).await;
+                crate::api::call::<model::api::get_me::Response>(model::api::get_me::Request {})
+                    .await;
             match res {
                 Ok(res) => Some(res.user),
                 Err(_) => None,
