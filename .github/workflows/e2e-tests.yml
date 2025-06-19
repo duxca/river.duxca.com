@@ -10,12 +10,6 @@ jobs:
   e2e-tests:
     runs-on: ubuntu-latest
     
-    services:
-      fake-gcs:
-        image: fsouza/fake-gcs-server
-        ports:
-          - 4443:4443
-
     steps:
     - uses: actions/checkout@v4
     
@@ -28,8 +22,6 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '18'
-        cache: 'npm'
-        cache-dependency-path: tests/e2e/package-lock.json
     
     - name: Install trunk
       run: cargo install trunk --locked
@@ -52,11 +44,10 @@ jobs:
     - name: Start server in background
       run: |
         cd server
-        cargo run &
+        cargo run --features=local &
         echo $! > ../server.pid
       env:
         DATABASE_URL: sqlite:../river.db
-        FAKE_GCS_ENDPOINT: http://localhost:4443
     
     - name: Wait for server to be ready
       run: |
