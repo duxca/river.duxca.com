@@ -1,229 +1,229 @@
 # RFCs (Request for Comments)
 
-This directory contains RFC documents for managing technical changes and feature requests in the river.duxca.com project. RFCs serve as structured work orders for Claude Code to implement changes systematically.
+このディレクトリには、river.duxca.comプロジェクトの技術的変更と機能要求を管理するためのRFCドキュメントが含まれています。RFCは、Claude Codeが体系的に変更を実装するための構造化された作業指示書として機能します。
 
-## Purpose
+## 目的
 
-RFCs provide a formal process for:
-- Proposing technical changes and new features
-- Documenting implementation decisions
-- Creating clear work instructions for Claude Code
-- Maintaining a historical record of technical decisions
-- Facilitating structured discussion and feedback
+RFCは以下のための正式なプロセスを提供します：
+- 技術的変更と新機能の提案
+- 実装決定の文書化
+- Claude Codeのための明確な作業指示の作成
+- 技術的決定の履歴記録の維持
+- 構造化された議論とフィードバックの促進
 
-## File Naming Convention
+## ファイル命名規則
 
-All RFC files **MUST** follow this naming pattern:
+すべてのRFCファイルは以下の命名パターンに**従わなければなりません**：
 ```
 YYYY-MM-DD-brief-description.md
 ```
 
-### Examples:
+### 例：
 - `2024-07-16-add-user-authentication.md`
 - `2024-07-16-implement-oauth-login.md`
 - `2024-07-16-refactor-map-components.md`
 
-### Date Format Rules:
-- Use ISO 8601 format: `YYYY-MM-DD`
-- Year: 4 digits (e.g., 2024)
-- Month: 2 digits with leading zero (e.g., 07)
-- Day: 2 digits with leading zero (e.g., 16)
-- This format ensures chronological sorting and global consistency
+### 日付形式のルール：
+- ISO 8601形式を使用：`YYYY-MM-DD`
+- 年：4桁（例：2024）
+- 月：ゼロ埋めの2桁（例：07）
+- 日：ゼロ埋めの2桁（例：16）
+- この形式により、時系列でのソートとグローバルな一貫性が保証されます
 
-## RFC Document Structure
+## RFC文書構造
 
-Each RFC document **MUST** be written in Markdown format and include the following sections:
+各RFC文書は**Markdown形式で書かれ**、以下のセクションを含む**必要があります**：
 
-### Required Sections:
+### 必須セクション：
 
 ```markdown
-# RFC YYYY-MM-DD: Title
+# RFC YYYY-MM-DD: タイトル
 
-**Status**: [Draft/In Progress/Completed/Rejected]
-**Author**: [Author Name]
-**Created**: YYYY-MM-DD
-**Updated**: YYYY-MM-DD
+**ステータス**: [Draft/In Progress/Completed/Rejected]
+**作成者**: [作成者名]
+**作成日**: YYYY-MM-DD
+**更新日**: YYYY-MM-DD
 
-## Overview
-Brief 1-2 paragraph summary of the proposed change.
+## 概要
+提案された変更の簡潔な1-2段落の要約。
 
-## Background
-Detailed context explaining why this change is needed.
+## 背景
+この変更が必要な理由を説明する詳細な文脈。
 
-## Detailed Design
-Comprehensive technical specification of the implementation.
+## 詳細設計
+実装の包括的な技術仕様。
 
-## Implementation Plan
-Step-by-step breakdown of tasks for Claude Code.
+## 実装計画
+Claude Codeのためのステップバイステップのタスク分解。
 
-## Testing Strategy
-How to verify the implementation works correctly.
+## テスト戦略
+実装が正しく動作することを確認する方法。
 
-## Rollout Plan
-Deployment and migration considerations.
+## 展開計画
+デプロイメントと移行に関する考慮事項。
 
-## Alternatives Considered
-Other approaches that were evaluated.
+## 検討した代替案
+評価された他のアプローチ。
 
-## Risks and Mitigation
-Potential issues and how to handle them.
+## リスクと軽減策
+潜在的な問題とその対処方法。
 
-## Future Considerations
-Long-term implications and follow-up work.
+## 将来の考慮事項
+長期的な影響とフォローアップ作業。
 ```
 
-## Claude Code Work Order Guidelines
+## Claude Code作業指示書ガイドライン
 
-Since these RFCs serve as work orders for Claude Code, follow these best practices:
+これらのRFCはClaude Codeの作業指示書として機能するため、以下のベストプラクティスに従ってください：
 
-### 1. Implementation Plan Section
-- Break down work into specific, actionable tasks
-- Include file paths and function names when relevant
-- Specify testing requirements
-- List any dependencies or prerequisites
+### 1. 実装計画セクション
+- 作業を具体的で実行可能なタスクに分解する
+- 関連する場合はファイルパスと関数名を含める
+- テスト要件を指定する
+- 依存関係や前提条件をリストアップする
 
-### 2. Technical Specifications
-- Use precise technical language
-- Include code examples where helpful
-- Reference existing patterns in the codebase
-- Specify expected behavior and edge cases
+### 2. 技術仕様
+- 正確な技術用語を使用する
+- 有用な場合はコード例を含める
+- コードベースの既存パターンを参照する
+- 期待される動作とエッジケースを指定する
 
-### 3. Context and Constraints
-- Reference relevant files in the codebase
-- Include any architectural constraints
-- Mention performance requirements
-- Note security considerations
+### 3. 文脈と制約
+- コードベースの関連ファイルを参照する
+- アーキテクチャの制約を含める
+- パフォーマンス要件を言及する
+- セキュリティ考慮事項を記載する
 
-### 4. Acceptance Criteria
-- Define what "done" means
-- Include specific test cases
-- List required documentation updates
-- Specify deployment requirements
+### 4. 受け入れ基準
+- 「完了」とは何かを定義する
+- 具体的なテストケースを含める
+- 必要な文書更新をリストアップする
+- デプロイメント要件を指定する
 
-## RFC Lifecycle
+## RFCライフサイクル
 
-### 1. Draft Phase
-- Create RFC document with all required sections
-- Set status to "Draft"
-- Conduct initial review and feedback
+### 1. ドラフトフェーズ
+- 必要なセクションをすべて含むRFC文書を作成
+- ステータスを「Draft」に設定
+- 初期レビューとフィードバックを実施
 
-### 2. In Progress Phase
-- Change status to "In Progress"
-- Claude Code begins implementation
-- Update document with progress notes
+### 2. 進行中フェーズ
+- ステータスを「In Progress」に変更
+- Claude Codeが実装を開始
+- 進捗ノートで文書を更新
 
-### 3. Completed Phase
-- All implementation tasks finished
-- Tests pass
-- Documentation updated
-- Status changed to "Completed"
+### 3. 完了フェーズ
+- すべての実装タスクが完了
+- テストが合格
+- 文書が更新される
+- ステータスが「Completed」に変更
 
-### 4. Rejected Phase
-- RFC deemed unnecessary or infeasible
-- Status changed to "Rejected"
-- Include rejection reason in document
+### 4. 却下フェーズ
+- RFCが不要または実現不可能と判断
+- ステータスが「Rejected」に変更
+- 却下理由を文書に含める
 
-## Best Practices
+## ベストプラクティス
 
-### For RFC Authors:
-1. **Be Specific**: Vague requirements lead to poor implementations
-2. **Include Examples**: Show expected inputs/outputs
-3. **Reference Existing Code**: Point to similar patterns in the codebase
-4. **Consider Edge Cases**: Think about error conditions and boundary cases
-5. **Plan for Testing**: Specify how to verify the implementation
+### RFC作成者向け：
+1. **具体的であること**：曖昧な要件は実装の質を下げる
+2. **例を含める**：期待される入力/出力を示す
+3. **既存コードを参照**：コードベースの類似パターンを指摘
+4. **エッジケースを考慮**：エラー条件と境界ケースを考える
+5. **テストを計画**：実装の検証方法を指定
 
-### For Claude Code Implementation:
-1. **Follow the Implementation Plan**: Use the RFC as a checklist
-2. **Update Status**: Change RFC status when beginning and completing work
-3. **Document Changes**: Update the RFC with any deviations from the plan
-4. **Test Thoroughly**: Ensure all acceptance criteria are met
-5. **Update Related Documentation**: Keep README.md and other docs current
+### Claude Code実装向け：
+1. **実装計画に従う**：RFCをチェックリストとして使用
+2. **ステータスを更新**：作業開始時と完了時にRFCステータスを変更
+3. **変更を文書化**：計画からの逸脱があればRFCを更新
+4. **徹底的にテスト**：すべての受け入れ基準が満たされることを確認
+5. **関連文書を更新**：README.mdや他の文書を最新に保つ
 
-### File Organization:
-- Keep RFCs focused on single features/changes
-- Use descriptive but concise titles
-- Maintain chronological order through date prefixes
-- Archive old RFCs rather than deleting them
+### ファイル組織：
+- RFCは単一の機能/変更に集中させる
+- 説明的だが簡潔なタイトルを使用
+- 日付プレフィックスで時系列順序を維持
+- 古いRFCは削除せずにアーカイブ
 
-## Common RFC Types
+## 一般的なRFCタイプ
 
-### Feature RFCs
-New functionality or capabilities
+### 機能RFC
+新しい機能や能力
 
-### Architecture RFCs
-System design changes or improvements
+### アーキテクチャRFC
+システム設計の変更や改善
 
-### Process RFCs
-Development workflow or deployment changes
+### プロセスRFC
+開発ワークフローやデプロイメントの変更
 
-### Bug Fix RFCs
-Complex bug fixes requiring detailed planning
+### バグ修正RFC
+詳細な計画が必要な複雑なバグ修正
 
-### Performance RFCs
-Optimization or scalability improvements
+### パフォーマンスRFC
+最適化やスケーラビリティの改善
 
-## Review Process
+## レビュープロセス
 
-1. **Self-Review**: Author reviews RFC for completeness
-2. **Technical Review**: Evaluate technical feasibility
-3. **Implementation Review**: Claude Code assesses work breakdown
-4. **Approval**: RFC approved for implementation
+1. **セルフレビュー**：作成者がRFCの完全性をレビュー
+2. **技術レビュー**：技術的実現可能性を評価
+3. **実装レビュー**：Claude Codeが作業分解を評価
+4. **承認**：RFCが実装承認される
 
-## Tools and Resources
+## ツールとリソース
 
-### Useful Commands:
+### 有用なコマンド：
 ```bash
-# List all RFCs chronologically
+# RFCを時系列順にリスト
 ls -la rfcs/
 
-# Search RFCs by content
+# 内容でRFCを検索
 grep -r "search-term" rfcs/
 
-# Find RFCs by date range
+# 日付範囲でRFCを検索
 ls rfcs/2024-07-* 
 ```
 
-### Related Documentation:
-- `/CLAUDE.md` - Project-specific Claude Code guidelines
-- `/README.md` - Main project documentation
-- `/db/README.md` - Database management guide
+### 関連文書：
+- `/CLAUDE.md` - プロジェクト固有のClaude Codeガイドライン
+- `/README.md` - メインプロジェクト文書
+- `/db/README.md` - データベース管理ガイド
 
-## Templates
+## テンプレート
 
-### Quick RFC Template:
+### クイックRFCテンプレート：
 ```markdown
-# RFC YYYY-MM-DD: [Title]
+# RFC YYYY-MM-DD: [タイトル]
 
-**Status**: Draft  
-**Author**: [Your Name]  
-**Created**: YYYY-MM-DD  
+**ステータス**: Draft  
+**作成者**: [あなたの名前]  
+**作成日**: YYYY-MM-DD  
 
-## Overview
-[Brief description]
+## 概要
+[簡潔な説明]
 
-## Implementation Plan
-1. [ ] Task 1
-2. [ ] Task 2
-3. [ ] Task 3
+## 実装計画
+1. [ ] タスク1
+2. [ ] タスク2
+3. [ ] タスク3
 
-## Testing
-- [ ] Unit tests
-- [ ] Integration tests
-- [ ] Manual testing
+## テスト
+- [ ] ユニットテスト
+- [ ] 統合テスト
+- [ ] 手動テスト
 
-## Acceptance Criteria
-- [ ] Feature works as described
-- [ ] Tests pass
-- [ ] Documentation updated
+## 受け入れ基準
+- [ ] 機能が説明通りに動作する
+- [ ] テストが合格する
+- [ ] 文書が更新される
 ```
 
-## Maintenance
+## メンテナンス
 
-- Review and update this README as the RFC process evolves
-- Archive completed RFCs older than 6 months to `rfcs/archive/`
-- Maintain an index of major RFCs for quick reference
-- Update templates based on lessons learned
+- RFCプロセスの進化に合わせてこのREADMEをレビューし更新
+- 6ヶ月以上前の完了したRFCを`rfcs/archive/`にアーカイブ
+- 主要なRFCのインデックスを維持して迅速な参照を可能にする
+- 学んだ教訓に基づいてテンプレートを更新
 
 ---
 
-*This RFC process is designed to scale with the project and provide clear guidance for Claude Code implementations. For questions or suggestions, update this README through the standard RFC process.*
+*このRFCプロセスは、プロジェクトとともにスケールし、Claude Code実装に明確なガイダンスを提供するよう設計されています。質問や提案がある場合は、標準的なRFCプロセスを通じてこのREADMEを更新してください。*
