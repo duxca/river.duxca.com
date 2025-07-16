@@ -119,7 +119,7 @@ Server available at http://localhost:4443 for GCS operations testing.
 ### Efficient Code Investigation
 - Use targeted searches instead of reading entire files
 - Run `cargo modules structure -p <crate_name>` before reading files
-- Check README.md files first
+- **Always read README.md files first**: Every directory should have its README.md file read before investigating other files in that directory
 - Use search tools:
   - `git grep "pub fn function_name"` for public Rust functions
   - `rg function_name` for general searches
