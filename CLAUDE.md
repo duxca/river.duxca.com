@@ -141,6 +141,10 @@ Server available at http://localhost:4443 for GCS operations testing.
   - Use `git add path/to/specific/file.ext` instead of `git add .` or `git add directory/`
   - This ensures precise control over what gets committed
   - Prevents accidental inclusion of unintended files
+- **Pull Request Creation**: Always create pull requests in Japanese
+  - Use Japanese for PR titles and descriptions
+  - This ensures consistency with the project's primary language
+  - Facilitates better communication with Japanese-speaking team members
 
 ## Data Model
 
