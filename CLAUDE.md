@@ -136,6 +136,12 @@ Server available at http://localhost:4443 for GCS operations testing.
 - Use `sqlx::query!` macros for compile-time SQL checking
 - Available MCP tools: `list_tables`, `read_query`, `write_query`, `create_table`, `describe_table`
 
+### Git Operations
+- **File Staging**: Always specify exact file paths when using `git add`
+  - Use `git add path/to/specific/file.ext` instead of `git add .` or `git add directory/`
+  - This ensures precise control over what gets committed
+  - Prevents accidental inclusion of unintended files
+
 ## Data Model
 
 Core entities:
