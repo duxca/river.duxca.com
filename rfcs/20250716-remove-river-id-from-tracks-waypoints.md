@@ -1,10 +1,15 @@
-# RFC: RiverTrackとRiverWaypointテーブルからriver_idを除去
+# RFC 2025-07-16: RiverTrackとRiverWaypointテーブルからriver_idを除去
+
+**ステータス**: Draft  
+**作成者**: Claude Code  
+**作成日**: 2025-07-16  
+**更新日**: 2025-07-16  
 
 ## 概要
 
-このRFCは、`river_tracks`と`river_waypoints`テーブルから`river_id`カラムを除去し、トラックとウェイポイントが特定の川に紐付けられることなく独立して存在できる、より柔軟なデータモデルを提案します。
+このRFCは、`river_tracks`と`river_waypoints`テーブルから`river_id`カラムを除去し、トラックとウェイポイントが特定の川に紐付けられることなく独立して存在できる、より柔軟なデータモデルを提案します。また、必要に応じて多対多の関係を維持するためのジャンクションテーブルを使用する代替アプローチも提案します。
 
-## 動機
+## 背景
 
 現在、`RiverTrack`と`RiverWaypoint`エンティティは、`river_id`外部キーを通じて特定の川に密結合されています。これにより以下の制限が発生しています：
 
@@ -15,9 +20,11 @@
 
 ## 詳細設計
 
-### データベーススキーマ変更
+### アプローチ1: 完全なriver_id除去（推奨）
 
-#### 変更前（現在の状態）
+#### データベーススキーマ変更
+
+**変更前（現在の状態）**
 ```sql
 CREATE TABLE river_tracks (
   river_track_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -46,7 +53,7 @@ CREATE TABLE river_waypoints (
 );
 ```
 
-#### 変更後（提案される状態）
+**変更後（提案される状態）**
 ```sql
 CREATE TABLE river_tracks (
   river_track_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -68,6 +75,56 @@ CREATE TABLE river_waypoints (
   created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
   updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
   FOREIGN KEY (user_id) references users(user_id) ON DELETE CASCADE
+);
+```
+
+### アプローチ2: ジャンクションテーブル方式
+
+既存のriver_idを除去し、多対多の関係を実現するためのジャンクションテーブルを追加：
+
+```sql
+-- 修正された river_tracks テーブル（river_id除去）
+CREATE TABLE river_tracks (
+  river_track_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  track_name TEXT NOT NULL,
+  description TEXT NOT NULL,
+  track JSON NOT NULL,
+  created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+  updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+  FOREIGN KEY (user_id) references users(user_id) ON DELETE CASCADE
+);
+
+-- 修正された river_waypoints テーブル（river_id除去）
+CREATE TABLE river_waypoints (
+  river_waypoint_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  waypoint_name TEXT NOT NULL,
+  description TEXT NOT NULL,
+  waypoint JSON NOT NULL,
+  created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+  updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+  FOREIGN KEY (user_id) references users(user_id) ON DELETE CASCADE
+);
+
+-- 川とトラックの関連付けテーブル
+CREATE TABLE river_track_associations (
+  river_id INTEGER NOT NULL,
+  river_track_id INTEGER NOT NULL,
+  created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+  PRIMARY KEY (river_id, river_track_id),
+  FOREIGN KEY (river_id) REFERENCES rivers(river_id) ON DELETE CASCADE,
+  FOREIGN KEY (river_track_id) REFERENCES river_tracks(river_track_id) ON DELETE CASCADE
+);
+
+-- 川とウェイポイントの関連付けテーブル
+CREATE TABLE river_waypoint_associations (
+  river_id INTEGER NOT NULL,
+  river_waypoint_id INTEGER NOT NULL,
+  created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+  PRIMARY KEY (river_id, river_waypoint_id),
+  FOREIGN KEY (river_id) REFERENCES rivers(river_id) ON DELETE CASCADE,
+  FOREIGN KEY (river_waypoint_id) REFERENCES river_waypoints(river_waypoint_id) ON DELETE CASCADE
 );
 ```
 
@@ -102,122 +159,167 @@ pub struct RiverWaypoint<T = serde_json::Value> {
     pub created_at: i64,
     pub updated_at: i64,
 }
+
+// ジャンクションテーブル方式用の新しい構造体
+#[derive(serde::Deserialize, serde::Serialize, Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "sql", derive(sqlx::FromRow))]
+#[serde(rename_all = "camelCase")]
+pub struct RiverTrackAssociation {
+    pub river_id: i64,
+    pub river_track_id: i64,
+    pub created_at: i64,
+}
+
+#[derive(serde::Deserialize, serde::Serialize, Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "sql", derive(sqlx::FromRow))]
+#[serde(rename_all = "camelCase")]
+pub struct RiverWaypointAssociation {
+    pub river_id: i64,
+    pub river_waypoint_id: i64,
+    pub created_at: i64,
+}
 ```
 
-### API変更
+## 実装計画
 
-#### データベース層（db/src/）
+### フェーズ1：データベース移行スクリプト作成
+1. [ ] 新しい移行ファイルを作成：`db/migrations/YYYYMMDD_remove_river_id_from_tracks_waypoints.sql`
+2. [ ] 既存データのバックアップ戦略を実装
+3. [ ] アプローチ1用とアプローチ2用の移行スクリプトを作成
+4. [ ] 移行のロールバック手順を文書化
 
-**db/src/river_tracks.rs**
-- `create_river_track()`関数から`river_id`パラメータを削除
-- `list_river_tracks_all()`関数から`river_id`パラメータを削除（`list_river_tracks()`にリネーム）
-- すべてのSQLクエリから`river_id`参照を削除
-- テストから`river_id`依存関係を削除
+### フェーズ2：データモデル更新
+1. [ ] `model/src/river.rs`のRust構造体を更新
+   - [ ] `RiverTrack`構造体から`river_id`フィールドを削除
+   - [ ] `RiverWaypoint`構造体から`river_id`フィールドを削除
+   - [ ] ジャンクション方式の場合、新しい関連付け構造体を追加
+2. [ ] すべてのFromトレイト実装を更新
+3. [ ] 単体テストを更新
 
-**db/src/river_waypoints.rs**
-- `create_river_waypoint()`関数から`river_id`パラメータを削除
-- `list_river_waypoints_all()`関数から`river_id`パラメータを削除（`list_river_waypoints()`にリネーム）
-- すべてのSQLクエリから`river_id`参照を削除
-- テストから`river_id`依存関係を削除
+### フェーズ3：データベース層関数更新
+1. [ ] `db/src/river_tracks.rs`の更新
+   - [ ] `create_river_track()`関数から`river_id`パラメータを削除
+   - [ ] `list_river_tracks_all()`関数を`list_river_tracks()`にリネームし、`river_id`パラメータを削除
+   - [ ] ジャンクション方式の場合、関連付け管理関数を追加
+2. [ ] `db/src/river_waypoints.rs`の更新
+   - [ ] `create_river_waypoint()`関数から`river_id`パラメータを削除
+   - [ ] `list_river_waypoints_all()`関数を`list_river_waypoints()`にリネームし、`river_id`パラメータを削除
+   - [ ] ジャンクション方式の場合、関連付け管理関数を追加
+3. [ ] すべてのSQLクエリを更新
+4. [ ] データベース層のテストを更新
 
-#### サービス層変更
-- トラック/ウェイポイント操作に`river_id`を必要としないようにサービス関数を更新
-- 川-トラック/ウェイポイント関係に依存するビジネスロジックを修正
-- 必要に応じて権限チェックを更新
+### フェーズ4：サービス層とAPI更新
+1. [ ] サービス層関数を更新してriver_id依存関係を除去
+2. [ ] APIエンドポイントを更新
+3. [ ] 権限チェックロジックを見直し
+4. [ ] 川に関連するトラック/ウェイポイントを取得する新しい関数を実装（ジャンクション方式の場合）
 
-## 移行戦略
+### フェーズ5：フロントエンド更新
+1. [ ] 川-トラック/ウェイポイント関係に依存するコンポーネントを更新
+2. [ ] APIクライアントコードを更新
+3. [ ] UIでの関連付け管理機能を実装（ジャンクション方式の場合）
 
-### フェーズ1：データベース移行
-1. 新しい移行ファイルを作成：`db/migrations/YYYYMMDD_remove_river_id_from_tracks_waypoints.sql`
-2. 外部キー制約を削除
-3. 両テーブルから`river_id`カラムを削除
-4. `river_id`を参照するインデックスを更新
+### フェーズ6：統合テストとデプロイ
+1. [ ] 統合テストを実行
+2. [ ] パフォーマンステストを実行
+3. [ ] デプロイメント手順を確認
+4. [ ] 本番環境でのデータ移行を実行
 
-### フェーズ2：コード更新
-1. `model/src/river.rs`のRust構造体を更新
-2. `db/src/river_tracks.rs`と`db/src/river_waypoints.rs`のデータベース関数を更新
-3. サービス層関数を更新
-4. APIエンドポイントを更新
-5. フロントエンドコンポーネントを更新
+## テスト戦略
 
-### フェーズ3：テスト
-1. 単体テストを更新
-2. 統合テストを更新
-3. river_id制約なしでの全機能動作を確認
+### 単体テスト
+- [ ] 新しいRust構造体のシリアライゼーション/デシリアライゼーションテスト
+- [ ] データベース関数の単体テスト
+- [ ] 関連付け管理関数のテスト（ジャンクション方式）
 
-## 影響分析
+### 統合テスト
+- [ ] API エンドポイントのテスト
+- [ ] データベース移行スクリプトのテスト
+- [ ] フロントエンドコンポーネントのテスト
 
-### 破壊的変更
-- **API**: 以前に`river_id`パラメータを受け取っていた関数の更新が必要
-- **データベース**: `river_id`でフィルタリングする既存のクエリのリファクタリングが必要
-- **フロントエンド**: 川-トラック/ウェイポイント関係に依存するコンポーネントの更新が必要
+### パフォーマンステスト
+- [ ] 大量データでのクエリパフォーマンステスト
+- [ ] インデックス効果の検証
+- [ ] メモリ使用量の測定
 
-### 現在の使用状況分析
-コード分析に基づき、以下の関数が影響を受けます：
+## 展開計画
 
-**db/src/river_tracks.rs:**
-- `create_river_track()` - river_idパラメータを削除
-- `list_river_tracks_all()` - river_idパラメータを削除、`list_river_tracks()`にリネーム
+### 段階的デプロイ
+1. **開発環境**: 全変更を適用し、完全なテストを実行
+2. **ステージング環境**: 本番データのコピーで移行をテスト
+3. **本番環境**: メンテナンス時間中に移行を実行
 
-**db/src/river_waypoints.rs:**
-- `create_river_waypoint()` - river_idパラメータを削除
-- `list_river_waypoints_all()` - river_idパラメータを削除、`list_river_waypoints()`にリネーム
+### ロールバック戦略
+- データベース移行の各段階でのスナップショット作成
+- コード変更の段階的なフィーチャーフラグ管理
+- 移行失敗時の自動ロールバック手順
 
-### データ整合性の考慮事項
-- **孤立データ**: 移行後、トラックとウェイポイントは川が削除されても自動的に削除されない
-- **参照整合性**: 必要に応じて適切なクリーンアップメカニズムを確保する必要がある
-- **クエリパフォーマンス**: 一般的なクエリパターンに対して新しいインデックスが必要な場合がある
+### モニタリング
+- 移行プロセス中のデータ整合性チェック
+- パフォーマンス指標の監視
+- エラーログの集約と分析
 
-## 代替アプローチ
+## 検討した代替案
 
-### 1. 多対多関係
-トラック/ウェイポイントが複数の川に関連付けられるようにジャンクションテーブルを作成：
-```sql
-CREATE TABLE river_track_associations (
-  river_id INTEGER NOT NULL,
-  river_track_id INTEGER NOT NULL,
-  PRIMARY KEY (river_id, river_track_id),
-  FOREIGN KEY (river_id) REFERENCES rivers(river_id) ON DELETE CASCADE,
-  FOREIGN KEY (river_track_id) REFERENCES river_tracks(river_track_id) ON DELETE CASCADE
-);
-```
-
-### 2. オプショナルな川関連付け
-完全に削除する代わりに`river_id`をnullable にする：
+### 1. オプショナルなriver_id
 ```sql
 ALTER TABLE river_tracks ALTER COLUMN river_id DROP NOT NULL;
+ALTER TABLE river_waypoints ALTER COLUMN river_id DROP NOT NULL;
 ```
+**メリット**: 既存コードへの影響を最小化  
+**デメリット**: nullable フィールドの複雑性、データの一貫性の問題
 
-### 3. タグシステム
-トラック/ウェイポイントを川やその他のエンティティに関連付けるタグシステムを実装。
+### 2. タグベースシステム
+汎用的なタグシステムを実装し、川をタグとして扱う
+**メリット**: 最大の柔軟性  
+**デメリット**: 複雑な実装、パフォーマンスの問題
 
-## リスクと考慮事項
+### 3. 段階的移行
+river_idを残したまま、ジャンクションテーブルを追加し、段階的に移行
+**メリット**: リスクの分散  
+**デメリット**: 長期間のデータ重複、実装の複雑性
+
+## リスクと軽減策
 
 ### 技術的リスク
-- **データ損失**: 移行が失敗した場合、既存の川-トラック/ウェイポイント関係が失われる可能性がある
-- **パフォーマンス**: river_idフィルタリングがないと、一部のクエリが遅くなる可能性がある
-- **後方互換性**: 既存のAPIクライアントが動作しなくなる可能性がある
+- **データ損失**: 
+  - 軽減策: 複数のバックアップ、段階的移行、徹底的なテスト
+- **パフォーマンス劣化**: 
+  - 軽減策: 適切なインデックス設計、パフォーマンステスト
+- **後方互換性**: 
+  - 軽減策: バージョン管理、段階的API更新
 
 ### ビジネスリスク
-- **ユーザー体験**: ユーザーはトラック/ウェイポイントが川別に整理されることを期待する可能性がある
-- **データ整理**: 川の関連付けがないと、データの整理が困難になる可能性がある
+- **ユーザー体験の変化**: 
+  - 軽減策: ユーザーへの事前通知、段階的UI更新
+- **データ整理の困難**: 
+  - 軽減策: 新しい検索・フィルタリング機能の実装
 
-### 軽減策
-1. **包括的テスト**: デプロイ前の広範囲なテスト
-2. **ロールバック計画**: 必要に応じてデータベース変更を元に戻す機能
-3. **フィーチャーフラグ**: フィーチャーフラグを使用した段階的な変更の展開
-4. **ユーザーコミュニケーション**: データ整理の変更についてユーザーに通知
+### 運用リスク
+- **移行時間の延長**: 
+  - 軽減策: 事前の移行時間測定、並列処理の活用
+- **システム停止時間**: 
+  - 軽減策: オンライン移行手法、段階的切り替え
 
-## 実装タイムライン
+## 将来の考慮事項
 
-1. **第1週**: 移行スクリプトの作成とデータモデルの更新
-2. **第2週**: データベース層関数とテストの更新
-3. **第3週**: サービス層とAPIエンドポイントの更新
-4. **第4週**: フロントエンドコンポーネントと統合テストの更新
-5. **第5週**: テストとデプロイ
+### 拡張性
+- ジャンクションテーブル方式により、将来的な他エンティティとの関連付けが容易
+- 検索機能の強化により、地理的検索やカテゴリ分類が可能
 
-## 結論
+### メンテナンス性
+- より単純なデータモデルによる保守性の向上
+- 独立したエンティティによるテストの簡素化
 
-トラックとウェイポイントテーブルから`river_id`を除去することで、より柔軟で独立したデータモデルが構築されます。この変更には大規模なリファクタリングが必要ですが、システムがより複雑なユースケースを処理し、将来的により良いデータ整理機能を提供する能力を向上させます。
+### パフォーマンス
+- 適切なインデックス戦略による検索性能の最適化
+- キャッシュ戦略の見直し
 
-提案されたアプローチは柔軟性と実装の複雑さのバランスを取り、段階的な移行戦略はリスクを最小化しながらシステムの安定性を確保します。
+### 機能拡張
+- トラック/ウェイポイントの共有機能
+- 複数の川にまたがるルート作成
+- 地理的近接性に基づく自動関連付け
+
+---
+
+このRFCは、データ独立性と柔軟性を向上させながら、段階的で安全な移行を可能にする包括的なアプローチを提供します。ジャンクションテーブル方式により、既存の機能を維持しつつ、将来の拡張性を確保できます。
