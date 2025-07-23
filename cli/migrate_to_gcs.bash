@@ -3,14 +3,17 @@ set -e
 
 echo "🚀 Migrating Terraform state to Google Cloud Storage"
 
+# Change to project root directory
+cd "$(dirname "$0")/.."
+
 # Step 1: Create the state bucket using bootstrap
 echo "📦 Step 1: Creating GCS bucket for Terraform state..."
-cd bootstrap
+cd terraform/bootstrap
 terraform init
 terraform plan -out=bootstrap.tfplan
 echo "Creating state bucket..."
 terraform apply bootstrap.tfplan
-cd ..
+cd ../../terraform
 
 # Step 2: Initialize main Terraform with GCS backend
 echo "🔄 Step 2: Migrating existing state to GCS..."

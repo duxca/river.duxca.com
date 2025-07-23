@@ -2,6 +2,9 @@
 
 set -euxvo pipefail
 
+# Change to project root directory
+cd "$(dirname "$0")/.."
+
 #gcloud storage rm --recursive gs://duxca-litestream-sandbox/river.db || true
 
 pushd db

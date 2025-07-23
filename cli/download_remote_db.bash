@@ -2,7 +2,8 @@
 
 set -euxvo pipefail
 
-
+# Change to project root directory
+cd "$(dirname "$0")/.."
 
 pushd ./db
 rm -f river.db

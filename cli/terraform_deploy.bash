@@ -1,12 +1,15 @@
 #!/bin/bash
 set -euxvo pipefail
 
+# Change to project root directory
+cd "$(dirname "$0")/.."
+
 # Dockerイメージのビルドとプッシュ
 docker build . --tag=asia-northeast1-docker.pkg.dev/duxca-298210/cloud-run-source-deploy/litestream-sandbox:latest
 docker push asia-northeast1-docker.pkg.dev/duxca-298210/cloud-run-source-deploy/litestream-sandbox:latest
 
 # Terraformの実行（Cloud RunサービスとGCSバケットへのアクセス権を設定）
-cd "$(dirname "$0")"
+cd terraform
 terraform init
 terraform apply -auto-approve
 
