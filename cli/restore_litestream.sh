@@ -5,7 +5,10 @@ set -euo pipefail
 # This script restores a Litestream backup to GCS bucket
 
 BUCKET_NAME="duxca-litestream-sandbox"
-BACKUP_BASE_DIR="/home/legokichi/Github/river.duxca.com/backup"
+# Change to project root directory
+cd "$(dirname "$0")/.."
+
+BACKUP_BASE_DIR="$(pwd)/backup"
 
 # Function to show usage
 usage() {

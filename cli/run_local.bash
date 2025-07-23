@@ -1,6 +1,9 @@
 #!/bin/bash
 set -euxvo pipefail
 
+# Change to project root directory
+cd "$(dirname "$0")/.."
+
 {
     cd server;
     export RUST_LOG=service=trace,db=trace,server=trace,model=trace,tower_sessions=trace;
