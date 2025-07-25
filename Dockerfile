@@ -52,13 +52,16 @@ RUN \
   --mount=type=cache,target=/var/cache/sccache \
   cd browser && /var/cache/cargo/bin/trunk build --release --public-url ./
 
-# RUN cargo sqlx migrate run
+RUN \
+  --mount=type=cache,target=/var/cache/cargo \
+  --mount=type=cache,target=/var/cache/sccache \
+  cd db && cargo sqlx prepare --workspace
 
 RUN \
   #--mount=type=cache,target=./target \
   --mount=type=cache,target=/var/cache/cargo \
   --mount=type=cache,target=/var/cache/sccache \
-  cargo build --offline --release -p server
+  cargo build --release -p server
 
 FROM debian:bookworm-slim
 
@@ -75,7 +78,7 @@ RUN \
 COPY --from=builder /app/db/key.json /app/key.json
 COPY --from=builder /app/db/litestream /app/litestream
 COPY --from=builder /app/db/litestream.yml /app/litestream.yml
-COPY --from=builder /app/assets/run.bash /app/run.bash
+COPY --from=builder /app/cli/run.bash /app/run.bash
 COPY --from=builder /app/server/.env /app/.env
 COPY --from=builder /app/target/release/server /app/server
 COPY --from=builder /app/browser/dist /app/dist
