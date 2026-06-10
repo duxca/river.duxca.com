@@ -1,5 +1,10 @@
 [workspace]
-members = ["browser", "server", "model", "db", "service"]
+members = [
+    "server",
+    "model",
+    "db",
+    "service",
+]
 resolver = "2"
 # exclude = [
 #     "material-yew/build",
@@ -8,13 +13,3 @@ resolver = "2"
 
 [profile.release]
 debug = 1
-
-[patch.crates-io]
-yew = { git = "https://github.com/yewstack/yew.git", features = ["csr"], branch = "master" }
-# [patch."https://github.com/yewstack/yew"]
-# yew = { git = "https://github.com/yewstack/yew/",  features = ["csr"], branch = "yew-v0.20.0" }
-
-# material-yew = { path="./material-yew" }
-# [patch."https://github.com/ranile/material-yew"]
-# material-yew = { path="./material-yew" }
-# yew = { version = "0.20", features = ["csr"] }
