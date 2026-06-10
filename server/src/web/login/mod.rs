@@ -7,9 +7,11 @@ pub mod github;
 pub async fn login(
     auth_session: axum_login::AuthSession<Backend>,
     axum::extract::State(ref st): axum::extract::State<crate::web::State>,
+    req: axum::http::Request<axum::body::Body>,
 ) -> Result<impl axum::response::IntoResponse, crate::web::Ise> {
-    use askama::Template;
     use axum::response::IntoResponse;
+    use leptos::prelude::*;
+
     let mut conn = st.db.acquire().await?;
     let user = auth_session.user;
     let auths = if let Some(user) = user.as_ref() {
@@ -17,26 +19,17 @@ pub async fn login(
     } else {
         vec![]
     };
-    #[derive(Debug, askama::Template)]
-    #[template(path = "login.html")]
-    struct Tmpl {
-        user: Option<model::user::User>,
-        github: Option<model::user::UserAuth>,
-        facebook: Option<model::user::UserAuth>,
-    }
-    let template = Tmpl {
-        user,
-        github: auths
-            .iter()
-            .find(|a| a.identity_type == 0)
-            .map(ToOwned::to_owned),
-        facebook: auths
-            .iter()
-            .find(|a| a.identity_type == 1)
-            .map(ToOwned::to_owned),
-    };
-    let body = axum::response::Html(template.render()?);
-    Ok(body.into_response())
+    let providers = crate::web::ui::AuthProviders::from_auths(&auths);
+    let handler = leptos_axum::render_app_to_stream_with_context(
+        || {},
+        move || {
+            view! {
+                <crate::web::ui::LoginPage user=user.clone() providers=providers.clone()/>
+            }
+        },
+    );
+
+    Ok(handler(req).await.into_response())
 }
 
 /// GET /logout
