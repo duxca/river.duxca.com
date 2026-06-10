@@ -138,6 +138,11 @@ pub async fn home(
             <div class="provider-id">not connected</div>
             {% endif %}
           </div>
+          {% if github.is_none() %}
+          <form method="post" action="/login/github">
+            <button type="submit">Connect GitHub</button>
+          </form>
+          {% endif %}
         </div>
         <div class="provider">
           <div>
@@ -148,6 +153,11 @@ pub async fn home(
             <div class="provider-id">not connected</div>
             {% endif %}
           </div>
+          {% if facebook.is_none() %}
+          <form method="post" action="/login/facebook">
+            <button type="submit">Connect Facebook</button>
+          </form>
+          {% endif %}
         </div>
         <a class="button secondary" href="/login">Manage connections</a>
       </section>
@@ -161,6 +171,9 @@ pub async fn home(
       </dl>
       <form method="post" action="/login/github">
         <button type="submit">Login with GitHub</button>
+      </form>
+      <form method="post" action="/login/facebook">
+        <button type="submit">Login with Facebook</button>
       </form>
       <a class="button secondary" href="/login">Provider status</a>
       {% endmatch %}
