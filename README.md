@@ -36,7 +36,7 @@ http://127.0.0.1:18080/app    # hot reload 付き Leptos frontend
 cargo fmt --all -- --check
 SQLX_OFFLINE=true cargo check -p server --features local
 cargo check -p leptos-browser --no-default-features --features hydrate --target wasm32-unknown-unknown
-cargo check -p e2e --tests
+cargo check -p e2e --tests --features webdriver
 SQLX_OFFLINE=true cargo leptos build --release
 ```
 
@@ -49,6 +49,8 @@ chromedriver --port=9515
 ```bash
 cargo leptos end-to-end
 ```
+
+通常の `cargo test` では WebDriver が必要な smoke test は実行しません。e2e を直接実行する場合は `cargo test -p e2e --features webdriver --test smoke -- --nocapture` を使ってください。
 
 ブラウザと WebDriver をコンテナに閉じる場合は次のコマンドだけで実行できます。内部で `./cli/dev-local.sh` を起動し、e2e用コンテナ内の `chromedriver` に `fantoccini` が接続します。
 

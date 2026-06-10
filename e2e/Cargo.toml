@@ -4,6 +4,15 @@ name = "e2e"
 publish = false
 version = "0.1.0"
 
+[features]
+default = []
+webdriver = []
+
+[[test]]
+name = "smoke"
+path = "tests/smoke.rs"
+required-features = ["webdriver"]
+
 [dev-dependencies]
 anyhow = "1"
 fantoccini = "0.21.1"
