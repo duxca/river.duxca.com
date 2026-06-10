@@ -4,6 +4,7 @@ members = [
     "model",
     "db",
     "service",
+    "shared-api",
 ]
 resolver = "2"
 # exclude = [

@@ -8,6 +8,6 @@ version = "0.1.0"
 [dependencies]
 leptos = { version = "0.8", features = ["csr"] }
 leptos-leaflet = { version = "0.10.2", features = ["csr"] }
+shared-api = { path = "../shared-api", features = ["csr"] }
 console_error_panic_hook = "0.1"
 wasm-bindgen = "0.2"
-

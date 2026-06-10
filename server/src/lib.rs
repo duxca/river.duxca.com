@@ -99,6 +99,10 @@ pub async fn create_app(
     let mut app = axum::Router::new()
         .route("/", axum::routing::get(crate::web::home::home))
         .route("/api", axum::routing::post(crate::web::api::api))
+        .route(
+            "/api/{*fn_name}",
+            axum::routing::post(crate::web::server_fn::server_fn),
+        )
         .layer(tower_http::cors::CorsLayer::very_permissive())
         .route(
             "/image",

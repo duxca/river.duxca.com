@@ -3,6 +3,7 @@ pub mod api;
 pub mod home;
 pub mod image;
 pub mod login;
+pub mod server_fn;
 pub mod ui;
 
 #[derive(Clone)]

@@ -36,6 +36,7 @@ rustls = "0.23.40"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 service = { path = "../service" }
+shared-api = { path = "../shared-api", features = ["ssr"] }
 shadow-rs = "2.0.0"
 sqlx = { version = "0.8.6", features = ["runtime-tokio", "sqlite", "chrono", "json", "uuid", "migrate"] }
 thiserror = "2.0.12"
