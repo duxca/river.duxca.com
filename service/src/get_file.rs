@@ -1,7 +1,7 @@
 #[tracing::instrument(level = "trace", skip(db, gcs))]
 pub async fn get_file(
     db: &sqlx::Pool<sqlx::Sqlite>,
-    gcs: &google_cloud_storage::client::Client,
+    gcs: &google_cloud_storage::client::Storage,
     gcs_bucket_name: &str,
     file_id: i64,
 ) -> Result<Option<(String, bytes::Bytes)>, anyhow::Error> {
@@ -12,12 +12,14 @@ pub async fn get_file(
         return Ok(None);
     };
     // GCSから画像データを取得
-    let res = google_cloud_storage::http::objects::get::GetObjectRequest {
-        bucket: gcs_bucket_name.to_string(),
-        object: file.gcs_path.clone(),
-        ..Default::default()
-    };
-    let range = google_cloud_storage::http::objects::download::Range::default();
-    let data = gcs.download_object(&res, &range).await?;
-    Ok(Some((file.content_type, bytes::Bytes::from(data))))
+    let bucket = format!("projects/_/buckets/{gcs_bucket_name}");
+    let mut res = gcs
+        .read_object(bucket, file.gcs_path.clone())
+        .send()
+        .await?;
+    let mut data = bytes::BytesMut::new();
+    while let Some(chunk) = res.next().await.transpose()? {
+        data.extend_from_slice(&chunk);
+    }
+    Ok(Some((file.content_type, data.freeze())))
 }

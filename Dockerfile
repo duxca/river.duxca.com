@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM rust:1.85.1-bookworm AS builder
+FROM rust:1.96.0-bookworm AS builder
 
 WORKDIR /app
 
@@ -11,29 +11,12 @@ RUN curl -o /tmp/sccache.tgz -L https://github.com/mozilla/sccache/releases/down
 RUN \
   --mount=type=cache,target=/var/lib/apt,sharing=locked \
   --mount=type=cache,target=/var/cache/apt,sharing=locked \
-  curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - && \
   apt-get update && apt-get install -y \
-  libsqlite3-dev \
-  nodejs
-
-ADD https://github.com/benbjohnson/litestream/releases/download/v0.3.13/litestream-v0.3.13-linux-amd64.tar.gz /tmp/litestream.tar.gz
-RUN tar -C ./ -xzf /tmp/litestream.tar.gz
-
-RUN rustup target add wasm32-unknown-unknown
+  libsqlite3-dev
 
 ENV CARGO_HOME=/var/cache/cargo
 ENV RUSTC_WRAPPER=/usr/local/bin/sccache
 ENV SCCACHE_DIR=/var/cache/sccache
-
-RUN \
-  --mount=type=cache,target=/var/cache/cargo \
-  --mount=type=cache,target=/var/cache/sccache \
-  cargo install --locked trunk
-
-RUN \
-  --mount=type=cache,target=/var/cache/cargo \
-  --mount=type=cache,target=/var/cache/sccache \
-  cargo install -f sqlx-cli --no-default-features --features sqlite
 
 COPY . .
 
@@ -42,23 +25,18 @@ RUN \
   --mount=type=cache,target=/var/cache/sccache \
   cargo fetch --locked
 
-RUN \
-  --mount=type=cache,target=/root/.npm \
-  cd browser && npm install
-
-RUN \
-  #--mount=type=cache,target=./target \
-  --mount=type=cache,target=/var/cache/cargo \
-  --mount=type=cache,target=/var/cache/sccache \
-  cd browser && /var/cache/cargo/bin/trunk build --release --public-url ./
-
 # RUN cargo sqlx migrate run
 
 RUN \
-  #--mount=type=cache,target=./target \
+  --mount=type=cache,target=/app/target \
   --mount=type=cache,target=/var/cache/cargo \
   --mount=type=cache,target=/var/cache/sccache \
-  cargo build --offline --release -p server
+  SQLX_OFFLINE=true cargo build --offline --release -p server && \
+  cp /app/target/release/server /app/server-bin && \
+  chmod +x /app/server-bin
+
+ADD https://github.com/benbjohnson/litestream/releases/download/v0.5.12/litestream-0.5.12-linux-x86_64.tar.gz /tmp/litestream.tar.gz
+RUN tar -C ./ -xzf /tmp/litestream.tar.gz
 
 FROM debian:bookworm-slim
 
@@ -72,13 +50,19 @@ RUN \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/*
 
-COPY --from=builder /app/db/key.json /app/key.json
 COPY --from=builder /app/db/litestream /app/litestream
 COPY --from=builder /app/db/litestream.yml /app/litestream.yml
-COPY --from=builder /app/assets/run.bash /app/run.bash
-COPY --from=builder /app/server/.env /app/.env
-COPY --from=builder /app/target/release/server /app/server
-COPY --from=builder /app/browser/dist /app/dist
+COPY --from=builder /app/cli/run.bash /app/run.bash
+COPY --from=builder /app/server-bin /app/server
+
+ENV HOST_ADDR=0.0.0.0:8080
+ENV DATABASE_URL=sqlite://river.db
+ENV BASE_URL=https://river.duxca.com
+ENV LOCAL_CLIENT_ID=local
+ENV LOCAL_CLIENT_SECRET=local
+ENV LOCAL_BASE_URL=http://localhost:8080
+ENV LOCAL_DIST_PATH=dist
+ENV GCS_BUCKET_NAME=duxca-litestream-sandbox
 
 EXPOSE 8080
 CMD ["/app/run.bash"]

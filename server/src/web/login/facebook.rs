@@ -1,7 +1,7 @@
 const AUTH_URL: &str = "https://www.facebook.com/v20.0/dialog/oauth";
 const TOKEN_URL: &str = "https://graph.facebook.com/v20.0/oauth/access_token";
 const USER_URL: &str = "https://graph.facebook.com/v20.0/me";
-const CSRF_STATE_KEY: &str = "oauth.csrf-state";
+const CSRF_STATE_KEY: &str = "oauth.facebook.csrf-state";
 // https://developers.facebook.com/apps/?show_reminder=true&locale=ja_JP
 const REDIRECT_PATH: &str = "/oauth/callback/facebook";
 
@@ -133,7 +133,7 @@ pub async fn get_access_token(
     // Process authorization code, expecting a token response back.
     let token_res = client
         .exchange_code(auth_code)
-        .request_async(&reqwest::Client::new())
+        .request_async(&oauth2::reqwest::Client::new())
         .await
         .context("Failed to exchange authorization code for access token")?;
     use oauth2::TokenResponse;
@@ -153,14 +153,12 @@ pub struct UserInfo {
 #[tracing::instrument(level = "trace")]
 pub async fn get_me(access_token: &oauth2::AccessToken) -> Result<UserInfo, anyhow::Error> {
     use anyhow::Context;
-    let access_token = access_token.secret().as_str();
     let res = reqwest::Client::new()
-        .get(format!(
-            "{USER_URL}?fields=id,name&access_token={access_token}"
-        ))
+        .get(USER_URL)
+        .query(&[("fields", "id,name")])
         .header(
             axum::http::header::AUTHORIZATION.as_str(),
-            format!("Bearer {access_token}"),
+            format!("Bearer {}", access_token.secret().as_str()),
         )
         .header(axum::http::header::USER_AGENT.as_str(), "axum-login")
         .send()
@@ -209,4 +207,85 @@ pub fn login_db<'a, 'c>(
         }
     }
     .boxed()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    async fn user_auths(
+        conn: &sqlx::SqlitePool,
+        user_id: i64,
+    ) -> Result<Vec<model::user::UserAuth>, anyhow::Error> {
+        let rows = sqlx::query_as::<_, model::user::UserAuth>(
+            r#"
+            SELECT
+                user_auth_id,
+                user_id,
+                identity_type,
+                identifier,
+                created_at
+            FROM user_auths
+            WHERE user_id = ?1
+            ORDER BY user_auth_id ASC
+            "#,
+        )
+        .bind(user_id)
+        .fetch_all(conn)
+        .await?;
+        Ok(rows)
+    }
+
+    #[sqlx::test(migrations = "../db/migrations")]
+    async fn login_db_creates_facebook_user(conn: sqlx::SqlitePool) -> Result<(), anyhow::Error> {
+        let user = login_db(
+            &conn,
+            None,
+            UserInfo {
+                name: "Facebook User".to_string(),
+                id: "facebook-id".to_string(),
+            },
+        )
+        .await?
+        .expect("facebook login should create a user");
+
+        assert_eq!(user.nickname, "Facebook User");
+
+        let auths = user_auths(&conn, user.user_id).await?;
+        assert_eq!(auths.len(), 1);
+        assert_eq!(auths[0].identity_type, 1);
+        assert_eq!(auths[0].identifier, "facebook-id");
+        Ok(())
+    }
+
+    #[sqlx::test(migrations = "../db/migrations")]
+    async fn login_db_links_facebook_auth_to_session_user(
+        conn: sqlx::SqlitePool,
+    ) -> Result<(), anyhow::Error> {
+        let session_user =
+            db::user::auth_or_create_user(&conn, 0, "github-id", "existing-user").await?;
+
+        let user = login_db(
+            &conn,
+            Some(session_user.clone()),
+            UserInfo {
+                name: "Facebook User".to_string(),
+                id: "facebook-id".to_string(),
+            },
+        )
+        .await?
+        .expect("facebook login should return the session user");
+
+        assert_eq!(user, session_user);
+
+        let auths = user_auths(&conn, user.user_id).await?;
+        assert_eq!(auths.len(), 2);
+        assert!(auths
+            .iter()
+            .any(|auth| auth.identity_type == 0 && auth.identifier == "github-id"));
+        assert!(auths
+            .iter()
+            .any(|auth| auth.identity_type == 1 && auth.identifier == "facebook-id"));
+        Ok(())
+    }
 }

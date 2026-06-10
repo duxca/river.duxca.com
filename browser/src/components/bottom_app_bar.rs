@@ -23,6 +23,7 @@
 use yew::prelude::*;
 
 #[derive(Properties, PartialEq)]
+#[allow(dead_code)]
 pub struct BottomAppBarProps {
     #[prop_or_default]
     pub children: ChildrenWithProps<BottomAppBarItem>,
@@ -38,6 +39,7 @@ pub fn bottom_app_bar(props: &BottomAppBarProps) -> Html {
 }
 
 #[derive(Properties, PartialEq)]
+#[allow(dead_code)]
 pub struct BottomAppBarItemProps {
     #[prop_or_default]
     pub children: Children,

@@ -1,21 +1,29 @@
 pub mod admin;
 pub mod api;
+pub mod home;
 pub mod image;
 pub mod login;
 
 #[derive(Clone)]
 pub struct State {
     pub db: sqlx::sqlite::SqlitePool,
-    pub gcs: google_cloud_storage::client::Client,
+    pub gcs: google_cloud_storage::client::Storage,
+    pub gcs_control: google_cloud_storage::client::StorageControl,
     pub config: crate::Config,
 }
 impl State {
     pub fn new(
         config: crate::Config,
         db: sqlx::sqlite::SqlitePool,
-        gcs: google_cloud_storage::client::Client,
+        gcs: google_cloud_storage::client::Storage,
+        gcs_control: google_cloud_storage::client::StorageControl,
     ) -> Result<Self, anyhow::Error> {
-        Ok(Self { config, db, gcs })
+        Ok(Self {
+            config,
+            db,
+            gcs,
+            gcs_control,
+        })
     }
 }
 

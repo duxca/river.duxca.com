@@ -5,8 +5,6 @@ env:
   SQLX_OFFLINE: true
 
 on:
-  push:
-    branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
 
@@ -81,6 +79,8 @@ jobs:
       POOL_ID: githubaction
       PROVIDER_ID: github
       SERVICE_ACCOUNT: github-action-river@duxca-298210.iam.gserviceaccount.com
+      REGION: asia-northeast1
+      SERVICE_NAME: litestream-sandbox
     steps:
       - uses: actions/checkout@v4
       - name: Debug Authentication Context
@@ -101,12 +101,24 @@ jobs:
       - uses: google-github-actions/setup-gcloud@v2
       - name: Use gcloud CLI
         run: gcloud info
+      - name: Resolve current deployed image
+        id: current_image
+        run: |
+          set -euo pipefail
+          container_image="$(gcloud run services describe "${SERVICE_NAME}" \
+            --region "${REGION}" \
+            --format='value(spec.template.spec.containers[0].image)')"
+          test -n "${container_image}"
+          echo "container_image=${container_image}" >> "${GITHUB_OUTPUT}"
+          echo "Current image: ${container_image}"
       - uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: 1.12.2
+          terraform_version: 1.15.5
           terraform_wrapper: false
       - name: Terraform Init
         working-directory: ./terraform
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: terraform init
       - name: Terraform Validate
         working-directory: ./terraform
@@ -116,8 +128,11 @@ jobs:
         run: terraform fmt -check
       - name: Terraform Plan
         working-directory: ./terraform
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CONTAINER_IMAGE: ${{ steps.current_image.outputs.container_image }}
         run: |
-          terraform plan -no-color -out=tfplan
+          terraform plan -no-color -out=tfplan -var="container_image=${CONTAINER_IMAGE}"
           terraform show -no-color tfplan > plan.txt
       - name: Post Plan to PR
         if: github.event_name == 'pull_request'

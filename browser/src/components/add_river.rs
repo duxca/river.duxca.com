@@ -32,6 +32,7 @@ use wasm_bindgen::JsCast;
 use yew::prelude::*;
 
 #[derive(Properties, PartialEq)]
+#[allow(dead_code)]
 pub struct Props {
     // latlng
     pub focus: (f64, f64),

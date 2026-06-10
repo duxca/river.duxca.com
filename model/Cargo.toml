@@ -12,10 +12,10 @@ sql = ["sqlx"]
 
 [dependencies]
 anyhow = "1"
-axum-login = { version = "0.17", optional = true }
+axum-login = { version = "0.18.0", optional = true }
 derive_more = { version = "2.0.0", features = ["full"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-sqlx = { version = "0.8", features = ["runtime-tokio", "sqlite", "chrono", "json", "uuid", "migrate"], optional = true }
+sqlx = { version = "0.8.6", features = ["runtime-tokio", "sqlite", "chrono", "json", "uuid", "migrate"], optional = true }
 tracing = "0.1"
 uuid = { version = "1", features = ["serde", "v4"] }

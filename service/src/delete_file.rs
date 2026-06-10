@@ -1,7 +1,7 @@
 #[tracing::instrument(level = "trace", skip(db, gcs))]
 pub async fn delete_file(
     db: &sqlx::Pool<sqlx::Sqlite>,
-    gcs: &google_cloud_storage::client::Client,
+    gcs: &google_cloud_storage::client::StorageControl,
     gcs_bucket_name: &str,
     user_id: i64,
     file_id: i64,
@@ -17,12 +17,12 @@ pub async fn delete_file(
         return Ok(false);
     }
     // GCSから画像データを削除
-    let req = google_cloud_storage::http::objects::delete::DeleteObjectRequest {
-        bucket: gcs_bucket_name.to_string(),
-        object: file.gcs_path.clone(),
-        ..Default::default()
-    };
-    gcs.delete_object(&req).await?;
+    let bucket = format!("projects/_/buckets/{gcs_bucket_name}");
+    gcs.delete_object()
+        .set_bucket(bucket)
+        .set_object(file.gcs_path.clone())
+        .send()
+        .await?;
     // データベースから画像情報を削除
     db::files::delete_file(&mut conn, file_id).await?;
     conn.commit().await?;

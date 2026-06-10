@@ -4,4 +4,6 @@
 db/.river.db-litestream/
 db/*.csv
 *.bash
-
+!cli/run.bash
+target/
+*/target/

@@ -1,7 +1,7 @@
 const AUTH_URL: &str = "https://github.com/login/oauth/authorize";
 const TOKEN_URL: &str = "https://github.com/login/oauth/access_token";
 const USER_URL: &str = "https://api.github.com/user";
-const CSRF_STATE_KEY: &str = "oauth.csrf-state";
+const CSRF_STATE_KEY: &str = "oauth.github.csrf-state";
 // https://github.com/settings/developers
 const REDIRECT_PATH: &str = "/oauth/callback/github";
 
@@ -141,7 +141,7 @@ pub async fn get_access_token(
     // Process authorization code, expecting a token response back.
     let token_res = client
         .exchange_code(auth_code)
-        .request_async(&reqwest::Client::new())
+        .request_async(&oauth2::reqwest::Client::new())
         .await
         .context("Failed to exchange authorization code for access token")?;
     use oauth2::TokenResponse;
@@ -219,4 +219,85 @@ pub fn login_db<'a, 'c>(
         }
     }
     .boxed()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    async fn user_auths(
+        conn: &sqlx::SqlitePool,
+        user_id: i64,
+    ) -> Result<Vec<model::user::UserAuth>, anyhow::Error> {
+        let rows = sqlx::query_as::<_, model::user::UserAuth>(
+            r#"
+            SELECT
+                user_auth_id,
+                user_id,
+                identity_type,
+                identifier,
+                created_at
+            FROM user_auths
+            WHERE user_id = ?1
+            ORDER BY user_auth_id ASC
+            "#,
+        )
+        .bind(user_id)
+        .fetch_all(conn)
+        .await?;
+        Ok(rows)
+    }
+
+    #[sqlx::test(migrations = "../db/migrations")]
+    async fn login_db_creates_github_user(conn: sqlx::SqlitePool) -> Result<(), anyhow::Error> {
+        let user = login_db(
+            &conn,
+            None,
+            UserInfo {
+                login: "github-user".to_string(),
+                id: 12_345,
+            },
+        )
+        .await?
+        .expect("github login should create a user");
+
+        assert_eq!(user.nickname, "github-user");
+
+        let auths = user_auths(&conn, user.user_id).await?;
+        assert_eq!(auths.len(), 1);
+        assert_eq!(auths[0].identity_type, 0);
+        assert_eq!(auths[0].identifier, "12345");
+        Ok(())
+    }
+
+    #[sqlx::test(migrations = "../db/migrations")]
+    async fn login_db_links_github_auth_to_session_user(
+        conn: sqlx::SqlitePool,
+    ) -> Result<(), anyhow::Error> {
+        let session_user =
+            db::user::auth_or_create_user(&conn, 2, "twitter-id", "existing-user").await?;
+
+        let user = login_db(
+            &conn,
+            Some(session_user.clone()),
+            UserInfo {
+                login: "github-user".to_string(),
+                id: 67_890,
+            },
+        )
+        .await?
+        .expect("github login should return the session user");
+
+        assert_eq!(user, session_user);
+
+        let auths = user_auths(&conn, user.user_id).await?;
+        assert_eq!(auths.len(), 2);
+        assert!(auths
+            .iter()
+            .any(|auth| auth.identity_type == 2 && auth.identifier == "twitter-id"));
+        assert!(auths
+            .iter()
+            .any(|auth| auth.identity_type == 0 && auth.identifier == "67890"));
+        Ok(())
+    }
 }

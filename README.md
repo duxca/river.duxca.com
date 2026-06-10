@@ -78,8 +78,6 @@ docker push ...
 gcloud run deploy ... \
   --image ... \
   --service-account ... \
-  --update-env-vars=GOOGLE_APPLICATION_CREDENTIALS=/etc/key.json \
-  --update-secrets=/etc/key.json=GOOGLE_APPLICATION_CREDENTIALS:1 \
   --update-secrets=FACEBOOK_CLIENT_ID=FACEBOOK_CLIENT_ID:1 \
 ```
 

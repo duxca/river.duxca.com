@@ -1,5 +1,6 @@
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), anyhow::Error> {
+    let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
     dotenvy::dotenv().ok();
     // env_logger::init();
     tracing_subscriber::fmt()
@@ -11,25 +12,27 @@ async fn main() -> Result<(), anyhow::Error> {
         .with_thread_ids(true)
         .init();
     let config = envy::from_env::<server::Config>()?;
-    log::debug!("config: {:#?}", config);
 
-    let gcs = {
-        let cred = google_cloud_auth::credentials::CredentialsFile::new_from_file(
-            config.gcp_credentials_file.clone(),
-        )
+    let gcs = google_cloud_storage::client::Storage::builder()
+        .build()
         .await?;
-        let conf = google_cloud_storage::client::ClientConfig::default()
-            .with_credentials(cred)
-            .await?;
-        google_cloud_storage::client::Client::new(conf)
-    };
+    let gcs_control = google_cloud_storage::client::StorageControl::builder()
+        .build()
+        .await?;
 
     let pool = db::connect(&config.database_url).await?;
     let session_store = tower_sessions_sqlx_store::SqliteStore::new(pool.clone());
     // セッションテーブルの作成
     session_store.migrate().await?;
 
-    let app = server::create_app(config.clone(), pool, session_store.clone(), gcs).await?;
+    let app = server::create_app(
+        config.clone(),
+        pool,
+        session_store.clone(),
+        gcs,
+        gcs_control,
+    )
+    .await?;
 
     let listener = tokio::net::TcpListener::bind(config.host_addr).await?;
     // セッションの定期削除タスク

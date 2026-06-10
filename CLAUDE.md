@@ -19,7 +19,7 @@ River.duxca.com is a web application for processing river map information. It pr
 
 ### Backend (`server/`)
 - Axum web framework in Rust
-- OAuth authentication (GitHub, Facebook, Twitter)
+- OAuth authentication (GitHub, Facebook)
 - RESTful API endpoints
 - Admin management interface
 
@@ -54,7 +54,7 @@ River.duxca.com is a web application for processing river map information. It pr
 - **River Management**: Name, location, description registration/display
 - **Waypoint Management**: Specific points (launch areas, hazards) registration/display
 - **Track Management**: River route information registration/display
-- **Authentication**: OAuth (GitHub, Facebook, Twitter)
+- **Authentication**: OAuth (GitHub, Facebook)
 - **Authorization**: User and admin role separation
 - **Access Logging**: User API access tracking
 
@@ -173,7 +173,6 @@ Two service accounts needed:
 Set up OAuth applications:
 - GitHub: https://github.com/settings/applications/
 - Facebook: https://developers.facebook.com/
-- Twitter: https://developer.twitter.com/
 
 ## Development Patterns
 
@@ -231,4 +230,3 @@ Run web search via Task Tool with `gemini -p 'WebSearch: ...'`.
 ```bash
 gemini -p "WebSearch: ..."
 ```
-
