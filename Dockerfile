@@ -63,7 +63,6 @@ ENV LOCAL_CLIENT_SECRET=local
 ENV LOCAL_BASE_URL=http://localhost:8080
 ENV LOCAL_DIST_PATH=dist
 ENV GCS_BUCKET_NAME=duxca-litestream-sandbox
-ENV GCP_CREDENTIALS_FILE=./key.json
 
 EXPOSE 8080
 CMD ["/app/run.bash"]

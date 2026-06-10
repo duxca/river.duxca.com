@@ -12,18 +12,7 @@ async fn main() -> Result<(), anyhow::Error> {
         .with_thread_ids(true)
         .init();
     let config = envy::from_env::<server::Config>()?;
-    log::debug!("config: {:#?}", config);
 
-    if std::env::var_os("GOOGLE_APPLICATION_CREDENTIALS").is_none() {
-        // google-cloud-storage 1.x uses ADC. Preserve the existing config field by
-        // pointing ADC at the configured credentials file when the env var is absent.
-        unsafe {
-            std::env::set_var(
-                "GOOGLE_APPLICATION_CREDENTIALS",
-                config.gcp_credentials_file.clone(),
-            );
-        }
-    }
     let gcs = google_cloud_storage::client::Storage::builder()
         .build()
         .await?;

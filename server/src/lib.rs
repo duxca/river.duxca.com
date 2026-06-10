@@ -10,15 +10,12 @@ pub struct Config {
     pub github_client_secret: oauth2::ClientSecret,
     pub facebook_client_id: oauth2::ClientId,
     pub facebook_client_secret: oauth2::ClientSecret,
-    pub twitter_client_id: oauth2::ClientId,
-    pub twitter_client_secret: oauth2::ClientSecret,
     pub base_url: String,
     pub local_client_id: oauth2::ClientId,
     pub local_client_secret: oauth2::ClientSecret,
     pub local_base_url: String,
     pub local_dist_path: String,
     pub gcs_bucket_name: String,
-    pub gcp_credentials_file: String,
 }
 
 #[derive(Clone)]

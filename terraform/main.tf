@@ -104,35 +104,6 @@ resource "google_cloud_run_service" "litestream_sandbox" {
           }
         }
 
-        env {
-          name = "TWITTER_CLIENT_ID"
-          value_from {
-            secret_key_ref {
-              name = "TWITTER_CLIENT_ID"
-              key  = "1"
-            }
-          }
-        }
-
-        env {
-          name = "TWITTER_CLIENT_SECRET"
-          value_from {
-            secret_key_ref {
-              name = "TWITTER_CLIENT_SECRET"
-              key  = "1"
-            }
-          }
-        }
-
-        env {
-          name = "KEY_JSON"
-          value_from {
-            secret_key_ref {
-              name = "GOOGLE_APPLICATION_CREDENTIALS"
-              key  = "3"
-            }
-          }
-        }
       }
 
       service_account_name = google_service_account.river_container.email
