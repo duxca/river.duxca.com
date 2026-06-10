@@ -1,7 +1,9 @@
 #[derive(Debug, serde::Deserialize, serde::Serialize, Clone, PartialEq, Eq)]
+#[allow(dead_code)]
 pub enum UnAuthRequest {}
 
 #[derive(Debug, serde::Deserialize, serde::Serialize, Clone, PartialEq, Eq)]
+#[allow(dead_code)]
 pub enum UnAuthResponse {}
 
 /// POST /api
