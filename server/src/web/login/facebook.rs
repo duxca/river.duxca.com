@@ -153,14 +153,12 @@ pub struct UserInfo {
 #[tracing::instrument(level = "trace")]
 pub async fn get_me(access_token: &oauth2::AccessToken) -> Result<UserInfo, anyhow::Error> {
     use anyhow::Context;
-    let access_token = access_token.secret().as_str();
     let res = reqwest::Client::new()
-        .get(format!(
-            "{USER_URL}?fields=id,name&access_token={access_token}"
-        ))
+        .get(USER_URL)
+        .query(&[("fields", "id,name")])
         .header(
             axum::http::header::AUTHORIZATION.as_str(),
-            format!("Bearer {access_token}"),
+            format!("Bearer {}", access_token.secret().as_str()),
         )
         .header(axum::http::header::USER_AGENT.as_str(), "axum-login")
         .send()
