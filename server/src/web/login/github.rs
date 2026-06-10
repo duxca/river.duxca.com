@@ -1,7 +1,7 @@
 const AUTH_URL: &str = "https://github.com/login/oauth/authorize";
 const TOKEN_URL: &str = "https://github.com/login/oauth/access_token";
 const USER_URL: &str = "https://api.github.com/user";
-const CSRF_STATE_KEY: &str = "oauth.csrf-state";
+const CSRF_STATE_KEY: &str = "oauth.github.csrf-state";
 // https://github.com/settings/developers
 const REDIRECT_PATH: &str = "/oauth/callback/github";
 
