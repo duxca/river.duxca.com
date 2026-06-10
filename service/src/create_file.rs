@@ -1,17 +1,14 @@
 #[tracing::instrument(level = "trace", skip(db, gcs))]
 pub async fn create_file(
     db: &sqlx::Pool<sqlx::Sqlite>,
-    gcs: &google_cloud_storage::client::Client,
+    gcs: &google_cloud_storage::client::Storage,
     gcs_bucket_name: &str,
     user_id: i64,
     content_type: &str,
     data: bytes::Bytes,
 ) -> Result<i64, anyhow::Error> {
     let gcs_path = format!("files/{}", uuid::Uuid::new_v4());
-    let req = google_cloud_storage::http::objects::upload::UploadObjectRequest {
-        bucket: gcs_bucket_name.to_string(),
-        ..Default::default()
-    };
+    let bucket = format!("projects/_/buckets/{gcs_bucket_name}");
     // アップロードでトランザクションをとる
     let mut conn = db.begin().await?;
     // データベースに登録
@@ -23,10 +20,12 @@ pub async fn create_file(
         &gcs_path,
     )
     .await?;
-    let media = google_cloud_storage::http::objects::upload::Media::new(gcs_path);
-    let upload_type = google_cloud_storage::http::objects::upload::UploadType::Simple(media);
     // GCSにアップロード
-    let _object = gcs.upload_object(&req, data, &upload_type).await?;
+    let _object = gcs
+        .write_object(bucket, gcs_path, data)
+        .set_content_type(content_type)
+        .send_buffered()
+        .await?;
     // アップロード終了で commit
     conn.commit().await?;
     Ok(file_id)

@@ -25,7 +25,8 @@ pub async fn create_app(
     config: Config,
     pool: sqlx::sqlite::SqlitePool,
     session_store: tower_sessions_sqlx_store::SqliteStore,
-    gcs: google_cloud_storage::client::Client,
+    gcs: google_cloud_storage::client::Storage,
+    gcs_control: google_cloud_storage::client::StorageControl,
 ) -> Result<axum::Router, anyhow::Error> {
     let mut session_layer = tower_sessions::SessionManagerLayer::new(session_store.clone())
         .with_same_site(tower_sessions::cookie::SameSite::Lax)
@@ -137,7 +138,7 @@ pub async fn create_app(
         }))
         .with_state({
             // 一般のリクエストで DB にアクセスするための State
-            crate::web::State::new(config.clone(), pool, gcs)?
+            crate::web::State::new(config.clone(), pool, gcs, gcs_control)?
         });
 
     Ok(app)

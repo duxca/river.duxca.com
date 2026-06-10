@@ -89,65 +89,68 @@ pub enum Credentials {
     Facebook(facebook::Credentials),
 }
 
-#[async_trait::async_trait]
 impl axum_login::AuthnBackend for Backend {
     type User = model::user::User;
     type Credentials = Credentials;
     type Error = BackendError;
 
     #[tracing::instrument(level = "trace", skip(self))]
-    async fn authenticate(
+    fn authenticate(
         &self,
         creds: Self::Credentials,
-    ) -> Result<Option<Self::User>, Self::Error> {
-        match creds {
-            Credentials::Github(creds) => {
-                let access_token = github::get_access_token(
-                    self.settings.github_client_id.clone(),
-                    self.settings.github_client_secret.clone(),
-                    creds.auth_code.clone(),
-                    &self.settings.base_url,
-                )
-                .await?;
-                let user_info = github::get_me(&access_token).await?;
-                let res = github::login_db(&self.db, creds.user, user_info).await?;
-                Ok(res)
-            }
-            Credentials::Twitter(creds) => {
-                let access_token = twitter::get_access_token(
-                    self.settings.twitter_client_id.clone(),
-                    self.settings.twitter_client_secret.clone(),
-                    creds.auth_code.clone(),
-                    creds.pkce_verifier,
-                    &self.settings.base_url,
-                )
-                .await?;
-                let user_info = twitter::get_me(&access_token).await?;
-                let res = twitter::login_db(&self.db, creds.user, user_info).await?;
-                Ok(res)
-            }
-            Credentials::Facebook(creds) => {
-                let access_token = facebook::get_access_token(
-                    self.settings.facebook_client_id.clone(),
-                    self.settings.facebook_client_secret.clone(),
-                    creds.auth_code.clone(),
-                    &self.settings.base_url,
-                )
-                .await?;
-                let user_info = facebook::get_me(&access_token).await?;
-                let res = facebook::login_db(&self.db, creds.user, user_info).await?;
-                Ok(res)
+    ) -> impl std::future::Future<Output = Result<Option<Self::User>, Self::Error>> + Send {
+        async move {
+            match creds {
+                Credentials::Github(creds) => {
+                    let access_token = github::get_access_token(
+                        self.settings.github_client_id.clone(),
+                        self.settings.github_client_secret.clone(),
+                        creds.auth_code.clone(),
+                        &self.settings.base_url,
+                    )
+                    .await?;
+                    let user_info = github::get_me(&access_token).await?;
+                    let res = github::login_db(&self.db, creds.user, user_info).await?;
+                    Ok(res)
+                }
+                Credentials::Twitter(creds) => {
+                    let access_token = twitter::get_access_token(
+                        self.settings.twitter_client_id.clone(),
+                        self.settings.twitter_client_secret.clone(),
+                        creds.auth_code.clone(),
+                        creds.pkce_verifier,
+                        &self.settings.base_url,
+                    )
+                    .await?;
+                    let user_info = twitter::get_me(&access_token).await?;
+                    let res = twitter::login_db(&self.db, creds.user, user_info).await?;
+                    Ok(res)
+                }
+                Credentials::Facebook(creds) => {
+                    let access_token = facebook::get_access_token(
+                        self.settings.facebook_client_id.clone(),
+                        self.settings.facebook_client_secret.clone(),
+                        creds.auth_code.clone(),
+                        &self.settings.base_url,
+                    )
+                    .await?;
+                    let user_info = facebook::get_me(&access_token).await?;
+                    let res = facebook::login_db(&self.db, creds.user, user_info).await?;
+                    Ok(res)
+                }
             }
         }
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
-    async fn get_user(
+    fn get_user(
         &self,
         user_id: &axum_login::UserId<Self>,
-    ) -> Result<Option<Self::User>, Self::Error> {
-        let user = db::user::get_user(&self.db, *user_id).await?;
-        dbg!(&user);
-        Ok(user)
+    ) -> impl std::future::Future<Output = Result<Option<Self::User>, Self::Error>> + Send {
+        async move {
+            let user = db::user::get_user(&self.db, *user_id).await?;
+            dbg!(&user);
+            Ok(user)
+        }
     }
 }

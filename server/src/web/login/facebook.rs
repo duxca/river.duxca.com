@@ -133,7 +133,7 @@ pub async fn get_access_token(
     // Process authorization code, expecting a token response back.
     let token_res = client
         .exchange_code(auth_code)
-        .request_async(&reqwest::Client::new())
+        .request_async(&oauth2::reqwest::Client::new())
         .await
         .context("Failed to exchange authorization code for access token")?;
     use oauth2::TokenResponse;

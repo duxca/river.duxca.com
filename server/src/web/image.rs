@@ -79,7 +79,7 @@ pub async fn delete_image(
     };
     let result = service::delete_file::delete_file(
         &st.db,
-        &st.gcs,
+        &st.gcs_control,
         &st.config.gcs_bucket_name,
         user.user_id,
         image_id,

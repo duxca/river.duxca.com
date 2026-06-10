@@ -177,7 +177,7 @@ pub async fn get_access_token(
     let token_res = client
         .exchange_code(auth_code)
         .set_pkce_verifier(pkce_verifier)
-        .request_async(&reqwest::Client::new())
+        .request_async(&oauth2::reqwest::Client::new())
         .await
         .context("Twitterアクセストークンの取得に失敗")?;
     use oauth2::TokenResponse;
