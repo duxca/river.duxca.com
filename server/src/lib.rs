@@ -96,12 +96,19 @@ pub async fn create_app(
     };
 
     let backend = web::login::Backend::new(pool.clone(), backend_settings);
+    let app_dist_dir = std::path::PathBuf::from(&config.local_dist_path);
+    let app_index_file = app_dist_dir.join("index.html");
     let mut app = axum::Router::new()
         .route("/", axum::routing::get(crate::web::home::home))
         .route("/api", axum::routing::post(crate::web::api::api))
         .route(
             "/api/{*fn_name}",
             axum::routing::post(crate::web::server_fn::server_fn),
+        )
+        .nest_service(
+            "/app",
+            tower_http::services::ServeDir::new(app_dist_dir)
+                .fallback(tower_http::services::ServeFile::new(app_index_file)),
         )
         .layer(tower_http::cors::CorsLayer::very_permissive())
         .route(
