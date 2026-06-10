@@ -14,12 +14,18 @@ async fn main() -> Result<(), anyhow::Error> {
         .init();
     if std::env::var_os("HOST_ADDR").is_none() {
         if let Some(site_addr) = std::env::var_os("LEPTOS_SITE_ADDR") {
-            std::env::set_var("HOST_ADDR", site_addr);
+            // SAFETY: this runs during single-threaded startup before configuration is read.
+            unsafe {
+                std::env::set_var("HOST_ADDR", site_addr);
+            }
         }
     }
     if std::env::var_os("LOCAL_DIST_PATH").is_none() {
         if let Some(site_root) = std::env::var_os("LEPTOS_SITE_ROOT") {
-            std::env::set_var("LOCAL_DIST_PATH", site_root);
+            // SAFETY: this runs during single-threaded startup before configuration is read.
+            unsafe {
+                std::env::set_var("LOCAL_DIST_PATH", site_root);
+            }
         }
     }
     let config = envy::from_env::<server::Config>()?;

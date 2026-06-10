@@ -292,12 +292,16 @@ mod tests {
 
         let auths = user_auths(&conn, user.user_id).await?;
         assert_eq!(auths.len(), 2);
-        assert!(auths
-            .iter()
-            .any(|auth| auth.identity_type == 2 && auth.identifier == "twitter-id"));
-        assert!(auths
-            .iter()
-            .any(|auth| auth.identity_type == 0 && auth.identifier == "67890"));
+        assert!(
+            auths
+                .iter()
+                .any(|auth| auth.identity_type == 2 && auth.identifier == "twitter-id")
+        );
+        assert!(
+            auths
+                .iter()
+                .any(|auth| auth.identity_type == 0 && auth.identifier == "67890")
+        );
         Ok(())
     }
 }

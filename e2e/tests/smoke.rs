@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
 use fantoccini::{Client, ClientBuilder, Locator};
-use serde_json::{json, Map};
+use serde_json::{Map, json};
 
 fn env_url(name: &str, default: &str) -> String {
     std::env::var(name).unwrap_or_else(|_| default.to_string())
