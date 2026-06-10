@@ -1,6 +1,8 @@
 browser/node_modules
 browser/target
 browser/dist
+leptos-browser/target
+leptos-browser/dist
 db/target
 server/.env
 target

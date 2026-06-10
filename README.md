@@ -3,6 +3,67 @@
 
 ## 開発環境のセットアップ
 
+### ローカルの hot reload
+
+`cargo-leptos` が Axum server と Leptos/WASM frontend をまとめて watch します。Axum と frontend はどちらも `127.0.0.1:18080` で配信されます。
+
+初回だけ `cargo-leptos` を入れます。
+
+```bash
+cargo install --locked cargo-leptos --version 0.3.6
+rustup target add wasm32-unknown-unknown
+```
+
+起動:
+
+```bash
+./cli/dev-local.sh
+```
+
+ブラウザで確認する URL:
+
+```text
+http://127.0.0.1:18080/       # Axum のログイン確認 UI
+http://127.0.0.1:18080/login  # ログイン UI
+http://127.0.0.1:18080/app    # hot reload 付き Leptos frontend
+```
+
+### テスト
+
+サーバ、WASM frontend、e2e crate のコンパイル確認:
+
+```bash
+cargo fmt --all -- --check
+SQLX_OFFLINE=true cargo check -p server --features local
+cargo check -p leptos-browser --no-default-features --features hydrate --target wasm32-unknown-unknown
+cargo check -p e2e --tests --features webdriver
+SQLX_OFFLINE=true cargo leptos build --release
+```
+
+Rust/fantoccini のシナリオテストは `cargo leptos end-to-end` から実行できます。別ターミナルで `chromedriver` を `127.0.0.1:9515` に起動してから実行します。
+
+```bash
+chromedriver --port=9515
+```
+
+```bash
+cargo leptos end-to-end
+```
+
+通常の `cargo test` では WebDriver が必要な smoke test は実行しません。e2e を直接実行する場合は `cargo test -p e2e --features webdriver --test smoke -- --nocapture` を使ってください。
+
+ブラウザと WebDriver をコンテナに閉じる場合は次のコマンドだけで実行できます。内部で `./cli/dev-local.sh` を起動し、e2e用コンテナ内の `chromedriver` に `fantoccini` が接続します。
+
+```bash
+./cli/e2e-local-container.sh
+```
+
+現在の smoke test は以下を確認します。
+
+- `/` にログイン導線が表示されること
+- `/login` にプロバイダボタンが表示されること
+- `/app` でLeptos/WASM frontendの初期画面が表示されること
+
 ### ローカル開発用の fake-gcs-server
 
 Google Cloud Storage のエミュレーターとして fake-gcs-server を使用します。以下のコマンドで起動できます：
@@ -195,10 +256,6 @@ gcloud run services replace service.yaml
 - https://yew-rs-api.web.app/next/yew/functional/fn.use_effect_with.html
 - https://yew.rs/ja/docs/next/concepts/html/conditional-rendering
 - https://zenn.dev/uhyo/articles/useeffect-taught-by-extremist
-
-### trunk
-- https://trunkrs.dev/guide/assets/index.html
-- https://trunkrs.dev/assets/
 
 ### axum
 - https://github.com/maxcountryman/axum-login

@@ -15,6 +15,7 @@ RUN \
   libsqlite3-dev
 
 ENV CARGO_HOME=/var/cache/cargo
+ENV PATH=/var/cache/cargo/bin:$PATH
 ENV RUSTC_WRAPPER=/usr/local/bin/sccache
 ENV SCCACHE_DIR=/var/cache/sccache
 
@@ -25,13 +26,20 @@ RUN \
   --mount=type=cache,target=/var/cache/sccache \
   cargo fetch --locked
 
+RUN rustup target add wasm32-unknown-unknown
+
+RUN \
+  --mount=type=cache,target=/var/cache/cargo \
+  --mount=type=cache,target=/var/cache/sccache \
+  cargo install cargo-leptos --version 0.3.6 --locked
+
 # RUN cargo sqlx migrate run
 
 RUN \
   --mount=type=cache,target=/app/target \
   --mount=type=cache,target=/var/cache/cargo \
   --mount=type=cache,target=/var/cache/sccache \
-  SQLX_OFFLINE=true cargo build --offline --release -p server && \
+  SQLX_OFFLINE=true cargo leptos build --release && \
   cp /app/target/release/server /app/server-bin && \
   chmod +x /app/server-bin
 
@@ -54,6 +62,7 @@ COPY --from=builder /app/db/litestream /app/litestream
 COPY --from=builder /app/db/litestream.yml /app/litestream.yml
 COPY --from=builder /app/cli/run.bash /app/run.bash
 COPY --from=builder /app/server-bin /app/server
+COPY --from=builder /app/target/site /app/target/site
 
 ENV HOST_ADDR=0.0.0.0:8080
 ENV DATABASE_URL=sqlite://river.db
@@ -61,7 +70,10 @@ ENV BASE_URL=https://river.duxca.com
 ENV LOCAL_CLIENT_ID=local
 ENV LOCAL_CLIENT_SECRET=local
 ENV LOCAL_BASE_URL=http://localhost:8080
-ENV LOCAL_DIST_PATH=dist
+ENV LOCAL_DIST_PATH=target/site
+ENV LEPTOS_OUTPUT_NAME=leptos-browser
+ENV LEPTOS_SITE_ROOT=target/site
+ENV LEPTOS_SITE_PKG_DIR=pkg
 ENV GCS_BUCKET_NAME=duxca-litestream-sandbox
 
 EXPOSE 8080

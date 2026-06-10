@@ -4,6 +4,9 @@ members = [
     "model",
     "db",
     "service",
+    "shared-api",
+    "leptos-browser",
+    "e2e",
 ]
 resolver = "2"
 # exclude = [
@@ -13,3 +16,28 @@ resolver = "2"
 
 [profile.release]
 debug = 1
+
+[profile.wasm-release]
+inherits = "release"
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+
+[[workspace.metadata.leptos]]
+name = "leptos-browser"
+bin-package = "server"
+lib-package = "leptos-browser"
+site-root = "target/site"
+site-pkg-dir = "pkg"
+style-file = "leptos-browser/style.css"
+site-addr = "127.0.0.1:18080"
+reload-port = 18082
+end2end-cmd = "cargo test -p e2e --features webdriver --test smoke -- --nocapture"
+end2end-dir = "."
+browserquery = "defaults"
+bin-features = ["local"]
+bin-default-features = false
+lib-features = ["hydrate"]
+lib-default-features = false
+lib-profile-release = "wasm-release"

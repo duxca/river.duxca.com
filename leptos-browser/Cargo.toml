@@ -1,0 +1,24 @@
+[package]
+edition = "2021"
+name = "leptos-browser"
+version = "0.1.0"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = []
+hydrate = [
+    "console_error_panic_hook",
+    "leptos/hydrate",
+    "leptos-leaflet/hydrate",
+    "shared-api/hydrate",
+    "wasm-bindgen",
+]
+
+[dependencies]
+console_error_panic_hook = { version = "0.1", optional = true }
+leptos = { version = "0.8", default-features = false }
+leptos-leaflet = { version = "0.10.2", default-features = false }
+shared-api = { path = "../shared-api", default-features = false }
+wasm-bindgen = { version = "0.2", optional = true }
