@@ -8,17 +8,38 @@
 
 - [Terraform](https://www.terraform.io/downloads.html) v1.0.0以上がインストールされていること
 - [Google Cloud SDK](https://cloud.google.com/sdk/docs/install)がインストールされていること
-- [Google Cloud SDK](https://cloud.google.com/sdk/docs/install)がインストールされていること
 - Google Cloudプロジェクトが作成されていること
 - 適切なIAM権限が設定されていること（Cloud Run Admin、Service Account User、Storage Admin）
 
 ## 認証設定
 
-Terraformを実行する前に、Google Cloudへの認証を行う必要があります。
+Terraformを実行する前に、Google CloudとCloudflareへの認証を行う必要があります。
+
+通常はApplication Default Credentials（ADC）を設定します。
 
 ```bash
 gcloud auth application-default login
 ```
+
+ブラウザを開けない環境では、gcloudの現在のactive accountのaccess tokenをTerraformに渡します。
+
+```bash
+gcloud auth list
+gcloud config list
+
+export GOOGLE_OAUTH_ACCESS_TOKEN="$(gcloud auth print-access-token)"
+```
+
+この方法では、tokenの有効期限が切れたら再度 `GOOGLE_OAUTH_ACCESS_TOKEN` を設定し直します。
+`terraform init` のGCS backendもこのtokenで認証されます。
+
+Cloudflare DNSもTerraform管理対象なので、Cloudflareをrefresh/applyする場合はAPI tokenも設定します。
+
+```bash
+export CLOUDFLARE_API_TOKEN="..."
+```
+
+Cloudflareを変更しない一時的な作業でtokenがない場合は `-refresh=false` でGoogle側だけを適用できます。ただし、Cloudflareの実状態を読まずにplan/applyするため、通常運用では `CLOUDFLARE_API_TOKEN` を設定してください。
 
 ## 使用方法
 
@@ -32,7 +53,7 @@ terraform init
 ### 計画の確認
 
 ```bash
-terraform plan
+terraform plan -var="container_image=asia-northeast1-docker.pkg.dev/duxca-298210/cloud-run-source-deploy/litestream-sandbox@sha256:<digest>"
 ```
 
 ### 適用
@@ -42,6 +63,26 @@ terraform apply -var="container_image=asia-northeast1-docker.pkg.dev/duxca-29821
 ```
 
 CIでは Docker イメージを push したあと、push 済みイメージの digest を取得し、`container_image` に `image@sha256:...` を渡して Terraform apply します。これにより Cloud Run revision は `:latest` ではなく実際に push された immutable image に固定されます。
+
+ローカルでDocker imageをbuild/pushしてからapplyする例です。
+
+```bash
+IMAGE_REPOSITORY="asia-northeast1-docker.pkg.dev/duxca-298210/cloud-run-source-deploy/litestream-sandbox"
+
+gcloud auth configure-docker asia-northeast1-docker.pkg.dev
+docker buildx build . \
+  --tag="${IMAGE_REPOSITORY}:latest" \
+  --push \
+  --metadata-file=/tmp/river-image-metadata.json
+
+IMAGE_DIGEST="$(jq -r '."containerimage.digest"' /tmp/river-image-metadata.json)"
+CONTAINER_IMAGE="${IMAGE_REPOSITORY}@${IMAGE_DIGEST}"
+
+cd terraform
+terraform init
+terraform plan -var="container_image=${CONTAINER_IMAGE}"
+terraform apply -var="container_image=${CONTAINER_IMAGE}"
+```
 
 ### 破棄
 
