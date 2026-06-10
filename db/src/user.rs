@@ -120,32 +120,57 @@ pub fn auth_or_add_user_auth<'a, 'c>(
         use sqlx::Connection;
         let mut conn = conn.acquire().await?;
         let mut tx = conn.begin().await?;
-        // その identifier がおるか確認
-        let identities = sqlx::query_as!(
-            model::user::UserAuth,
+        // その provider identity が別ユーザーに紐づいていないか確認
+        let identities = sqlx::query_as::<_, model::user::UserAuth>(
             r#"
                 SELECT
                     user_auth_id,
                     user_id,
                     identity_type,
                     identifier,
-                created_at
+                    created_at
+                FROM user_auths
+                WHERE
+                    user_auths.identity_type = ?1
+                AND user_auths.identifier = ?2
+                "#,
+        )
+        .bind(identity_type)
+        .bind(identifier)
+        .fetch_all(&mut *tx)
+        .await?;
+        if let Some(ident) = identities.first() {
+            if ident.user_id == user_id {
+                let user = get_user(&mut *tx, ident.user_id).await?.unwrap();
+                return Ok(user);
+            }
+            return Err(anyhow::anyhow!(
+                "この認証情報は別のアカウントに連携済みです"
+            ));
+        }
+
+        let existing_provider = sqlx::query_as::<_, model::user::UserAuth>(
+            r#"
+                SELECT
+                    user_auth_id,
+                    user_id,
+                    identity_type,
+                    identifier,
+                    created_at
                 FROM user_auths
                 WHERE
                     user_auths.user_id = ?1
                 AND user_auths.identity_type = ?2
-                AND user_auths.identifier = ?3
                 "#,
-            user_id,
-            identity_type,
-            identifier
         )
-        .fetch_all(&mut *tx)
+        .bind(user_id)
+        .bind(identity_type)
+        .fetch_optional(&mut *tx)
         .await?;
-        if let Some(ident) = identities.first() {
-            // 既に登録済みの場合はそのまま返す
-            let user = get_user(&mut *tx, ident.user_id).await?.unwrap();
-            return Ok(user);
+        if existing_provider.is_some() {
+            return Err(anyhow::anyhow!(
+                "このアカウントには同じログイン方法が既に連携済みです"
+            ));
         }
         sqlx::query!(
             r#"
@@ -508,6 +533,50 @@ mod tests {
         delete_user(&conn, user2.user_id).await?;
         let deleted_user = get_user(&conn, user2.user_id).await?;
         assert!(deleted_user.is_none());
+        Ok(())
+    }
+
+    #[sqlx::test()]
+    async fn add_user_auth_rejects_conflicting_provider_identity(
+        conn: sqlx::SqlitePool,
+    ) -> Result<(), anyhow::Error> {
+        let user1 = auth_or_create_user(&conn, 0, "github_id_1", "user1").await?;
+        let user2 = auth_or_create_user(&conn, 1, "facebook_id_1", "user2").await?;
+
+        let err = auth_or_add_user_auth(&conn, user2.user_id, 0, "github_id_1")
+            .await
+            .expect_err("provider identity linked to another user should be rejected");
+        assert!(
+            err.to_string()
+                .contains("この認証情報は別のアカウントに連携済みです"),
+            "{err:?}"
+        );
+
+        let user1_auths = get_user_auths(&conn, user1.user_id).await?;
+        assert_eq!(user1_auths.len(), 1);
+        let user2_auths = get_user_auths(&conn, user2.user_id).await?;
+        assert_eq!(user2_auths.len(), 1);
+        Ok(())
+    }
+
+    #[sqlx::test()]
+    async fn add_user_auth_rejects_second_identity_for_same_provider(
+        conn: sqlx::SqlitePool,
+    ) -> Result<(), anyhow::Error> {
+        let user = auth_or_create_user(&conn, 0, "github_id_1", "user1").await?;
+
+        let err = auth_or_add_user_auth(&conn, user.user_id, 0, "github_id_2")
+            .await
+            .expect_err("a user should not connect two identities for the same provider");
+        assert!(
+            err.to_string()
+                .contains("このアカウントには同じログイン方法が既に連携済みです"),
+            "{err:?}"
+        );
+
+        let auths = get_user_auths(&conn, user.user_id).await?;
+        assert_eq!(auths.len(), 1);
+        assert_eq!(auths[0].identifier, "github_id_1");
         Ok(())
     }
 }

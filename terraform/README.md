@@ -38,13 +38,10 @@ terraform plan
 ### 適用
 
 ```bash
-./deploy.bash
+terraform apply -var="container_image=asia-northeast1-docker.pkg.dev/duxca-298210/cloud-run-source-deploy/litestream-sandbox@sha256:<digest>"
 ```
 
-このスクリプトは以下の処理を行います：
-1. Dockerイメージのビルドとプッシュ
-2. Terraformを使用してCloud Runサービスの設定とGCSバケットへのアクセス権を設定
-3. デプロイされたサービスのURLを表示
+CIでは Docker イメージを push したあと、push 済みイメージの digest を取得し、`container_image` に `image@sha256:...` を渡して Terraform apply します。これにより Cloud Run revision は `:latest` ではなく実際に push された immutable image に固定されます。
 
 ### 破棄
 

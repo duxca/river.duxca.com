@@ -1,5 +1,6 @@
 pub mod admin;
 pub mod api;
+pub mod home;
 pub mod image;
 pub mod login;
 

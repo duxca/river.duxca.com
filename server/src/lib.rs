@@ -21,6 +21,48 @@ pub struct Config {
     pub gcp_credentials_file: String,
 }
 
+#[derive(Clone)]
+struct CanonicalBaseUrl(String);
+
+async fn redirect_to_canonical_host(
+    axum::extract::State(CanonicalBaseUrl(base_url)): axum::extract::State<CanonicalBaseUrl>,
+    req: axum::extract::Request,
+    next: axum::middleware::Next,
+) -> axum::response::Response {
+    use axum::response::IntoResponse;
+
+    let Ok(base_uri) = base_url.parse::<axum::http::Uri>() else {
+        return next.run(req).await;
+    };
+    let Some(canonical_authority) = base_uri.authority().map(|authority| authority.as_str()) else {
+        return next.run(req).await;
+    };
+    let request_authority = req
+        .headers()
+        .get(axum::http::header::HOST)
+        .and_then(|host| host.to_str().ok());
+
+    if request_authority == Some(canonical_authority) {
+        return next.run(req).await;
+    }
+
+    let Some(scheme) = base_uri.scheme_str() else {
+        return next.run(req).await;
+    };
+    let path_and_query = req
+        .uri()
+        .path_and_query()
+        .map(|path_and_query| path_and_query.as_str())
+        .unwrap_or("/");
+    let redirect_to = format!("{scheme}://{canonical_authority}{path_and_query}");
+
+    (
+        axum::http::StatusCode::PERMANENT_REDIRECT,
+        [(axum::http::header::LOCATION, redirect_to)],
+    )
+        .into_response()
+}
+
 pub async fn create_app(
     config: Config,
     pool: sqlx::sqlite::SqlitePool,
@@ -42,8 +84,6 @@ pub async fn create_app(
         web::login::BackendSettings {
             facebook_client_id: config.facebook_client_id.clone(),
             facebook_client_secret: config.facebook_client_secret.clone(),
-            twitter_client_id: config.twitter_client_id.clone(),
-            twitter_client_secret: config.twitter_client_secret.clone(),
             github_client_id: config.local_client_id.clone(),
             github_client_secret: config.local_client_secret.clone(),
             base_url: config.local_base_url.clone(),
@@ -52,8 +92,6 @@ pub async fn create_app(
         web::login::BackendSettings {
             facebook_client_id: config.facebook_client_id.clone(),
             facebook_client_secret: config.facebook_client_secret.clone(),
-            twitter_client_id: config.twitter_client_id.clone(),
-            twitter_client_secret: config.twitter_client_secret.clone(),
             github_client_id: config.github_client_id.clone(),
             github_client_secret: config.github_client_secret.clone(),
             base_url: config.base_url.clone(),
@@ -61,7 +99,8 @@ pub async fn create_app(
     };
 
     let backend = web::login::Backend::new(pool.clone(), backend_settings);
-    let app = axum::Router::new()
+    let mut app = axum::Router::new()
+        .route("/", axum::routing::get(crate::web::home::home))
         .route("/api", axum::routing::post(crate::web::api::api))
         .layer(tower_http::cors::CorsLayer::very_permissive())
         .route(
@@ -95,14 +134,6 @@ pub async fn create_app(
             axum::routing::get(crate::web::login::github::callback),
         )
         .route(
-            "/login/twitter",
-            axum::routing::post(crate::web::login::twitter::login),
-        )
-        .route(
-            "/oauth/callback/twitter",
-            axum::routing::get(crate::web::login::twitter::callback),
-        )
-        .route(
             "/login/facebook",
             axum::routing::post(crate::web::login::facebook::login),
         )
@@ -116,15 +147,7 @@ pub async fn create_app(
             "/version",
             axum::routing::get(|| async { build::CLAP_LONG_VERSION }),
         )
-        .fallback_service({
-            use axum::handler::HandlerWithoutStateExt;
-            tower_http::services::ServeDir::new(if cfg!(feature = "local") {
-                &config.local_dist_path
-            } else {
-                "dist"
-            })
-            .not_found_service(crate::web::handler_404.into_service())
-        })
+        .fallback(crate::web::home::home)
         .layer(axum_login::AuthManagerLayerBuilder::new(backend, session_layer).build())
         .layer(tower_http::trace::TraceLayer::new_for_http())
         .layer(tower_http::compression::CompressionLayer::new())
@@ -140,6 +163,12 @@ pub async fn create_app(
             // 一般のリクエストで DB にアクセスするための State
             crate::web::State::new(config.clone(), pool, gcs, gcs_control)?
         });
+    if cfg!(not(feature = "local")) {
+        app = app.layer(axum::middleware::from_fn_with_state(
+            CanonicalBaseUrl(config.base_url.clone()),
+            redirect_to_canonical_host,
+        ));
+    }
 
     Ok(app)
 }

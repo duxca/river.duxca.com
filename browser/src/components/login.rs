@@ -16,7 +16,7 @@
 //! ```
 //!
 //! The Login component automatically checks authentication status and renders either:
-//! - Login form with Twitter/GitHub OAuth buttons when logged out
+//! - Login form with OAuth buttons when logged out
 //! - Home component when logged in
 
 use yew::prelude::*;
@@ -55,9 +55,6 @@ pub fn login() -> HtmlResult {
         PageState::LoggedOut => {
             html! {
                 <>
-                <form method="post" action="/login/twitter">
-                    <input type="submit" value="twitter Login" />
-                </form>
                 <form method="post" action="/login/github">
                     <input type="submit" value="github Login" />
                 </form>

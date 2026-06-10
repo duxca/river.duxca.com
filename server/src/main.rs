@@ -1,5 +1,6 @@
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), anyhow::Error> {
+    let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
     dotenvy::dotenv().ok();
     // env_logger::init();
     tracing_subscriber::fmt()

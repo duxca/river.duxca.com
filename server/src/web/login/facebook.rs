@@ -210,3 +210,84 @@ pub fn login_db<'a, 'c>(
     }
     .boxed()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    async fn user_auths(
+        conn: &sqlx::SqlitePool,
+        user_id: i64,
+    ) -> Result<Vec<model::user::UserAuth>, anyhow::Error> {
+        let rows = sqlx::query_as::<_, model::user::UserAuth>(
+            r#"
+            SELECT
+                user_auth_id,
+                user_id,
+                identity_type,
+                identifier,
+                created_at
+            FROM user_auths
+            WHERE user_id = ?1
+            ORDER BY user_auth_id ASC
+            "#,
+        )
+        .bind(user_id)
+        .fetch_all(conn)
+        .await?;
+        Ok(rows)
+    }
+
+    #[sqlx::test(migrations = "../db/migrations")]
+    async fn login_db_creates_facebook_user(conn: sqlx::SqlitePool) -> Result<(), anyhow::Error> {
+        let user = login_db(
+            &conn,
+            None,
+            UserInfo {
+                name: "Facebook User".to_string(),
+                id: "facebook-id".to_string(),
+            },
+        )
+        .await?
+        .expect("facebook login should create a user");
+
+        assert_eq!(user.nickname, "Facebook User");
+
+        let auths = user_auths(&conn, user.user_id).await?;
+        assert_eq!(auths.len(), 1);
+        assert_eq!(auths[0].identity_type, 1);
+        assert_eq!(auths[0].identifier, "facebook-id");
+        Ok(())
+    }
+
+    #[sqlx::test(migrations = "../db/migrations")]
+    async fn login_db_links_facebook_auth_to_session_user(
+        conn: sqlx::SqlitePool,
+    ) -> Result<(), anyhow::Error> {
+        let session_user =
+            db::user::auth_or_create_user(&conn, 0, "github-id", "existing-user").await?;
+
+        let user = login_db(
+            &conn,
+            Some(session_user.clone()),
+            UserInfo {
+                name: "Facebook User".to_string(),
+                id: "facebook-id".to_string(),
+            },
+        )
+        .await?
+        .expect("facebook login should return the session user");
+
+        assert_eq!(user, session_user);
+
+        let auths = user_auths(&conn, user.user_id).await?;
+        assert_eq!(auths.len(), 2);
+        assert!(auths
+            .iter()
+            .any(|auth| auth.identity_type == 0 && auth.identifier == "github-id"));
+        assert!(auths
+            .iter()
+            .any(|auth| auth.identity_type == 1 && auth.identifier == "facebook-id"));
+        Ok(())
+    }
+}
