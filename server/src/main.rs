@@ -1,5 +1,6 @@
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), anyhow::Error> {
+    let _ = any_spawner::Executor::init_tokio();
     let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
     dotenvy::dotenv().ok();
     // env_logger::init();
@@ -11,6 +12,16 @@ async fn main() -> Result<(), anyhow::Error> {
         .with_thread_names(true)
         .with_thread_ids(true)
         .init();
+    if std::env::var_os("HOST_ADDR").is_none() {
+        if let Some(site_addr) = std::env::var_os("LEPTOS_SITE_ADDR") {
+            std::env::set_var("HOST_ADDR", site_addr);
+        }
+    }
+    if std::env::var_os("LOCAL_DIST_PATH").is_none() {
+        if let Some(site_root) = std::env::var_os("LEPTOS_SITE_ROOT") {
+            std::env::set_var("LOCAL_DIST_PATH", site_root);
+        }
+    }
     let config = envy::from_env::<server::Config>()?;
 
     let gcs = google_cloud_storage::client::Storage::builder()

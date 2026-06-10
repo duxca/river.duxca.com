@@ -9,6 +9,7 @@ local = []
 
 [dependencies]
 anyhow = "1"
+any_spawner = "0.3.0"
 askama = "0.16.0"
 async-trait = "0.1"
 axum = { version = "0.8", features = ["multipart"] }

@@ -5,7 +5,7 @@ version = "0.1.0"
 
 [features]
 default = []
-csr = ["leptos/csr", "model/js"]
+hydrate = ["leptos/hydrate", "model/js"]
 ssr = ["leptos/ssr", "dep:service", "dep:sqlx"]
 
 [dependencies]

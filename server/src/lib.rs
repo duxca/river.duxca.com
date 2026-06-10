@@ -67,6 +67,15 @@ pub async fn create_app(
     gcs: google_cloud_storage::client::Storage,
     gcs_control: google_cloud_storage::client::StorageControl,
 ) -> Result<axum::Router, anyhow::Error> {
+    let leptos_options = leptos::config::get_configuration(None)
+        .map(|conf| conf.leptos_options)
+        .unwrap_or_else(|_| {
+            leptos::config::LeptosOptions::builder()
+                .output_name("leptos-browser")
+                .site_root(config.local_dist_path.clone())
+                .site_pkg_dir("pkg")
+                .build()
+        });
     let mut session_layer = tower_sessions::SessionManagerLayer::new(session_store.clone())
         .with_same_site(tower_sessions::cookie::SameSite::Lax)
         .with_expiry(tower_sessions::Expiry::OnInactivity(
@@ -96,8 +105,8 @@ pub async fn create_app(
     };
 
     let backend = web::login::Backend::new(pool.clone(), backend_settings);
-    let app_dist_dir = std::path::PathBuf::from(&config.local_dist_path);
-    let app_index_file = app_dist_dir.join("index.html");
+    let app_pkg_dir =
+        std::path::PathBuf::from(&*leptos_options.site_root).join(&*leptos_options.site_pkg_dir);
     let mut app = axum::Router::new()
         .route("/", axum::routing::get(crate::web::home::home))
         .route("/api", axum::routing::post(crate::web::api::api))
@@ -105,11 +114,9 @@ pub async fn create_app(
             "/api/{*fn_name}",
             axum::routing::post(crate::web::server_fn::server_fn),
         )
-        .nest_service(
-            "/app",
-            tower_http::services::ServeDir::new(app_dist_dir)
-                .fallback(tower_http::services::ServeFile::new(app_index_file)),
-        )
+        .route("/app", axum::routing::get(crate::web::app::app_shell))
+        .route("/app/", axum::routing::get(crate::web::app::app_shell))
+        .nest_service("/app/pkg", tower_http::services::ServeDir::new(app_pkg_dir))
         .layer(tower_http::cors::CorsLayer::very_permissive())
         .route(
             "/image",
@@ -169,7 +176,7 @@ pub async fn create_app(
         }))
         .with_state({
             // 一般のリクエストで DB にアクセスするための State
-            crate::web::State::new(config.clone(), pool, gcs, gcs_control)?
+            crate::web::State::new(config.clone(), pool, gcs, gcs_control, leptos_options)?
         });
     if cfg!(not(feature = "local")) {
         app = app.layer(axum::middleware::from_fn_with_state(
