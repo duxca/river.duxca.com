@@ -9,6 +9,7 @@ env:
   IMAGE_REPOSITORY: asia-northeast1-docker.pkg.dev/duxca-298210/cloud-run-source-deploy/litestream-sandbox
   IMAGE_TAG: latest
   CARGO_TERM_COLOR: always
+  RUST_CACHE_SHARED_KEY: rust-1.96.0
 
 on:
   pull_request:
@@ -21,29 +22,8 @@ concurrency:
 
 jobs:
 
-  test:
-    if: github.event.pull_request.merged == true
-    runs-on: ubuntu-24.04
-    steps:
-    - uses: actions/checkout@v6
-      with:
-        ref: ${{ github.event.pull_request.merge_commit_sha }}
-    - uses: dtolnay/rust-toolchain@1.96.0
-      with:
-        targets: wasm32-unknown-unknown
-    - uses: Swatinem/rust-cache@v2
-    - uses: cargo-bins/cargo-binstall@v1.20.0
-    - name: Install cargo-leptos
-      run: |
-        cargo binstall -y --force cargo-leptos@0.3.6 sqlx-cli@0.8.6
-        cargo leptos --version
-        cargo sqlx --version
-    - run: make test
-    - run: make test-e2e
-
   deploy:
     if: github.event.pull_request.merged == true
-    needs: [ test ]
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -58,13 +38,17 @@ jobs:
         targets: wasm32-unknown-unknown
     - uses: Swatinem/rust-cache@v2
       with:
-        shared-key: deploy-release
+        shared-key: ${{ env.RUST_CACHE_SHARED_KEY }}
     - uses: cargo-bins/cargo-binstall@v1.20.0
     - name: Install cargo-leptos
       run: |
         cargo binstall -y --force cargo-leptos@0.3.6 sqlx-cli@0.8.6
         cargo leptos --version
         cargo sqlx --version
+    - name: Run unit tests
+      run: make test
+    - name: Run browser scenario tests
+      run: make test-e2e
     - name: Build release artifacts
       run: |
         set -euo pipefail

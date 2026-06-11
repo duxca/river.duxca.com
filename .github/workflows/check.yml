@@ -2,10 +2,15 @@ name: Check Code
 
 env:
   CARGO_TERM_COLOR: always
+  RUST_CACHE_SHARED_KEY: rust-1.96.0
 
 on:
   pull_request:
     branches: [ "main" ]
+
+concurrency:
+  group: check-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   changes:
@@ -39,7 +44,6 @@ jobs:
     - uses: dtolnay/rust-toolchain@1.96.0
       with:
         components: rustfmt
-    - uses: Swatinem/rust-cache@v2
     - uses: cargo-bins/cargo-binstall@v1.20.0
     - run: cargo binstall -y --force cargo-tomlfmt
     - run: cargo fmt --all -- --check
@@ -55,6 +59,8 @@ jobs:
       with:
         components: clippy
     - uses: Swatinem/rust-cache@v2
+      with:
+        shared-key: ${{ env.RUST_CACHE_SHARED_KEY }}
     - uses: cargo-bins/cargo-binstall@v1.20.0
     - run: cargo binstall -y --force sqlx-cli@0.8.6
     - run: make clippy
@@ -67,6 +73,8 @@ jobs:
     - uses: actions/checkout@v6
     - uses: dtolnay/rust-toolchain@1.96.0
     - uses: Swatinem/rust-cache@v2
+      with:
+        shared-key: ${{ env.RUST_CACHE_SHARED_KEY }}
     - uses: cargo-bins/cargo-binstall@v1.20.0
     - run: cargo binstall -y --force sqlx-cli@0.8.6
     - run: make test
@@ -83,7 +91,7 @@ jobs:
         targets: wasm32-unknown-unknown
     - uses: Swatinem/rust-cache@v2
       with:
-        shared-key: e2e
+        shared-key: ${{ env.RUST_CACHE_SHARED_KEY }}
     - uses: cargo-bins/cargo-binstall@v1.20.0
     - name: Install cargo-leptos
       run: |

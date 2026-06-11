@@ -238,9 +238,6 @@ gcloud run services replace service.yaml
 - https://github.com/maxcountryman/tower-sessions
 - https://github.com/tokio-rs/axum
 
-### askama
-- https://djc.github.io/askama/template_syntax.html
-
 ### sqlx
 - https://github.com/launchbadge/sqlx
 
