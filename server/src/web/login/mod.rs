@@ -32,7 +32,6 @@ pub async fn login(
     Ok(handler(req).await.into_response())
 }
 
-/// GET /logout
 /// POST /logout
 #[tracing::instrument(level = "trace", skip(auth_session, session))]
 pub async fn logout(

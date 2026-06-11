@@ -196,7 +196,6 @@ pub async fn create_app(
             axum::routing::get(crate::web::login::facebook::callback),
         )
         .route("/logout", axum::routing::post(crate::web::login::logout))
-        .route("/logout", axum::routing::get(crate::web::login::logout))
         .route(
             "/version",
             axum::routing::get(|| async { build::CLAP_LONG_VERSION }),
