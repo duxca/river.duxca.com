@@ -41,6 +41,7 @@ RUN \
   --mount=type=cache,target=/var/cache/sccache \
   SQLX_OFFLINE=true cargo leptos build --release && \
   cp /app/target/release/server /app/server-bin && \
+  cp -a /app/target/site /app/site && \
   chmod +x /app/server-bin
 
 ADD https://github.com/benbjohnson/litestream/releases/download/v0.5.12/litestream-0.5.12-linux-x86_64.tar.gz /tmp/litestream.tar.gz
@@ -62,7 +63,7 @@ COPY --from=builder /app/db/litestream /app/litestream
 COPY --from=builder /app/db/litestream.yml /app/litestream.yml
 COPY --from=builder /app/cli/run.bash /app/run.bash
 COPY --from=builder /app/server-bin /app/server
-COPY --from=builder /app/target/site /app/target/site
+COPY --from=builder /app/site /app/target/site
 
 ENV HOST_ADDR=0.0.0.0:8080
 ENV DATABASE_URL=sqlite://river.db
