@@ -2,6 +2,8 @@
 .git/
 .river.db-litestream/
 db/.river.db-litestream/
+.local/
+.docker-build/
 db/*.csv
 *.bash
 !cli/run.bash

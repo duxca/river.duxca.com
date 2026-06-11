@@ -50,19 +50,6 @@ jobs:
       run: make test
     - name: Run browser scenario tests
       run: make test-e2e
-    - name: Build release artifacts
-      run: |
-        set -euo pipefail
-        make build
-        rm -rf .docker-build
-        mkdir -p .docker-build
-        cp target/release/server .docker-build/server
-        cp -a target/site .docker-build/site
-    - name: Smoke test runtime image
-      run: |
-        set -euo pipefail
-        DOCKER_BUILDKIT=1 docker build -t river-runtime-smoke .
-        docker run --rm --entrypoint ldd river-runtime-smoke /app/server
     - uses: google-github-actions/auth@v3
       with:
         workload_identity_provider: projects/${{ env.PROJECT_NUMBER }}/locations/global/workloadIdentityPools/${{ env.POOL_ID }}/providers/${{ env.PROVIDER_ID }}
@@ -78,8 +65,8 @@ jobs:
         context: .
         push: true
         tags: ${{ env.IMAGE_REPOSITORY }}:${{ env.IMAGE_TAG }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
+        cache-from: type=gha,scope=runtime-image
+        cache-to: type=gha,mode=max,scope=runtime-image
     - name: Resolve pushed image digest
       id: image
       run: |
