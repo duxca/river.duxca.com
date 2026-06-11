@@ -214,7 +214,6 @@ pub fn login_db<'a, 'c>(
             )
             .await
             .context("Failed to create new user with GitHub OAuth info")?;
-            dbg!(&user);
             Ok(Some(user))
         }
     }
