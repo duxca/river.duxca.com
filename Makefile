@@ -32,7 +32,8 @@ setup:
 		curl -L --proto '=https' --tlsv1.2 -sSf \
 			https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash; \
 	fi
-	cargo binstall -y --force cargo-leptos@$(CARGO_LEPTOS_VERSION) sqlx-cli@$(SQLX_CLI_VERSION)
+	cargo leptos --version >/dev/null 2>&1 || cargo binstall -y cargo-leptos@$(CARGO_LEPTOS_VERSION)
+	cargo sqlx --version >/dev/null 2>&1 || cargo binstall -y sqlx-cli@$(SQLX_CLI_VERSION)
 
 .PHONY: sqlx-db
 sqlx-db:
