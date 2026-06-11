@@ -5,19 +5,20 @@ pub async fn delete_river_track(
     model::api::delete_river_track::Request {
         river_track_id,
     }: model::api::delete_river_track::Request,
-) -> Result<model::api::delete_river_track::Response, anyhow::Error> {
-    let trk = db::river_tracks::get_river_track(pool, river_track_id)
-        .await?
-        .ok_or_else(|| anyhow::anyhow!("NotFound: river track {river_track_id}"))?;
+) -> Result<Result<model::api::delete_river_track::Response, model::api::ErrorKind>, anyhow::Error>
+{
+    let Some(trk) = db::river_tracks::get_river_track(pool, river_track_id).await? else {
+        return Ok(Err(model::api::ErrorKind::NotFound));
+    };
 
     if user.role == 0 {
         // 管理者は消せる
         db::river_tracks::delete_river_track(pool, river_track_id).await?;
-        return Ok(model::api::delete_river_track::Response {});
+        return Ok(Ok(model::api::delete_river_track::Response {}));
     }
 
     if trk.user_id != user.user_id {
-        anyhow::bail!("PermissionDenied: river track {river_track_id}");
+        return Ok(Err(model::api::ErrorKind::PermissionDenied));
     }
 
     // 所有者かつ 24h 以内のみ消せる
@@ -26,11 +27,11 @@ pub async fn delete_river_track(
         .unwrap()
         .as_secs() as i64;
     if now - trk.created_at >= 24 * 60 * 60 {
-        anyhow::bail!("Expired: river track {river_track_id}");
+        return Ok(Err(model::api::ErrorKind::Expired));
     }
 
     db::river_tracks::delete_river_track(pool, river_track_id).await?;
-    Ok(model::api::delete_river_track::Response {})
+    Ok(Ok(model::api::delete_river_track::Response {}))
 }
 
 #[cfg(test)]
@@ -114,9 +115,8 @@ mod tests {
                 river_track_id: 404,
             },
         )
-        .await
-        .expect_err("missing track should error");
-        assert!(missing.to_string().contains("NotFound"));
+        .await?;
+        assert_eq!(missing, Err(model::api::ErrorKind::NotFound));
 
         let denied_track_id = create_track(&conn, owner_id, "denied").await?;
         let denied = delete_river_track(
@@ -126,9 +126,8 @@ mod tests {
                 river_track_id: denied_track_id,
             },
         )
-        .await
-        .expect_err("non-owner should error");
-        assert!(denied.to_string().contains("PermissionDenied"));
+        .await?;
+        assert_eq!(denied, Err(model::api::ErrorKind::PermissionDenied));
         assert!(
             db::river_tracks::get_river_track(&conn, denied_track_id)
                 .await?
@@ -144,9 +143,8 @@ mod tests {
                 river_track_id: expired_track_id,
             },
         )
-        .await
-        .expect_err("expired owner delete should error");
-        assert!(expired.to_string().contains("Expired"));
+        .await?;
+        assert_eq!(expired, Err(model::api::ErrorKind::Expired));
         assert!(
             db::river_tracks::get_river_track(&conn, expired_track_id)
                 .await?
@@ -154,7 +152,7 @@ mod tests {
         );
 
         let owner_track_id = create_track(&conn, owner_id, "owner").await?;
-        delete_river_track(
+        let owner_delete = delete_river_track(
             &conn,
             &user(owner_id, 1),
             model::api::delete_river_track::Request {
@@ -162,13 +160,14 @@ mod tests {
             },
         )
         .await?;
+        assert!(owner_delete.is_ok());
         assert!(
             db::river_tracks::get_river_track(&conn, owner_track_id)
                 .await?
                 .is_none()
         );
 
-        delete_river_track(
+        let admin_delete = delete_river_track(
             &conn,
             &user(0, 0),
             model::api::delete_river_track::Request {
@@ -176,6 +175,7 @@ mod tests {
             },
         )
         .await?;
+        assert!(admin_delete.is_ok());
         assert!(
             db::river_tracks::get_river_track(&conn, expired_track_id)
                 .await?

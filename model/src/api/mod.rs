@@ -65,8 +65,21 @@ pub enum Response {
 #[serde(tag = "errorType")]
 #[serde(rename_all = "PascalCase")]
 pub enum ErrorKind {
+    NotFound,
     PermissionDenied,
+    Expired,
     InvalidRequest,
+}
+
+impl std::fmt::Display for ErrorKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::NotFound => f.write_str("not found"),
+            Self::PermissionDenied => f.write_str("permission denied"),
+            Self::Expired => f.write_str("expired"),
+            Self::InvalidRequest => f.write_str("invalid request"),
+        }
+    }
 }
 
 impl Request {

@@ -2,19 +2,19 @@ pub async fn delete_river(
     pool: &sqlx::sqlite::SqlitePool,
     user: &model::user::User,
     model::api::delete_river::Request { river_id }: model::api::delete_river::Request,
-) -> Result<model::api::delete_river::Response, anyhow::Error> {
-    let rvr = db::rivers::get_river(pool, river_id)
-        .await?
-        .ok_or_else(|| anyhow::anyhow!("NotFound: river {river_id}"))?;
+) -> Result<Result<model::api::delete_river::Response, model::api::ErrorKind>, anyhow::Error> {
+    let Some(rvr) = db::rivers::get_river(pool, river_id).await? else {
+        return Ok(Err(model::api::ErrorKind::NotFound));
+    };
 
     if user.role == 0 {
         // 管理者は消せる
         db::rivers::delete_river(pool, river_id).await?;
-        return Ok(model::api::delete_river::Response {});
+        return Ok(Ok(model::api::delete_river::Response {}));
     }
 
     if rvr.user_id != user.user_id {
-        anyhow::bail!("PermissionDenied: river {river_id}");
+        return Ok(Err(model::api::ErrorKind::PermissionDenied));
     }
 
     // 所有者かつ 24h 以内のみ消せる
@@ -23,11 +23,11 @@ pub async fn delete_river(
         .unwrap()
         .as_secs() as i64;
     if now - rvr.created_at >= 24 * 60 * 60 {
-        anyhow::bail!("Expired: river {river_id}");
+        return Ok(Err(model::api::ErrorKind::Expired));
     }
 
     db::rivers::delete_river(pool, river_id).await?;
-    Ok(model::api::delete_river::Response {})
+    Ok(Ok(model::api::delete_river::Response {}))
 }
 
 #[cfg(test)]
@@ -92,9 +92,8 @@ mod tests {
             &user(owner_id, 1),
             model::api::delete_river::Request { river_id: 404 },
         )
-        .await
-        .expect_err("missing river should error");
-        assert!(missing.to_string().contains("NotFound"));
+        .await?;
+        assert_eq!(missing, Err(model::api::ErrorKind::NotFound));
 
         let denied_river_id =
             db::rivers::create_river(&conn, owner_id, "denied", (35.0, 139.0), "").await?;
@@ -105,9 +104,8 @@ mod tests {
                 river_id: denied_river_id,
             },
         )
-        .await
-        .expect_err("non-owner should error");
-        assert!(denied.to_string().contains("PermissionDenied"));
+        .await?;
+        assert_eq!(denied, Err(model::api::ErrorKind::PermissionDenied));
         assert!(
             db::rivers::get_river(&conn, denied_river_id)
                 .await?
@@ -124,9 +122,8 @@ mod tests {
                 river_id: expired_river_id,
             },
         )
-        .await
-        .expect_err("expired owner delete should error");
-        assert!(expired.to_string().contains("Expired"));
+        .await?;
+        assert_eq!(expired, Err(model::api::ErrorKind::Expired));
         assert!(
             db::rivers::get_river(&conn, expired_river_id)
                 .await?
@@ -135,7 +132,7 @@ mod tests {
 
         let owner_river_id =
             db::rivers::create_river(&conn, owner_id, "owner", (35.0, 139.0), "").await?;
-        delete_river(
+        let owner_delete = delete_river(
             &conn,
             &user(owner_id, 1),
             model::api::delete_river::Request {
@@ -143,13 +140,14 @@ mod tests {
             },
         )
         .await?;
+        assert!(owner_delete.is_ok());
         assert!(
             db::rivers::get_river(&conn, owner_river_id)
                 .await?
                 .is_none()
         );
 
-        delete_river(
+        let admin_delete = delete_river(
             &conn,
             &user(0, 0),
             model::api::delete_river::Request {
@@ -157,6 +155,7 @@ mod tests {
             },
         )
         .await?;
+        assert!(admin_delete.is_ok());
         assert!(
             db::rivers::get_river(&conn, expired_river_id)
                 .await?
