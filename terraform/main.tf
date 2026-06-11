@@ -28,7 +28,7 @@ resource "google_project_service" "storage_api" {
 # CPU: 1コア
 # メモリ: 256Mi
 # タイムアウト: 60秒
-# 同時実行数: 4
+# 同時実行数: 1
 # 最大インスタンス数: 1
 # 最小インスタンス数: 0
 # CPUスロットリング: 有効
@@ -47,7 +47,7 @@ resource "google_cloud_run_service" "litestream_sandbox" {
 
   template {
     spec {
-      container_concurrency = 4
+      container_concurrency = 1
       timeout_seconds       = 60
 
       containers {
