@@ -21,21 +21,13 @@ where
 }
 
 #[cfg(feature = "ssr")]
-async fn call_api_result<T>(
+async fn call_api_result(
     req: impl Into<model::api::Request>,
-) -> Result<Result<T, model::api::ErrorKind>, ServerFnError>
-where
-    T: TryFrom<model::api::Response>,
-    T::Error: std::fmt::Display,
-{
+) -> Result<model::api::Response, ServerFnError> {
     let ctx = expect_context::<ServerApiContext>();
-    let res = service::handler(&ctx.db, &ctx.user, req.into())
+    service::handler(&ctx.db, &ctx.user, req.into())
         .await
-        .map_err(ServerFnError::new)?;
-    match res {
-        model::api::Response::Error(kind) => Ok(Err(kind)),
-        res => res.try_into().map(Ok).map_err(ServerFnError::new),
-    }
+        .map_err(ServerFnError::new)
 }
 
 #[server(prefix = "/api", endpoint = "get_me", input = leptos::server_fn::codec::Json)]
@@ -90,9 +82,7 @@ pub async fn create_river(
 }
 
 #[server(prefix = "/api", endpoint = "delete_river", input = leptos::server_fn::codec::Json)]
-pub async fn delete_river(
-    river_id: i64,
-) -> Result<Result<model::api::delete_river::Response, model::api::ErrorKind>, ServerFnError> {
+pub async fn delete_river(river_id: i64) -> Result<model::api::Response, ServerFnError> {
     call_api_result(model::api::delete_river::Request { river_id }).await
 }
 
@@ -115,8 +105,7 @@ pub async fn create_river_waypoint(
 #[server(prefix = "/api", endpoint = "delete_river_waypoint", input = leptos::server_fn::codec::Json)]
 pub async fn delete_river_waypoint(
     river_waypoint_id: i64,
-) -> Result<Result<model::api::delete_river_waypoint::Response, model::api::ErrorKind>, ServerFnError>
-{
+) -> Result<model::api::Response, ServerFnError> {
     call_api_result(model::api::delete_river_waypoint::Request { river_waypoint_id }).await
 }
 
@@ -139,7 +128,6 @@ pub async fn create_river_track(
 #[server(prefix = "/api", endpoint = "delete_river_track", input = leptos::server_fn::codec::Json)]
 pub async fn delete_river_track(
     river_track_id: i64,
-) -> Result<Result<model::api::delete_river_track::Response, model::api::ErrorKind>, ServerFnError>
-{
+) -> Result<model::api::Response, ServerFnError> {
     call_api_result(model::api::delete_river_track::Request { river_track_id }).await
 }
