@@ -103,31 +103,9 @@ jobs:
 
   e2e-tests:
     needs: changes
-    if: ${{ needs.changes.outputs.rust == 'true' }}
+    if: ${{ needs.changes.outputs.rust == 'true' || needs.changes.outputs.runtime == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
-    steps:
-    - uses: actions/checkout@v6
-    - uses: dtolnay/rust-toolchain@1.96.0
-      with:
-        targets: wasm32-unknown-unknown
-    - uses: Swatinem/rust-cache@v2
-      with:
-        shared-key: ${{ env.RUST_CACHE_SHARED_KEY }}
-    - uses: cargo-bins/cargo-binstall@v1.20.0
-    - name: Install cargo-leptos and sqlx-cli
-      run: |
-        cargo leptos --version >/dev/null 2>&1 || cargo binstall -y cargo-leptos@0.3.6
-        cargo sqlx --version >/dev/null 2>&1 || cargo binstall -y sqlx-cli@0.8.6
-        cargo leptos --version
-        cargo sqlx --version
-    - name: Run browser scenario tests
-      run: make test-e2e
-
-  runtime-image:
-    needs: changes
-    if: ${{ needs.changes.outputs.runtime == 'true' }}
-    runs-on: ubuntu-24.04
     steps:
     - uses: actions/checkout@v6
     - uses: docker/setup-buildx-action@v4
@@ -143,7 +121,7 @@ jobs:
       run: |
         set -euo pipefail
         docker run --rm --entrypoint ldd river-runtime-smoke:pr /app/server
-    - name: Smoke test runtime server boot
+    - name: Run browser scenario tests against runtime image
       run: |
         set -euo pipefail
         container_id="$(
@@ -164,11 +142,7 @@ jobs:
             river-runtime-smoke:pr
         )"
         trap 'docker logs "$container_id"; docker rm -f "$container_id" >/dev/null 2>&1 || true' EXIT
-        for _ in {1..30}; do
-          curl -fsS http://127.0.0.1:18080/ >/dev/null && exit 0
-          sleep 1
-        done
-        exit 1
+        ./cli/e2e-local-container.sh --no-server
 
   terraform-plan:
     if: |
