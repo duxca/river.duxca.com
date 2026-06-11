@@ -6,6 +6,7 @@ leptos-browser/dist
 db/target
 server/.env
 target
+.docker-build
 .env
 key.json
 *.db*
