@@ -24,7 +24,7 @@ pub async fn admin(
         .quote(b'\\');
     let mut river_csv = writer_builder.from_writer(vec![]);
     let mut river_tracks_csv = writer_builder.from_writer(vec![]);
-    let mut river_waypooints_csv = writer_builder.from_writer(vec![]);
+    let mut river_waypoints_csv = writer_builder.from_writer(vec![]);
     let rivers = db::rivers::list_rivers_all(&mut conn).await?;
     let mut river_waypoints = vec![];
     for river in rivers {
@@ -35,7 +35,7 @@ pub async fn admin(
         let waypoints =
             db::river_waypoints::list_river_waypoints_all(&mut conn, river.river_id).await?;
         for wpt in waypoints.clone() {
-            river_waypooints_csv.serialize(model::river::RiverWaypoint::<String>::from(wpt))?;
+            river_waypoints_csv.serialize(model::river::RiverWaypoint::<String>::from(wpt))?;
         }
         river_csv.serialize(model::river::River::<String>::from(river))?;
         river_waypoints.extend(waypoints);
@@ -49,7 +49,7 @@ pub async fn admin(
             river_csv_header: "river_id,user_id,river_name,waypoint,description,created_at".to_string(),
             river_csv: String::from_utf8(river_csv.into_inner()?)?,
             river_waypoints_csv_header: "river_waypoint_id,river_id,user_id,waypoint_name,description,waypoint,created_at,updated_at".to_string(),
-            river_waypoints_csv: String::from_utf8(river_waypooints_csv.into_inner()?)?,
+            river_waypoints_csv: String::from_utf8(river_waypoints_csv.into_inner()?)?,
             river_tracks_csv_header: "river_track_id,river_id,user_id,track_name,description,track,created_at,updated_at".to_string(),
             river_tracks_csv: String::from_utf8(river_tracks_csv.into_inner()?)?,
         }/>
@@ -447,46 +447,46 @@ pub async fn admin_apply(
             .fetch_one(&mut *conn)
             .await?;
         }
-        if let Some(river_tracks_csv) = river_tracks_csv {
-            let mut rdr = reader_builder.from_reader(river_tracks_csv.as_bytes());
-            for result in rdr.deserialize::<model::river::RiverTrack<String>>() {
-                let model::river::RiverTrack {
-                    river_track_id,
-                    river_id,
-                    user_id,
-                    track_name,
-                    description,
-                    track,
-                    created_at,
-                    updated_at,
-                } = model::river::RiverTrack::<serde_json::Value>::try_from(result?)?;
-                sqlx::query!(
-                    r#"
-                INSERT INTO river_tracks (river_track_id, river_id, user_id, track_name, description, track, created_at, updated_at)
-                VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
-                ON CONFLICT (river_track_id)
-                DO UPDATE SET
-                    river_id = ?2,
-                    user_id = ?3,
-                    track_name = ?4,
-                    description = ?5,
-                    track = ?6,
-                    created_at = ?7,
-                    updated_at = ?8
-                RETURNING river_track_id;
-                "#,
-                    river_track_id,
-                    river_id,
-                    user_id,
-                    track_name,
-                    description,
-                    track,
-                    created_at,
-                    updated_at
-                )
-                .fetch_one(&mut *conn)
-                .await?;
-            }
+    }
+    if let Some(river_tracks_csv) = river_tracks_csv {
+        let mut rdr = reader_builder.from_reader(river_tracks_csv.as_bytes());
+        for result in rdr.deserialize::<model::river::RiverTrack<String>>() {
+            let model::river::RiverTrack {
+                river_track_id,
+                river_id,
+                user_id,
+                track_name,
+                description,
+                track,
+                created_at,
+                updated_at,
+            } = model::river::RiverTrack::<serde_json::Value>::try_from(result?)?;
+            sqlx::query!(
+                r#"
+            INSERT INTO river_tracks (river_track_id, river_id, user_id, track_name, description, track, created_at, updated_at)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
+            ON CONFLICT (river_track_id)
+            DO UPDATE SET
+                river_id = ?2,
+                user_id = ?3,
+                track_name = ?4,
+                description = ?5,
+                track = ?6,
+                created_at = ?7,
+                updated_at = ?8
+            RETURNING river_track_id;
+            "#,
+                river_track_id,
+                river_id,
+                user_id,
+                track_name,
+                description,
+                track,
+                created_at,
+                updated_at
+            )
+            .fetch_one(&mut *conn)
+            .await?;
         }
     }
     Ok(axum::response::Redirect::to("/admin").into_response())

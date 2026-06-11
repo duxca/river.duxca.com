@@ -31,10 +31,9 @@ pub struct Ise(anyhow::Error);
 impl axum::response::IntoResponse for Ise {
     fn into_response(self) -> axum::response::Response {
         log::error!("{:?}", self.0);
-        // TODO: 本番環では stack trace を表示しない
         (
             axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Something went wrong: {:?}", self.0),
+            "internal server error",
         )
             .into_response()
     }

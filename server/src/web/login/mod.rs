@@ -123,7 +123,6 @@ impl axum_login::AuthnBackend for Backend {
     ) -> impl std::future::Future<Output = Result<Option<Self::User>, Self::Error>> + Send {
         async move {
             let user = db::user::get_user(&self.db, *user_id).await?;
-            dbg!(&user);
             Ok(user)
         }
     }
