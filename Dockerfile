@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM debian:bookworm-slim
+FROM debian:trixie-slim
 
 WORKDIR /app
 
