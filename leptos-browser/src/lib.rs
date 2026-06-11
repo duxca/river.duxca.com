@@ -8,5 +8,15 @@ pub fn hydrate() {
     use app::App;
 
     console_error_panic_hook::set_once();
-    leptos::mount::hydrate_body(App);
+
+    let use_islands = leptos::web_sys::window()
+        .and_then(|window| window.document())
+        .and_then(|document| document.query_selector("leptos-island").ok().flatten())
+        .is_some();
+
+    if use_islands {
+        leptos::mount::hydrate_islands();
+    } else {
+        leptos::mount::hydrate_body(App);
+    }
 }

@@ -9,19 +9,28 @@ pub async fn home(
     use leptos::prelude::*;
 
     let user = auth_session.user;
+    let mut account = app::AccountContext::default();
     let auths = if let Some(user) = user.as_ref() {
         let mut conn = st.db.acquire().await?;
+        account.delete_preview =
+            Some(db::user::get_user_delete_preview(&mut conn, user.user_id).await?);
         db::user::get_user_auths(&mut conn, user.user_id).await?
     } else {
         vec![]
     };
 
     let providers = app::AuthProviders::from_auths(&auths);
+    let options = st.leptos_options.clone();
     let handler = leptos_axum::render_app_to_stream_with_context(
         || {},
         move || {
             view! {
-                <app::HomePage user=user.clone() providers=providers.clone()/>
+                <app::HomePage
+                    user=user.clone()
+                    providers=providers.clone()
+                    account=account.clone()
+                    options=options.clone()
+                />
             }
         },
     );

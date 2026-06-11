@@ -9,10 +9,11 @@ leptos-leaflet = { version = "0.10.2", default-features = false }
 leptos_axum = { workspace = true, optional = true }
 leptos_router = { workspace = true, default-features = false }
 model = { path = "../model" }
+serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 shared-api = { path = "../shared-api", default-features = false }
 
 [features]
 default = []
-hydrate = ["leptos/hydrate", "leptos-leaflet/hydrate", "shared-api/hydrate"]
-ssr = ["leptos/ssr", "leptos_router/ssr", "dep:leptos_axum", "shared-api/ssr"]
+hydrate = ["leptos/hydrate", "leptos/islands", "leptos-leaflet/hydrate", "shared-api/hydrate"]
+ssr = ["leptos/ssr", "leptos/islands", "leptos_router/ssr", "dep:leptos_axum", "shared-api/ssr"]

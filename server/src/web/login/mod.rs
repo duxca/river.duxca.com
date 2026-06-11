@@ -14,17 +14,26 @@ pub async fn login(
 
     let mut conn = st.db.acquire().await?;
     let user = auth_session.user;
+    let mut account = app::AccountContext::default();
     let auths = if let Some(user) = user.as_ref() {
+        account.delete_preview =
+            Some(db::user::get_user_delete_preview(&mut conn, user.user_id).await?);
         db::user::get_user_auths(&mut conn, user.user_id).await?
     } else {
         vec![]
     };
     let providers = app::AuthProviders::from_auths(&auths);
+    let options = st.leptos_options.clone();
     let handler = leptos_axum::render_app_to_stream_with_context(
         || {},
         move || {
             view! {
-                <app::LoginPage user=user.clone() providers=providers.clone()/>
+                <app::LoginPage
+                    user=user.clone()
+                    providers=providers.clone()
+                    account=account.clone()
+                    options=options.clone()
+                />
             }
         },
     );
@@ -49,7 +58,7 @@ pub struct BackendError(#[from] pub anyhow::Error);
 
 #[derive(Clone)]
 pub struct Backend {
-    db: sqlx::SqlitePool,
+    db: sqlx::sqlite::SqlitePool,
     settings: BackendSettings,
 }
 
@@ -64,7 +73,7 @@ pub struct BackendSettings {
 
 impl Backend {
     #[tracing::instrument(level = "trace", skip(db))]
-    pub fn new(db: sqlx::SqlitePool, settings: BackendSettings) -> Self {
+    pub fn new(db: sqlx::sqlite::SqlitePool, settings: BackendSettings) -> Self {
         Self { db, settings }
     }
 }

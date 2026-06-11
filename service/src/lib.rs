@@ -1,6 +1,7 @@
 pub mod create_river;
 pub mod create_river_track;
 pub mod create_river_waypoint;
+pub mod delete_me;
 pub mod delete_river;
 pub mod delete_river_track;
 pub mod delete_river_waypoint;
@@ -64,6 +65,10 @@ pub async fn handler(
         }
         model::api::Request::DeleteRiverTrack(req) => {
             let res = crate::delete_river_track::delete_river_track(db, user, req).await?;
+            Ok(res.map_or_else(Into::into, Into::into))
+        }
+        model::api::Request::DeleteMe(req) => {
+            let res = crate::delete_me::delete_me(db, user, req).await?;
             Ok(res.map_or_else(Into::into, Into::into))
         }
     }
