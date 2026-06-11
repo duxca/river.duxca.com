@@ -49,7 +49,7 @@ resource "google_cloud_run_service" "litestream_sandbox" {
     spec {
       container_concurrency = 128
       # sqlite の busy_timeout よりは大きくする必要ある:w
-      timeout_seconds       = 60
+      timeout_seconds = 60
 
       containers {
         image = var.container_image
