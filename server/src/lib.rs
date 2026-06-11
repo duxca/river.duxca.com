@@ -4,6 +4,7 @@ mod web;
 
 #[derive(serde::Deserialize, Debug, Clone)]
 pub struct Config {
+    #[serde(alias = "leptos_site_addr")]
     pub host_addr: String,
     pub database_url: String,
     pub github_client_id: oauth2::ClientId,
@@ -14,8 +15,64 @@ pub struct Config {
     pub local_client_id: oauth2::ClientId,
     pub local_client_secret: oauth2::ClientSecret,
     pub local_base_url: String,
+    #[serde(alias = "leptos_site_root")]
     pub local_dist_path: String,
     pub gcs_bucket_name: String,
+}
+
+#[cfg(test)]
+mod config_tests {
+    use super::Config;
+
+    #[test]
+    fn config_reads_leptos_env_aliases() {
+        let config = envy::from_iter::<_, Config>(
+            [
+                ("LEPTOS_SITE_ADDR", "127.0.0.1:18080"),
+                ("DATABASE_URL", "sqlite::memory:"),
+                ("GITHUB_CLIENT_ID", "github-client"),
+                ("GITHUB_CLIENT_SECRET", "github-secret"),
+                ("FACEBOOK_CLIENT_ID", "facebook-client"),
+                ("FACEBOOK_CLIENT_SECRET", "facebook-secret"),
+                ("BASE_URL", "http://localhost:18080"),
+                ("LOCAL_CLIENT_ID", "local-client"),
+                ("LOCAL_CLIENT_SECRET", "local-secret"),
+                ("LOCAL_BASE_URL", "http://localhost:18080"),
+                ("LEPTOS_SITE_ROOT", "target/site"),
+                ("GCS_BUCKET_NAME", "bucket"),
+            ]
+            .map(|(key, value)| (key.to_string(), value.to_string())),
+        )
+        .expect("config should deserialize from leptos aliases");
+
+        assert_eq!(config.host_addr, "127.0.0.1:18080");
+        assert_eq!(config.local_dist_path, "target/site");
+    }
+
+    #[test]
+    fn config_rejects_duplicate_env_aliases() {
+        let result = envy::from_iter::<_, Config>(
+            [
+                ("HOST_ADDR", "0.0.0.0:8080"),
+                ("LEPTOS_SITE_ADDR", "127.0.0.1:18080"),
+                ("DATABASE_URL", "sqlite::memory:"),
+                ("GITHUB_CLIENT_ID", "github-client"),
+                ("GITHUB_CLIENT_SECRET", "github-secret"),
+                ("FACEBOOK_CLIENT_ID", "facebook-client"),
+                ("FACEBOOK_CLIENT_SECRET", "facebook-secret"),
+                ("BASE_URL", "http://localhost:18080"),
+                ("LOCAL_CLIENT_ID", "local-client"),
+                ("LOCAL_CLIENT_SECRET", "local-secret"),
+                ("LOCAL_BASE_URL", "http://localhost:18080"),
+                ("LOCAL_DIST_PATH", "dist"),
+                ("LEPTOS_SITE_ROOT", "target/site"),
+                ("GCS_BUCKET_NAME", "bucket"),
+            ]
+            .map(|(key, value)| (key.to_string(), value.to_string())),
+        );
+
+        assert!(result.is_err());
+    }
 }
 
 #[derive(Clone)]
