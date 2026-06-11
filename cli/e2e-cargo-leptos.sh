@@ -14,7 +14,6 @@ LOCAL_DB_PATH="${LOCAL_DB_PATH:-${LOCAL_DB_DIR}/river-dev.db}"
 mkdir -p "$LOCAL_DB_DIR"
 
 export RUST_LOG="${RUST_LOG:-server=debug,service=debug,db=debug,tower_sessions=info}"
-export SQLX_OFFLINE="${SQLX_OFFLINE:-true}"
 unset HOST_ADDR
 unset LOCAL_DIST_PATH
 export DATABASE_URL="${DATABASE_URL:-sqlite://${LOCAL_DB_PATH}?mode=rwc}"
@@ -31,5 +30,7 @@ export LEPTOS_SITE_ROOT="${SITE_ROOT}"
 export LEPTOS_SITE_PKG_DIR="${LEPTOS_SITE_PKG_DIR:-pkg}"
 export LEPTOS_SITE_ADDR="${LISTEN_ADDR}"
 export LEPTOS_RELOAD_PORT="${LEPTOS_RELOAD_PORT:-18082}"
+
+cargo sqlx database setup --source db/migrations --no-dotenv --database-url "$DATABASE_URL"
 
 exec cargo leptos end-to-end
