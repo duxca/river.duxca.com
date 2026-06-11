@@ -1,6 +1,7 @@
 pub mod create_river;
 pub mod create_river_track;
 pub mod create_river_waypoint;
+pub mod delete_me;
 pub mod delete_river;
 pub mod delete_river_track;
 pub mod delete_river_waypoint;
@@ -33,6 +34,7 @@ pub enum Request {
     DeleteRiverWaypoint(crate::api::delete_river_waypoint::Request),
     CreateRiverTrack(crate::api::create_river_track::Request),
     DeleteRiverTrack(crate::api::delete_river_track::Request),
+    DeleteMe(crate::api::delete_me::Request),
 }
 
 #[derive(
@@ -58,6 +60,7 @@ pub enum Response {
     DeleteRiverWaypoint(crate::api::delete_river_waypoint::Response),
     CreateRiverTrack(crate::api::create_river_track::Response),
     DeleteRiverTrack(crate::api::delete_river_track::Response),
+    DeleteMe(crate::api::delete_me::Response),
     Error(ErrorKind),
 }
 
@@ -103,6 +106,7 @@ impl Request {
                 crate::api::Request::CreateRiverWaypoint(..) => true,
                 crate::api::Request::CreateRiverTrack(..) => true,
                 crate::api::Request::DeleteRiverTrack(..) => true,
+                crate::api::Request::DeleteMe(..) => true,
             };
             return flag;
         }

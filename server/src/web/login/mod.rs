@@ -3,9 +3,10 @@ pub mod github;
 
 /// GET /login
 /// ひみつのログインページ
-#[tracing::instrument(level = "trace", skip(auth_session, st))]
+#[tracing::instrument(level = "trace", skip(auth_session, session, st))]
 pub async fn login(
     auth_session: axum_login::AuthSession<Backend>,
+    session: tower_sessions::Session,
     axum::extract::State(ref st): axum::extract::State<crate::web::State>,
     req: axum::http::Request<axum::body::Body>,
 ) -> Result<impl axum::response::IntoResponse, crate::web::Ise> {
@@ -14,7 +15,11 @@ pub async fn login(
 
     let mut conn = st.db.acquire().await?;
     let user = auth_session.user;
+    let mut account = app::AccountContext::default();
     let auths = if let Some(user) = user.as_ref() {
+        account.csrf_token = Some(crate::web::account::account_csrf_token(&session).await?);
+        account.delete_preview =
+            Some(db::user::get_user_delete_preview(&mut conn, user.user_id).await?);
         db::user::get_user_auths(&mut conn, user.user_id).await?
     } else {
         vec![]
@@ -24,7 +29,11 @@ pub async fn login(
         || {},
         move || {
             view! {
-                <app::LoginPage user=user.clone() providers=providers.clone()/>
+                <app::LoginPage
+                    user=user.clone()
+                    providers=providers.clone()
+                    account=account.clone()
+                />
             }
         },
     );
@@ -49,7 +58,7 @@ pub struct BackendError(#[from] pub anyhow::Error);
 
 #[derive(Clone)]
 pub struct Backend {
-    db: sqlx::SqlitePool,
+    db: sqlx::sqlite::SqlitePool,
     settings: BackendSettings,
 }
 
@@ -64,7 +73,7 @@ pub struct BackendSettings {
 
 impl Backend {
     #[tracing::instrument(level = "trace", skip(db))]
-    pub fn new(db: sqlx::SqlitePool, settings: BackendSettings) -> Self {
+    pub fn new(db: sqlx::sqlite::SqlitePool, settings: BackendSettings) -> Self {
         Self { db, settings }
     }
 }

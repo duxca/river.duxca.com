@@ -41,6 +41,15 @@ impl axum_login::AuthUser for User {
     }
 }
 
+#[derive(Clone, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UserDeletePreview {
+    pub river_count: i64,
+    pub track_count: i64,
+    pub waypoint_count: i64,
+    pub auth_count: i64,
+}
+
 #[derive(Debug, serde::Deserialize, serde::Serialize, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "sql", derive(sqlx::FromRow))]
 #[serde(rename_all = "camelCase")]

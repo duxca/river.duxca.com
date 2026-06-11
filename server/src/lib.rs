@@ -221,6 +221,10 @@ pub async fn create_app(
         )
         .route("/logout", axum::routing::post(crate::web::login::logout))
         .route(
+            "/account/delete",
+            axum::routing::post(crate::web::account::delete_account),
+        )
+        .route(
             "/version",
             axum::routing::get(|| async { build::CLAP_LONG_VERSION }),
         )

@@ -280,22 +280,317 @@ pub fn get_user_auths<'a, 'c>(
 }
 
 #[tracing::instrument(level = "trace", skip(conn))]
+pub fn get_user_delete_preview<'a, 'c>(
+    conn: impl sqlx::Acquire<'c, Database = sqlx::Sqlite> + Send + 'a,
+    user_id: i64,
+) -> impl std::future::Future<Output = Result<model::user::UserDeletePreview, anyhow::Error>> + Send + 'a {
+    async move {
+        let mut conn = conn.acquire().await?;
+        let river_count = sqlx::query!(
+            r#"
+            SELECT COUNT(*) AS count
+            FROM rivers
+            WHERE user_id = ?1
+            "#,
+            user_id
+        )
+        .fetch_one(&mut *conn)
+        .await?
+        .count;
+        let track_count = sqlx::query!(
+            r#"
+            SELECT COUNT(*) AS count
+            FROM river_tracks
+            WHERE user_id = ?1
+               OR river_id IN (SELECT river_id FROM rivers WHERE user_id = ?1)
+            "#,
+            user_id
+        )
+        .fetch_one(&mut *conn)
+        .await?
+        .count;
+        let waypoint_count = sqlx::query!(
+            r#"
+            SELECT COUNT(*) AS count
+            FROM river_waypoints
+            WHERE user_id = ?1
+               OR river_id IN (SELECT river_id FROM rivers WHERE user_id = ?1)
+            "#,
+            user_id
+        )
+        .fetch_one(&mut *conn)
+        .await?
+        .count;
+        let auth_count = sqlx::query!(
+            r#"
+            SELECT COUNT(*) AS count
+            FROM user_auths
+            WHERE user_id = ?1
+            "#,
+            user_id
+        )
+        .fetch_one(&mut *conn)
+        .await?
+        .count;
+        Ok(model::user::UserDeletePreview {
+            river_count,
+            track_count,
+            waypoint_count,
+            auth_count,
+        })
+    }
+}
+
+#[tracing::instrument(level = "trace", skip(conn))]
 pub fn delete_user<'a, 'c>(
     conn: impl sqlx::Acquire<'c, Database = sqlx::Sqlite> + Send + 'a,
     user_id: i64,
 ) -> impl std::future::Future<Output = Result<(), anyhow::Error>> + Send + 'a {
     async move {
+        use sqlx::Connection;
+
         let mut conn = conn.acquire().await?;
+        let mut tx = conn.begin().await?;
+
+        if get_user(&mut *tx, user_id).await?.is_none() {
+            return Err(anyhow::anyhow!("User not found"));
+        }
+
+        let deleted_at = std::time::SystemTime::now()
+            .duration_since(std::time::SystemTime::UNIX_EPOCH)?
+            .as_secs() as i64;
+
         sqlx::query!(
             r#"
-            DELETE
+            INSERT INTO deleted_access_logs (
+                access_log_id,
+                user_id,
+                request,
+                created_at,
+                deleted_at
+            )
+            SELECT
+                access_log_id,
+                user_id,
+                request,
+                created_at,
+                ?1
+            FROM access_logs
+            WHERE user_id = ?2
+            "#,
+            deleted_at,
+            user_id
+        )
+        .execute(&mut *tx)
+        .await?;
+
+        sqlx::query!(
+            r#"
+            INSERT INTO deleted_user_auths (
+                user_auth_id,
+                user_id,
+                identity_type,
+                identifier,
+                created_at,
+                deleted_at
+            )
+            SELECT
+                user_auth_id,
+                user_id,
+                identity_type,
+                identifier,
+                created_at,
+                ?1
+            FROM user_auths
+            WHERE user_id = ?2
+            "#,
+            deleted_at,
+            user_id
+        )
+        .execute(&mut *tx)
+        .await?;
+
+        sqlx::query!(
+            r#"
+            INSERT INTO deleted_river_tracks (
+                river_track_id,
+                river_id,
+                user_id,
+                track_name,
+                description,
+                track,
+                created_at,
+                updated_at,
+                deleted_at
+            )
+            SELECT
+                river_track_id,
+                river_id,
+                user_id,
+                track_name,
+                description,
+                track,
+                created_at,
+                updated_at,
+                ?1
+            FROM river_tracks
+            WHERE user_id = ?2
+               OR river_id IN (SELECT river_id FROM rivers WHERE user_id = ?2)
+            "#,
+            deleted_at,
+            user_id
+        )
+        .execute(&mut *tx)
+        .await?;
+
+        sqlx::query!(
+            r#"
+            INSERT INTO deleted_river_waypoints (
+                river_waypoint_id,
+                river_id,
+                user_id,
+                waypoint_name,
+                description,
+                waypoint,
+                created_at,
+                updated_at,
+                deleted_at
+            )
+            SELECT
+                river_waypoint_id,
+                river_id,
+                user_id,
+                waypoint_name,
+                description,
+                waypoint,
+                created_at,
+                updated_at,
+                ?1
+            FROM river_waypoints
+            WHERE user_id = ?2
+               OR river_id IN (SELECT river_id FROM rivers WHERE user_id = ?2)
+            "#,
+            deleted_at,
+            user_id
+        )
+        .execute(&mut *tx)
+        .await?;
+
+        sqlx::query!(
+            r#"
+            INSERT INTO deleted_rivers (
+                river_id,
+                user_id,
+                river_name,
+                waypoint,
+                description,
+                created_at,
+                deleted_at
+            )
+            SELECT
+                river_id,
+                user_id,
+                river_name,
+                waypoint,
+                description,
+                created_at,
+                ?1
+            FROM rivers
+            WHERE user_id = ?2
+            "#,
+            deleted_at,
+            user_id
+        )
+        .execute(&mut *tx)
+        .await?;
+
+        sqlx::query!(
+            r#"
+            INSERT INTO deleted_users (
+                user_id,
+                nickname,
+                role,
+                created_at,
+                deleted_at
+            )
+            SELECT
+                user_id,
+                nickname,
+                role,
+                created_at,
+                ?1
             FROM users
+            WHERE user_id = ?2
+            "#,
+            deleted_at,
+            user_id
+        )
+        .execute(&mut *tx)
+        .await?;
+
+        sqlx::query!(
+            r#"
+            DELETE FROM river_tracks
+            WHERE user_id = ?1
+               OR river_id IN (SELECT river_id FROM rivers WHERE user_id = ?1)
+            "#,
+            user_id
+        )
+        .execute(&mut *tx)
+        .await?;
+
+        sqlx::query!(
+            r#"
+            DELETE FROM river_waypoints
+            WHERE user_id = ?1
+               OR river_id IN (SELECT river_id FROM rivers WHERE user_id = ?1)
+            "#,
+            user_id
+        )
+        .execute(&mut *tx)
+        .await?;
+
+        sqlx::query!(
+            r#"
+            DELETE FROM rivers
             WHERE user_id = ?1
             "#,
             user_id
         )
-        .execute(&mut *conn)
+        .execute(&mut *tx)
         .await?;
+
+        sqlx::query!(
+            r#"
+            DELETE FROM access_logs
+            WHERE user_id = ?1
+            "#,
+            user_id
+        )
+        .execute(&mut *tx)
+        .await?;
+
+        sqlx::query!(
+            r#"
+            DELETE FROM user_auths
+            WHERE user_id = ?1
+            "#,
+            user_id
+        )
+        .execute(&mut *tx)
+        .await?;
+
+        sqlx::query!(
+            r#"
+            DELETE FROM users
+            WHERE user_id = ?1
+            "#,
+            user_id
+        )
+        .execute(&mut *tx)
+        .await?;
+
+        tx.commit().await?;
         Ok(())
     }
 }
@@ -533,6 +828,182 @@ mod tests {
         delete_user(&conn, user2.user_id).await?;
         let deleted_user = get_user(&conn, user2.user_id).await?;
         assert!(deleted_user.is_none());
+
+        let archived_user = sqlx::query!(
+            r#"
+            SELECT user_id, nickname, role
+            FROM deleted_users
+            WHERE user_id = ?1
+            "#,
+            user2.user_id
+        )
+        .fetch_optional(&conn)
+        .await?;
+        assert!(archived_user.is_some());
+
+        let archived_auth = sqlx::query!(
+            r#"
+            SELECT identifier
+            FROM deleted_user_auths
+            WHERE user_id = ?1
+            "#,
+            user2.user_id
+        )
+        .fetch_optional(&conn)
+        .await?;
+        assert_eq!(archived_auth.map(|row| row.identifier), Some("twitter_id_1".to_string()));
+
+        let reauth_user =
+            auth_or_create_user(&conn, 2, "twitter_id_1", "user2_recreated").await?;
+        assert_ne!(reauth_user.user_id, user2.user_id);
+        assert_eq!(reauth_user.nickname, "user2_recreated");
+        Ok(())
+    }
+
+    #[sqlx::test()]
+    async fn user_archive_moves_related_data(conn: sqlx::SqlitePool) -> Result<(), anyhow::Error> {
+        env_logger::builder().is_test(true).try_init().ok();
+
+        let owner = auth_or_create_user(&conn, 0, "github_owner", "owner").await?;
+        let contributor = auth_or_create_user(&conn, 1, "facebook_contributor", "contributor").await?;
+
+        let river_id = crate::rivers::create_river(
+            &conn,
+            owner.user_id,
+            "archive-test-river",
+            (35.0, 139.0),
+            "owner river",
+        )
+        .await?;
+        crate::river_tracks::create_river_track(
+            &conn,
+            river_id,
+            contributor.user_id,
+            "contributor-track",
+            &[(35.1, 139.1)],
+            "track on owner river",
+        )
+        .await?;
+        crate::river_tracks::create_river_track(
+            &conn,
+            river_id,
+            contributor.user_id,
+            "contributor-track-2",
+            &[(35.2, 139.2)],
+            "another track",
+        )
+        .await?;
+
+        let other_river_id = crate::rivers::create_river(
+            &conn,
+            contributor.user_id,
+            "contributor-river",
+            (36.0, 140.0),
+            "contributor river",
+        )
+        .await?;
+        crate::river_tracks::create_river_track(
+            &conn,
+            other_river_id,
+            contributor.user_id,
+            "contributor-own-track",
+            &[(36.1, 140.1)],
+            "own track",
+        )
+        .await?;
+
+        let req = model::api::Request::GetMe(model::api::get_me::Request {});
+        add_access_log(&conn, contributor.user_id, &req).await?;
+
+        delete_user(&conn, contributor.user_id).await?;
+
+        assert!(get_user(&conn, contributor.user_id).await?.is_none());
+        assert!(
+            crate::rivers::get_river(&conn, other_river_id)
+                .await?
+                .is_none()
+        );
+        assert!(
+            crate::rivers::get_river(&conn, river_id)
+                .await?
+                .is_some()
+        );
+
+        let archived_user = sqlx::query!(
+            r#"
+            SELECT nickname
+            FROM deleted_users
+            WHERE user_id = ?1
+            "#,
+            contributor.user_id
+        )
+        .fetch_one(&conn)
+        .await?;
+        assert_eq!(archived_user.nickname, "contributor");
+
+        let archived_river_count = sqlx::query!(
+            r#"
+            SELECT COUNT(*) AS count
+            FROM deleted_rivers
+            WHERE user_id = ?1
+            "#,
+            contributor.user_id
+        )
+        .fetch_one(&conn)
+        .await?;
+        assert_eq!(archived_river_count.count, 1);
+
+        let archived_track_count = sqlx::query!(
+            r#"
+            SELECT COUNT(*) AS count
+            FROM deleted_river_tracks
+            WHERE user_id = ?1
+            "#,
+            contributor.user_id
+        )
+        .fetch_one(&conn)
+        .await?;
+        assert_eq!(archived_track_count.count, 3);
+
+        let archived_log_count = sqlx::query!(
+            r#"
+            SELECT COUNT(*) AS count
+            FROM deleted_access_logs
+            WHERE user_id = ?1
+            "#,
+            contributor.user_id
+        )
+        .fetch_one(&conn)
+        .await?;
+        assert_eq!(archived_log_count.count, 1);
+
+        let active_track_count = sqlx::query!(
+            r#"
+            SELECT COUNT(*) AS count
+            FROM river_tracks
+            WHERE user_id = ?1
+            "#,
+            contributor.user_id
+        )
+        .fetch_one(&conn)
+        .await?;
+        assert_eq!(active_track_count.count, 0);
+
+        let owner_river_tracks = sqlx::query!(
+            r#"
+            SELECT COUNT(*) AS count
+            FROM river_tracks
+            WHERE river_id = ?1
+            "#,
+            river_id
+        )
+        .fetch_one(&conn)
+        .await?;
+        assert_eq!(owner_river_tracks.count, 0);
+
+        let recreated = auth_or_create_user(&conn, 1, "facebook_contributor", "new-contributor").await?;
+        assert_ne!(recreated.user_id, contributor.user_id);
+        assert_eq!(recreated.nickname, "new-contributor");
         Ok(())
     }
 
