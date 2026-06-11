@@ -73,10 +73,11 @@ async fn leptos_app_loads_browser_bundle() -> Result<()> {
     let client = new_client().await?;
 
     client.goto(&frontend_url).await?;
-    let body = body_text(&client).await?;
 
-    assert!(body.contains("river.duxca.com"));
-    assert!(body.contains("Leptos + Leaflet preview"));
+    assert_eq!(client.title().await?, "river.duxca.com Leptos map");
+
+    let source = client.source().await?;
+    assert!(source.contains("/app/pkg/leptos-browser"));
 
     client.close().await?;
     Ok(())
