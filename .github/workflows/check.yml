@@ -20,6 +20,7 @@ jobs:
       pull-requests: read
     outputs:
       rust: ${{ steps.changes.outputs.rust }}
+      runtime: ${{ steps.changes.outputs.runtime }}
     steps:
     - uses: actions/checkout@v6
     - uses: dorny/paths-filter@v4
@@ -34,6 +35,21 @@ jobs:
             - 'Makefile'
             - 'cli/**'
             - 'rust-toolchain.toml'
+          runtime:
+            - '**/*.rs'
+            - '**/Cargo.toml'
+            - '**/Cargo.lock'
+            - 'Dockerfile'
+            - '.dockerignore'
+            - 'db/litestream'
+            - 'db/litestream.yml'
+            - 'cli/run.bash'
+            - 'leptos-browser/**'
+            - 'server/**'
+            - 'shared-api/**'
+            - 'service/**'
+            - 'model/**'
+            - 'db/**'
 
   fmt:
     needs: changes
@@ -107,6 +123,39 @@ jobs:
         cargo sqlx --version
     - name: Run browser scenario tests
       run: make test-e2e
+
+  runtime-image:
+    needs: changes
+    if: ${{ needs.changes.outputs.runtime == 'true' }}
+    runs-on: ubuntu-24.04
+    steps:
+    - uses: actions/checkout@v6
+    - uses: dtolnay/rust-toolchain@1.96.0
+      with:
+        targets: wasm32-unknown-unknown
+    - uses: Swatinem/rust-cache@v2
+      with:
+        shared-key: ${{ env.RUST_CACHE_SHARED_KEY }}
+    - uses: cargo-bins/cargo-binstall@v1.20.0
+    - name: Install cargo-leptos and sqlx-cli
+      run: |
+        cargo leptos --version >/dev/null 2>&1 || cargo binstall -y cargo-leptos@0.3.6
+        cargo sqlx --version >/dev/null 2>&1 || cargo binstall -y sqlx-cli@0.8.6
+        cargo leptos --version
+        cargo sqlx --version
+    - name: Build release artifacts
+      run: |
+        set -euo pipefail
+        make build
+        rm -rf .docker-build
+        mkdir -p .docker-build
+        cp target/release/server .docker-build/server
+        cp -a target/site .docker-build/site
+    - name: Smoke test runtime image
+      run: |
+        set -euo pipefail
+        DOCKER_BUILDKIT=1 docker build -t river-runtime-smoke .
+        docker run --rm --entrypoint ldd river-runtime-smoke /app/server
 
   terraform-plan:
     if: |
