@@ -30,10 +30,7 @@ pub fn HomePage(user: Option<model::user::User>, providers: AuthProviders) -> im
                     <h1>"river.duxca.com"</h1>
                     <p>"川下り地図アプリのサーバは動いています。"</p>
                     <HomeContent user=user providers=providers/>
-                    <p>
-                        <a class="button" href="/app">"地図アプリを開く"</a>
-                        <a class="button secondary" href="/version">"version"</a>
-                    </p>
+                    <p><a class="button secondary" href="/version">"version"</a></p>
                 </main>
             </body>
         </html>
@@ -80,6 +77,7 @@ fn HomeContent(user: Option<model::user::User>, providers: AuthProviders) -> imp
                 <dd><code>{user.role}</code></dd>
             </dl>
             <ConnectedAccounts providers=providers/>
+            <LoggedInNavigation role=user.role/>
             <form method="post" action="/logout">
                 <button class="secondary" type="submit">"Logout"</button>
             </form>
@@ -139,6 +137,21 @@ fn LoginContent(user: Option<model::user::User>, providers: AuthProviders) -> im
             </section>
         }
         .into_any(),
+    }
+}
+
+#[component]
+fn LoggedInNavigation(role: i64) -> impl IntoView {
+    view! {
+        <section>
+            <h2>"Navigation"</h2>
+            <p>
+                <a class="button" href="/app">"地図アプリ"</a>
+                {(role == 0).then(|| view! {
+                    <a class="button secondary" href="/admin">"管理画面"</a>
+                })}
+            </p>
+        </section>
     }
 }
 
