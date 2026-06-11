@@ -20,6 +20,7 @@ jobs:
       pull-requests: read
     outputs:
       rust: ${{ steps.changes.outputs.rust }}
+      runtime: ${{ steps.changes.outputs.runtime }}
     steps:
     - uses: actions/checkout@v6
     - uses: dorny/paths-filter@v4
@@ -34,6 +35,21 @@ jobs:
             - 'Makefile'
             - 'cli/**'
             - 'rust-toolchain.toml'
+          runtime:
+            - '**/*.rs'
+            - '**/Cargo.toml'
+            - '**/Cargo.lock'
+            - 'Dockerfile'
+            - '.dockerignore'
+            - 'db/litestream'
+            - 'db/litestream.yml'
+            - 'cli/run.bash'
+            - 'leptos-browser/**'
+            - 'server/**'
+            - 'shared-api/**'
+            - 'service/**'
+            - 'model/**'
+            - 'db/**'
 
   fmt:
     needs: changes
@@ -107,6 +123,52 @@ jobs:
         cargo sqlx --version
     - name: Run browser scenario tests
       run: make test-e2e
+
+  runtime-image:
+    needs: changes
+    if: ${{ needs.changes.outputs.runtime == 'true' }}
+    runs-on: ubuntu-24.04
+    steps:
+    - uses: actions/checkout@v6
+    - uses: docker/setup-buildx-action@v4
+    - name: Build runtime image
+      uses: docker/build-push-action@v7
+      with:
+        context: .
+        load: true
+        tags: river-runtime-smoke:pr
+        cache-from: type=gha,scope=runtime-image
+        cache-to: type=gha,mode=max,scope=runtime-image
+    - name: Smoke test runtime image
+      run: |
+        set -euo pipefail
+        docker run --rm --entrypoint ldd river-runtime-smoke:pr /app/server
+    - name: Smoke test runtime server boot
+      run: |
+        set -euo pipefail
+        container_id="$(
+          docker run -d --rm --entrypoint /app/server \
+            -e HOST_ADDR=0.0.0.0:8080 \
+            -e DATABASE_URL='sqlite::memory:' \
+            -e BASE_URL='http://127.0.0.1:18080' \
+            -e LOCAL_CLIENT_ID=local \
+            -e LOCAL_CLIENT_SECRET=local \
+            -e LOCAL_BASE_URL='http://127.0.0.1:18080' \
+            -e GITHUB_CLIENT_ID=dummy \
+            -e GITHUB_CLIENT_SECRET=dummy \
+            -e FACEBOOK_CLIENT_ID=dummy \
+            -e FACEBOOK_CLIENT_SECRET=dummy \
+            -e LEPTOS_SITE_ROOT=target/site \
+            -e LEPTOS_SITE_PKG_DIR=pkg \
+            -p 18080:8080 \
+            river-runtime-smoke:pr
+        )"
+        trap 'docker logs "$container_id"; docker rm -f "$container_id" >/dev/null 2>&1 || true' EXIT
+        for _ in {1..30}; do
+          curl -fsS http://127.0.0.1:18080/ >/dev/null && exit 0
+          sleep 1
+        done
+        exit 1
 
   terraform-plan:
     if: |
