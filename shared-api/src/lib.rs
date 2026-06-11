@@ -20,6 +20,24 @@ where
     res.try_into().map_err(ServerFnError::new)
 }
 
+#[cfg(feature = "ssr")]
+async fn call_api_result<T>(
+    req: impl Into<model::api::Request>,
+) -> Result<Result<T, model::api::ErrorKind>, ServerFnError>
+where
+    T: TryFrom<model::api::Response>,
+    T::Error: std::fmt::Display,
+{
+    let ctx = expect_context::<ServerApiContext>();
+    let res = service::handler(&ctx.db, &ctx.user, req.into())
+        .await
+        .map_err(ServerFnError::new)?;
+    match res {
+        model::api::Response::Error(kind) => Ok(Err(kind)),
+        res => res.try_into().map(Ok).map_err(ServerFnError::new),
+    }
+}
+
 #[server(prefix = "/api", endpoint = "get_me", input = leptos::server_fn::codec::Json)]
 pub async fn get_me() -> Result<model::api::get_me::Response, ServerFnError> {
     call_api(model::api::get_me::Request {}).await
@@ -74,8 +92,8 @@ pub async fn create_river(
 #[server(prefix = "/api", endpoint = "delete_river", input = leptos::server_fn::codec::Json)]
 pub async fn delete_river(
     river_id: i64,
-) -> Result<model::api::delete_river::Response, ServerFnError> {
-    call_api(model::api::delete_river::Request { river_id }).await
+) -> Result<Result<model::api::delete_river::Response, model::api::ErrorKind>, ServerFnError> {
+    call_api_result(model::api::delete_river::Request { river_id }).await
 }
 
 #[server(prefix = "/api", endpoint = "create_river_waypoint", input = leptos::server_fn::codec::Json)]
@@ -97,8 +115,9 @@ pub async fn create_river_waypoint(
 #[server(prefix = "/api", endpoint = "delete_river_waypoint", input = leptos::server_fn::codec::Json)]
 pub async fn delete_river_waypoint(
     river_waypoint_id: i64,
-) -> Result<model::api::delete_river_waypoint::Response, ServerFnError> {
-    call_api(model::api::delete_river_waypoint::Request { river_waypoint_id }).await
+) -> Result<Result<model::api::delete_river_waypoint::Response, model::api::ErrorKind>, ServerFnError>
+{
+    call_api_result(model::api::delete_river_waypoint::Request { river_waypoint_id }).await
 }
 
 #[server(prefix = "/api", endpoint = "create_river_track", input = leptos::server_fn::codec::Json)]
@@ -120,6 +139,7 @@ pub async fn create_river_track(
 #[server(prefix = "/api", endpoint = "delete_river_track", input = leptos::server_fn::codec::Json)]
 pub async fn delete_river_track(
     river_track_id: i64,
-) -> Result<model::api::delete_river_track::Response, ServerFnError> {
-    call_api(model::api::delete_river_track::Request { river_track_id }).await
+) -> Result<Result<model::api::delete_river_track::Response, model::api::ErrorKind>, ServerFnError>
+{
+    call_api_result(model::api::delete_river_track::Request { river_track_id }).await
 }

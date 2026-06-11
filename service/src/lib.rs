@@ -48,7 +48,7 @@ pub async fn handler(
         }
         model::api::Request::DeleteRiver(req) => {
             let res = crate::delete_river::delete_river(db, user, req).await?;
-            Ok(res.into())
+            Ok(res.map_or_else(Into::into, Into::into))
         }
         model::api::Request::CreateRiverWaypoint(req) => {
             let res = crate::create_river_waypoint::create_river_waypoint(db, user, req).await?;
@@ -56,7 +56,7 @@ pub async fn handler(
         }
         model::api::Request::DeleteRiverWaypoint(req) => {
             let res = crate::delete_river_waypoint::delete_river_waypoint(db, user, req).await?;
-            Ok(res.into())
+            Ok(res.map_or_else(Into::into, Into::into))
         }
         model::api::Request::CreateRiverTrack(req) => {
             let res = crate::create_river_track::create_river_track(db, user, req).await?;
@@ -64,7 +64,7 @@ pub async fn handler(
         }
         model::api::Request::DeleteRiverTrack(req) => {
             let res = crate::delete_river_track::delete_river_track(db, user, req).await?;
-            Ok(res.into())
+            Ok(res.map_or_else(Into::into, Into::into))
         }
     }
 }
