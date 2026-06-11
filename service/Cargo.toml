@@ -5,16 +5,12 @@ edition = "2024"
 
 [dependencies]
 anyhow = "1"
-bytes = "1.5"
 db = { path = "../db" }
-google-cloud-storage = "1.14.0"
 log = "0.4.22"
 model = { path = "../model" }
 sqlx = { version = "0.8.6", features = ["sqlite"] }
 tracing = "0.1"
-uuid = { version = "1", features = ["v4"] }
 
 [dev-dependencies]
 http = "1.4.2"
-reqwest = { version = "0.13.4", features = ["json", "multipart"] }
 tokio = { version = "1.0", features = ["full", "test-util"] }
