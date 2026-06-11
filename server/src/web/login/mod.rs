@@ -19,12 +19,12 @@ pub async fn login(
     } else {
         vec![]
     };
-    let providers = crate::web::ui::AuthProviders::from_auths(&auths);
+    let providers = app::AuthProviders::from_auths(&auths);
     let handler = leptos_axum::render_app_to_stream_with_context(
         || {},
         move || {
             view! {
-                <crate::web::ui::LoginPage user=user.clone() providers=providers.clone()/>
+                <app::LoginPage user=user.clone() providers=providers.clone()/>
             }
         },
     );

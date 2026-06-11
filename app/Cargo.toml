@@ -1,0 +1,23 @@
+[package]
+edition = "2024"
+name = "app"
+version = "0.1.0"
+
+[dependencies]
+leptos = { workspace = true, default-features = false }
+leptos-leaflet = { version = "0.10.2", default-features = false }
+leptos_axum = { workspace = true, optional = true }
+leptos_router = { workspace = true, default-features = false }
+model = { path = "../model" }
+serde_json = "1"
+shared-api = { path = "../shared-api", default-features = false }
+
+[features]
+default = []
+hydrate = ["leptos/hydrate", "leptos-leaflet/hydrate", "shared-api/hydrate"]
+ssr = [
+    "leptos/ssr",
+    "leptos_router/ssr",
+    "dep:leptos_axum",
+    "shared-api/ssr",
+]
