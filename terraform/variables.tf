@@ -35,12 +35,6 @@ variable "service_account_email" {
   default     = "river-container@duxca-298210.iam.gserviceaccount.com"
 }
 
-variable "bucket_name" {
-  description = "Litestream用のGCSバケット名"
-  type        = string
-  default     = "duxca-litestream-sandbox"
-}
-
 variable "docker_registry" {
   description = "Docker Artifact Registry リポジトリ名"
   type        = string

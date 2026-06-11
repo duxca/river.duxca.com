@@ -137,22 +137,3 @@ resource "google_cloud_run_service_iam_member" "public_access" {
   role     = "roles/run.invoker"
   member   = "allUsers"
 }
-
-# GCSバケットへのアクセス権を付与
-resource "google_storage_bucket_iam_member" "bucket_object_admin" {
-  bucket = google_storage_bucket.litestream_bucket.name
-  role   = "roles/storage.objectAdmin"
-  member = "serviceAccount:${google_service_account.river_container.email}"
-}
-
-resource "google_storage_bucket_iam_member" "bucket_legacy_reader" {
-  bucket = google_storage_bucket.litestream_bucket.name
-  role   = "roles/storage.legacyBucketReader"
-  member = "serviceAccount:${google_service_account.river_container.email}"
-}
-
-resource "google_storage_bucket_iam_member" "bucket_legacy_writer" {
-  bucket = google_storage_bucket.litestream_bucket.name
-  role   = "roles/storage.legacyBucketWriter"
-  member = "serviceAccount:${google_service_account.river_container.email}"
-}

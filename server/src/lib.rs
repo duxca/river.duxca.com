@@ -215,7 +215,7 @@ pub async fn create_app(
         }))
         .with_state({
             // 一般のリクエストで DB にアクセスするための State
-            crate::web::State::new(pool, leptos_options)?
+            crate::web::State::new(config.clone(), pool, leptos_options)?
         });
     if cfg!(not(feature = "local")) {
         app = app.layer(axum::middleware::from_fn_with_state(

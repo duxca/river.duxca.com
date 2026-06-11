@@ -8,14 +8,21 @@ pub mod ui;
 #[derive(Clone)]
 pub struct State {
     pub db: sqlx::sqlite::SqlitePool,
+    #[allow(dead_code)]
+    pub config: crate::Config,
     pub leptos_options: leptos::config::LeptosOptions,
 }
 impl State {
     pub fn new(
+        config: crate::Config,
         db: sqlx::sqlite::SqlitePool,
         leptos_options: leptos::config::LeptosOptions,
     ) -> Result<Self, anyhow::Error> {
-        Ok(Self { db, leptos_options })
+        Ok(Self {
+            config,
+            db,
+            leptos_options,
+        })
     }
 }
 
