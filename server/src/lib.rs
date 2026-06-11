@@ -159,12 +159,36 @@ pub async fn create_app(
     let backend = web::login::Backend::new(pool.clone(), backend_settings);
     let app_pkg_dir =
         std::path::PathBuf::from(&*leptos_options.site_root).join(&*leptos_options.site_pkg_dir);
-    let mut app = axum::Router::new()
-        .route("/", axum::routing::get(crate::web::home::home))
+
+    let governor_conf = tower_governor::governor::GovernorConfigBuilder::default()
+        .key_extractor(tower_governor::key_extractor::SmartIpKeyExtractor)
+        .per_second(20)
+        .burst_size(40)
+        .finish()
+        .expect("valid api rate limit config");
+    let governor_limiter = governor_conf.limiter().clone();
+    std::thread::spawn(move || {
+        let interval = std::time::Duration::from_secs(60);
+        loop {
+            std::thread::sleep(interval);
+            tracing::debug!(
+                storage_size = governor_limiter.len(),
+                "api rate limiter cleanup"
+            );
+            governor_limiter.retain_recent();
+        }
+    });
+
+    let api_routes = axum::Router::new()
         .route(
-            "/api/{*fn_name}",
+            "/{*fn_name}",
             axum::routing::post(crate::web::server_fn::server_fn),
         )
+        .layer(tower_governor::GovernorLayer::new(governor_conf));
+
+    let mut app = axum::Router::new()
+        .route("/", axum::routing::get(crate::web::home::home))
+        .nest("/api", api_routes)
         .route("/app", axum::routing::get(crate::web::app::app_shell))
         .route("/app/", axum::routing::get(crate::web::app::app_shell))
         .nest_service("/app/pkg", tower_http::services::ServeDir::new(app_pkg_dir))

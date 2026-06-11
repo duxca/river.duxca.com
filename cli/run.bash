@@ -12,6 +12,7 @@ trap cleanup EXIT
 ./litestream restore -config ./litestream.yml -if-replica-exists -o "$restore_db" ./river.db
 
 if [ -f "$restore_db" ]; then
+    # restore に成功したら使うようにする
     mv -f "$restore_db" ./river.db
 fi
 
