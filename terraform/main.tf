@@ -27,8 +27,8 @@ resource "google_project_service" "storage_api" {
 # リージョン: asia-northeast1
 # CPU: 1コア
 # メモリ: 256Mi
-# タイムアウト: 3秒
-# 同時実行数: 128
+# タイムアウト: 60秒
+# 同時実行数: 4
 # 最大インスタンス数: 1
 # 最小インスタンス数: 0
 # CPUスロットリング: 有効
@@ -41,17 +41,14 @@ resource "google_cloud_run_service" "litestream_sandbox" {
   lifecycle {
     ignore_changes = [
       template[0].spec[0].containers[0].resources[0].limits,
-      autogenerate_revision_name,
-      template[0].spec[0].container_concurrency,
-      template[0].spec[0].timeout_seconds,
-      template[0].metadata[0].annotations
+      autogenerate_revision_name
     ]
   }
 
   template {
     spec {
-      container_concurrency = 128
-      timeout_seconds       = 3
+      container_concurrency = 4
+      timeout_seconds       = 60
 
       containers {
         image = var.container_image
@@ -116,8 +113,6 @@ resource "google_cloud_run_service" "litestream_sandbox" {
         "run.googleapis.com/cpu-throttling"        = "true"
         "run.googleapis.com/cpu-boost"             = "false"
         "run.googleapis.com/execution-environment" = "gen1"
-        "run.googleapis.com/timeout"               = "3s"
-        "run.googleapis.com/container-concurrency" = "128"
       }
     }
   }
