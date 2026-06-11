@@ -10,14 +10,13 @@
 初回だけ `cargo-leptos` を入れます。
 
 ```bash
-cargo install --locked cargo-leptos --version 0.3.6
-rustup target add wasm32-unknown-unknown
+make setup
 ```
 
 起動:
 
 ```bash
-./cli/dev-local.sh
+make serve
 ```
 
 ブラウザで確認する URL:
@@ -33,36 +32,23 @@ http://127.0.0.1:18080/app    # hot reload 付き Leptos frontend
 サーバ、WASM frontend、e2e crate のコンパイル確認:
 
 ```bash
-cargo fmt --all -- --check
-SQLX_OFFLINE=true cargo check -p server --features local
-cargo check -p leptos-browser --no-default-features --features hydrate --target wasm32-unknown-unknown
-cargo check -p e2e --tests --features webdriver
-SQLX_OFFLINE=true cargo leptos build --release
+make check
+make build
 ```
 
-Rust/fantoccini のシナリオテストは `cargo leptos end-to-end` から実行できます。別ターミナルで `chromedriver` を `127.0.0.1:9515` に起動してから実行します。
+Rust/fantoccini のシナリオテストは次のコマンドで実行します。内部では `cargo leptos end-to-end` がローカルサーバを起動し、e2e用コンテナ内の `chromedriver` に `fantoccini` が接続します。
 
 ```bash
-chromedriver --port=9515
+make test-e2e
 ```
 
-```bash
-cargo leptos end-to-end
-```
-
-通常の `cargo test` では WebDriver が必要な smoke test は実行しません。e2e を直接実行する場合は `cargo test -p e2e --features webdriver --test smoke -- --nocapture` を使ってください。
-
-ブラウザと WebDriver をコンテナに閉じる場合は次のコマンドだけで実行できます。内部で `./cli/dev-local.sh` を起動し、e2e用コンテナ内の `chromedriver` に `fantoccini` が接続します。
-
-```bash
-./cli/e2e-local-container.sh
-```
+通常の `cargo test` では WebDriver が必要な smoke test は実行しません。
 
 現在の smoke test は以下を確認します。
 
 - `/` にログイン導線が表示されること
 - `/login` にプロバイダボタンが表示されること
-- `/app` でLeptos/WASM frontendの初期画面が表示されること
+- `/app` でLeptos app shellとWASM frontend bundleが配信されること
 
 ### ローカル開発用の fake-gcs-server
 

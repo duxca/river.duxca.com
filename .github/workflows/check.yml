@@ -26,6 +26,9 @@ jobs:
             - '**/*.rs'
             - '**/Cargo.toml'
             - '**/Cargo.lock'
+            - '.github/workflows/**'
+            - 'Makefile'
+            - 'cli/**'
             - 'rust-toolchain.toml'
 
   fmt:
@@ -34,11 +37,12 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
     - uses: actions/checkout@v6
-    - uses: dtolnay/rust-toolchain@stable
+    - uses: dtolnay/rust-toolchain@1.96.0
       with:
         components: rustfmt
     - uses: Swatinem/rust-cache@v2
-    - run: cargo install cargo-tomlfmt
+    - uses: cargo-bins/cargo-binstall@v1.20.0
+    - run: cargo binstall -y --force cargo-tomlfmt
     - run: cargo fmt --all -- --check
     - run: find . -name Cargo.toml -execdir cargo tomlfmt -d \;
 
@@ -48,7 +52,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
     - uses: actions/checkout@v6
-    - uses: dtolnay/rust-toolchain@stable
+    - uses: dtolnay/rust-toolchain@1.96.0
       with:
         components: clippy
     - uses: Swatinem/rust-cache@v2
@@ -60,9 +64,30 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
     - uses: actions/checkout@v6
-    - uses: dtolnay/rust-toolchain@stable
+    - uses: dtolnay/rust-toolchain@1.96.0
     - uses: Swatinem/rust-cache@v2
     - run: cargo test
+
+  e2e-tests:
+    needs: changes
+    if: ${{ needs.changes.outputs.rust == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+    - uses: actions/checkout@v6
+    - uses: dtolnay/rust-toolchain@1.96.0
+      with:
+        targets: wasm32-unknown-unknown
+    - uses: Swatinem/rust-cache@v2
+      with:
+        shared-key: e2e
+    - uses: cargo-bins/cargo-binstall@v1.20.0
+    - name: Install cargo-leptos
+      run: |
+        cargo binstall -y --force cargo-leptos@0.3.6
+        cargo leptos --version
+    - name: Run browser scenario tests
+      run: make test-e2e
 
   terraform-plan:
     if: |
