@@ -59,14 +59,19 @@ test-e2e:
 .PHONY: fmt
 fmt:
 	cargo fmt --all
-	find . -name Cargo.toml -execdir cargo tomlfmt \;
+	find . -name Cargo.toml -print0 | while IFS= read -r -d '' manifest; do \
+		(cd "$$(dirname "$$manifest")" && cargo tomlfmt); \
+	done
 	terraform -chdir=terraform fmt -recursive
 
 .PHONY: fmt-check
 fmt-check:
 	cargo fmt --all -- --check
-	find . -name Cargo.toml -execdir cargo tomlfmt -d \;
 	find . -name Cargo.toml.new -delete
+	trap 'find . -name Cargo.toml.new -delete' EXIT; \
+	find . -name Cargo.toml -print0 | while IFS= read -r -d '' manifest; do \
+		(cd "$$(dirname "$$manifest")" && cargo tomlfmt -d); \
+	done
 	terraform -chdir=terraform fmt -recursive -check
 
 .PHONY: clippy

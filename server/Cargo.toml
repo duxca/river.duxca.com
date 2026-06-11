@@ -8,8 +8,8 @@ version = "0.1.0"
 local = []
 
 [dependencies]
-anyhow = "1"
 any_spawner = "0.3.0"
+anyhow = "1"
 async-trait = "0.1"
 axum = "0.8"
 axum-extra = { version = "0.12.6", features = ["cookie", "form", "query", "file-stream", "attachment"] }
@@ -32,8 +32,8 @@ rustls = "0.23.40"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 service = { path = "../service" }
-shared-api = { path = "../shared-api", features = ["ssr"] }
 shadow-rs = "2.0.0"
+shared-api = { path = "../shared-api", features = ["ssr"] }
 sqlx = { version = "0.8.6", features = ["runtime-tokio", "sqlite", "chrono", "json", "uuid", "migrate"] }
 thiserror = "2.0.12"
 tokio = { version = "1", features = ["full"] }
