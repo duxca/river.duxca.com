@@ -75,7 +75,6 @@ ENV LOCAL_DIST_PATH=target/site
 ENV LEPTOS_OUTPUT_NAME=leptos-browser
 ENV LEPTOS_SITE_ROOT=target/site
 ENV LEPTOS_SITE_PKG_DIR=pkg
-ENV GCS_BUCKET_NAME=duxca-litestream-sandbox
 
 EXPOSE 8080
 CMD ["/app/run.bash"]

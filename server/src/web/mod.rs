@@ -1,8 +1,6 @@
 pub mod admin;
-pub mod api;
 pub mod app;
 pub mod home;
-pub mod image;
 pub mod login;
 pub mod server_fn;
 pub mod ui;
@@ -10,8 +8,7 @@ pub mod ui;
 #[derive(Clone)]
 pub struct State {
     pub db: sqlx::sqlite::SqlitePool,
-    pub gcs: google_cloud_storage::client::Storage,
-    pub gcs_control: google_cloud_storage::client::StorageControl,
+    #[allow(dead_code)]
     pub config: crate::Config,
     pub leptos_options: leptos::config::LeptosOptions,
 }
@@ -19,15 +16,11 @@ impl State {
     pub fn new(
         config: crate::Config,
         db: sqlx::sqlite::SqlitePool,
-        gcs: google_cloud_storage::client::Storage,
-        gcs_control: google_cloud_storage::client::StorageControl,
         leptos_options: leptos::config::LeptosOptions,
     ) -> Result<Self, anyhow::Error> {
         Ok(Self {
             config,
             db,
-            gcs,
-            gcs_control,
             leptos_options,
         })
     }

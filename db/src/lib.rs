@@ -1,4 +1,3 @@
-pub mod files;
 pub mod river_tracks;
 pub mod river_waypoints;
 pub mod rivers;

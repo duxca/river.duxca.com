@@ -14,26 +14,12 @@ async fn main() -> Result<(), anyhow::Error> {
         .init();
     let config = envy::from_env::<server::Config>()?;
 
-    let gcs = google_cloud_storage::client::Storage::builder()
-        .build()
-        .await?;
-    let gcs_control = google_cloud_storage::client::StorageControl::builder()
-        .build()
-        .await?;
-
     let pool = db::connect(&config.database_url).await?;
     let session_store = tower_sessions_sqlx_store::SqliteStore::new(pool.clone());
     // セッションテーブルの作成
     session_store.migrate().await?;
 
-    let app = server::create_app(
-        config.clone(),
-        pool,
-        session_store.clone(),
-        gcs,
-        gcs_control,
-    )
-    .await?;
+    let app = server::create_app(config.clone(), pool, session_store.clone()).await?;
 
     let listener = tokio::net::TcpListener::bind(config.host_addr).await?;
     // セッションの定期削除タスク
