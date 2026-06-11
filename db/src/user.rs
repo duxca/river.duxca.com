@@ -283,7 +283,8 @@ pub fn get_user_auths<'a, 'c>(
 pub fn get_user_delete_preview<'a, 'c>(
     conn: impl sqlx::Acquire<'c, Database = sqlx::Sqlite> + Send + 'a,
     user_id: i64,
-) -> impl std::future::Future<Output = Result<model::user::UserDeletePreview, anyhow::Error>> + Send + 'a {
+) -> impl std::future::Future<Output = Result<model::user::UserDeletePreview, anyhow::Error>> + Send + 'a
+{
     async move {
         let mut conn = conn.acquire().await?;
         let river_count = sqlx::query!(
@@ -851,10 +852,12 @@ mod tests {
         )
         .fetch_optional(&conn)
         .await?;
-        assert_eq!(archived_auth.map(|row| row.identifier), Some("twitter_id_1".to_string()));
+        assert_eq!(
+            archived_auth.map(|row| row.identifier),
+            Some("twitter_id_1".to_string())
+        );
 
-        let reauth_user =
-            auth_or_create_user(&conn, 2, "twitter_id_1", "user2_recreated").await?;
+        let reauth_user = auth_or_create_user(&conn, 2, "twitter_id_1", "user2_recreated").await?;
         assert_ne!(reauth_user.user_id, user2.user_id);
         assert_eq!(reauth_user.nickname, "user2_recreated");
         Ok(())
@@ -865,7 +868,8 @@ mod tests {
         env_logger::builder().is_test(true).try_init().ok();
 
         let owner = auth_or_create_user(&conn, 0, "github_owner", "owner").await?;
-        let contributor = auth_or_create_user(&conn, 1, "facebook_contributor", "contributor").await?;
+        let contributor =
+            auth_or_create_user(&conn, 1, "facebook_contributor", "contributor").await?;
 
         let river_id = crate::rivers::create_river(
             &conn,
@@ -923,11 +927,7 @@ mod tests {
                 .await?
                 .is_none()
         );
-        assert!(
-            crate::rivers::get_river(&conn, river_id)
-                .await?
-                .is_some()
-        );
+        assert!(crate::rivers::get_river(&conn, river_id).await?.is_some());
 
         let archived_user = sqlx::query!(
             r#"
@@ -1001,7 +1001,8 @@ mod tests {
         .await?;
         assert_eq!(owner_river_tracks.count, 0);
 
-        let recreated = auth_or_create_user(&conn, 1, "facebook_contributor", "new-contributor").await?;
+        let recreated =
+            auth_or_create_user(&conn, 1, "facebook_contributor", "new-contributor").await?;
         assert_ne!(recreated.user_id, contributor.user_id);
         assert_eq!(recreated.nickname, "new-contributor");
         Ok(())

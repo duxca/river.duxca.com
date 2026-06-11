@@ -186,10 +186,7 @@ fn LoggedInNavigation(role: i64) -> impl IntoView {
 }
 
 #[component]
-fn OptionalAccountDeleteSection(
-    user: model::user::User,
-    account: AccountContext,
-) -> impl IntoView {
+fn OptionalAccountDeleteSection(user: model::user::User, account: AccountContext) -> impl IntoView {
     match (account.csrf_token, account.delete_preview) {
         (Some(csrf_token), Some(preview)) => view! {
             <AccountDeleteSection user=user preview=preview csrf_token=csrf_token/>

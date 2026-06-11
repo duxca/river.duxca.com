@@ -1,6 +1,8 @@
 const ACCOUNT_CSRF_TOKEN_KEY: &str = "account.csrf-token";
 
-pub async fn account_csrf_token(session: &tower_sessions::Session) -> Result<String, crate::web::Ise> {
+pub async fn account_csrf_token(
+    session: &tower_sessions::Session,
+) -> Result<String, crate::web::Ise> {
     use anyhow::Context;
 
     if let Some(token) = session
@@ -74,12 +76,7 @@ pub async fn delete_account(
             .into_response());
     }
 
-    let res = service::handler(
-        &st.db,
-        user,
-        model::api::delete_me::Request {}.into(),
-    )
-    .await?;
+    let res = service::handler(&st.db, user, model::api::delete_me::Request {}.into()).await?;
     match res {
         model::api::Response::DeleteMe(_) => {}
         model::api::Response::Error(model::api::ErrorKind::PermissionDenied) => {

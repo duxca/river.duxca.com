@@ -28,7 +28,8 @@ mod tests {
     async fn delete_me_archives_user_and_allows_reauth(
         conn: sqlx::SqlitePool,
     ) -> Result<(), anyhow::Error> {
-        let deleted = db::user::auth_or_create_user(&conn, 0, "github_delete_me", "delete-me").await?;
+        let deleted =
+            db::user::auth_or_create_user(&conn, 0, "github_delete_me", "delete-me").await?;
         let res = delete_me(&conn, &deleted, model::api::delete_me::Request {}).await?;
         assert!(res.is_ok());
         assert!(db::user::get_user(&conn, deleted.user_id).await?.is_none());
@@ -43,7 +44,10 @@ mod tests {
         )
         .fetch_optional(&conn)
         .await?;
-        assert_eq!(archived.map(|row| row.nickname), Some("delete-me".to_string()));
+        assert_eq!(
+            archived.map(|row| row.nickname),
+            Some("delete-me".to_string())
+        );
 
         let recreated =
             db::user::auth_or_create_user(&conn, 0, "github_delete_me", "delete-me-again").await?;
