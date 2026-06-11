@@ -17,9 +17,44 @@ impl AuthProviders {
 
 #[derive(Clone, Debug, Default)]
 pub struct AccountContext {
-    pub csrf_token: Option<String>,
     pub delete_preview: Option<model::user::UserDeletePreview>,
 }
+
+const DELETE_ACCOUNT_SCRIPT: &str = r#"
+document.querySelectorAll(".delete-account-form").forEach((form) => {
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const formData = new FormData(form);
+    const nicknameConfirm = formData.get("nickname_confirm");
+    const confirmDelete = formData.get("confirm_delete") === "yes";
+    if (typeof nicknameConfirm !== "string" || nicknameConfirm.length === 0) {
+      alert("ニックネームを入力してください。");
+      return;
+    }
+    if (!confirmDelete) {
+      alert("削除の確認にチェックを入れてください。");
+      return;
+    }
+    const response = await fetch("/api/delete_me", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify([nicknameConfirm, confirmDelete]),
+    });
+    if (!response.ok) {
+      alert("アカウント削除に失敗しました。");
+      return;
+    }
+    const payload = await response.json();
+    if (!payload || payload.Err || !payload.Ok || payload.Ok.Err) {
+      alert("アカウント削除に失敗しました。");
+      return;
+    }
+    await fetch("/logout", { method: "POST", credentials: "same-origin" });
+    window.location.href = "/";
+  });
+});
+"#;
 
 #[component]
 pub fn HomePage(
@@ -187,12 +222,12 @@ fn LoggedInNavigation(role: i64) -> impl IntoView {
 
 #[component]
 fn OptionalAccountDeleteSection(user: model::user::User, account: AccountContext) -> impl IntoView {
-    match (account.csrf_token, account.delete_preview) {
-        (Some(csrf_token), Some(preview)) => view! {
-            <AccountDeleteSection user=user preview=preview csrf_token=csrf_token/>
+    match account.delete_preview {
+        Some(preview) => view! {
+            <AccountDeleteSection user=user preview=preview/>
         }
         .into_any(),
-        _ => ().into_any(),
+        None => ().into_any(),
     }
 }
 
@@ -200,7 +235,6 @@ fn OptionalAccountDeleteSection(user: model::user::User, account: AccountContext
 fn AccountDeleteSection(
     user: model::user::User,
     preview: model::user::UserDeletePreview,
-    csrf_token: String,
 ) -> impl IntoView {
     if user.role == 0 {
         return view! {
@@ -225,8 +259,7 @@ fn AccountDeleteSection(
                 <li>"削除対象のウェイポイント: " {preview.waypoint_count}</li>
                 <li>"連携済みログイン方法: " {preview.auth_count}</li>
             </ul>
-            <form method="post" action="/account/delete">
-                <input type="hidden" name="csrf_token" value=csrf_token/>
+            <form class="delete-account-form">
                 <label class="delete-confirm-label" for="nickname_confirm">
                     "確認のためニックネームを入力してください"
                 </label>
@@ -244,6 +277,7 @@ fn AccountDeleteSection(
                 </label>
                 <button class="danger" type="submit">"アカウントを削除"</button>
             </form>
+            <script>{DELETE_ACCOUNT_SCRIPT}</script>
         </section>
     }
     .into_any()

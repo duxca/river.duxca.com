@@ -1,4 +1,3 @@
-pub mod account;
 pub mod admin;
 pub mod app;
 pub mod home;

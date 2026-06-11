@@ -145,7 +145,13 @@ pub async fn delete_river_track(
 }
 
 #[server(prefix = "/api", endpoint = "delete_me", input = leptos::server_fn::codec::Json)]
-pub async fn delete_me()
--> Result<Result<model::api::delete_me::Response, model::api::ErrorKind>, ServerFnError> {
-    call_api_result(model::api::delete_me::Request {}).await
+pub async fn delete_me(
+    nickname_confirm: String,
+    confirm_delete: bool,
+) -> Result<Result<model::api::delete_me::Response, model::api::ErrorKind>, ServerFnError> {
+    call_api_result(model::api::delete_me::Request {
+        nickname_confirm,
+        confirm_delete,
+    })
+    .await
 }

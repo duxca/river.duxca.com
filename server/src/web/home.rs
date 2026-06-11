@@ -1,8 +1,7 @@
 /// GET /
-#[tracing::instrument(level = "trace", skip(auth_session, session, st))]
+#[tracing::instrument(level = "trace", skip(auth_session, st))]
 pub async fn home(
     auth_session: axum_login::AuthSession<crate::web::login::Backend>,
-    session: tower_sessions::Session,
     axum::extract::State(ref st): axum::extract::State<crate::web::State>,
     req: axum::http::Request<axum::body::Body>,
 ) -> Result<impl axum::response::IntoResponse, crate::web::Ise> {
@@ -13,7 +12,6 @@ pub async fn home(
     let mut account = app::AccountContext::default();
     let auths = if let Some(user) = user.as_ref() {
         let mut conn = st.db.acquire().await?;
-        account.csrf_token = Some(crate::web::account::account_csrf_token(&session).await?);
         account.delete_preview =
             Some(db::user::get_user_delete_preview(&mut conn, user.user_id).await?);
         db::user::get_user_auths(&mut conn, user.user_id).await?
