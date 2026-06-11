@@ -7,7 +7,7 @@
 
 `cargo-leptos` が Axum server と Leptos/WASM frontend をまとめて watch します。Axum と frontend はどちらも `127.0.0.1:18080` で配信されます。
 
-初回だけ `cargo-leptos` を入れます。
+初回だけ `cargo-leptos` と `sqlx-cli` を入れます。
 
 ```bash
 make setup

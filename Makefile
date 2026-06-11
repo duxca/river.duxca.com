@@ -2,7 +2,8 @@ SHELL := /usr/bin/env bash
 .SHELLFLAGS := -euo pipefail -c
 
 CARGO_LEPTOS_VERSION := 0.3.6
-SQLX_OFFLINE ?= true
+SQLX_CLI_VERSION := 0.8.6
+DATABASE_URL ?= sqlite://.local/river-dev.db?mode=rwc
 
 .DEFAULT_GOAL := help
 
@@ -11,6 +12,7 @@ help:
 	@printf '%s\n' \
 		'Targets:' \
 		'  make setup             install local build tools' \
+		'  make sqlx-db           prepare local sqlite schema for sqlx checks' \
 		'  make serve             run local hot-reload server' \
 		'  make build             build release server and frontend' \
 		'  make test              run Rust tests' \
@@ -30,19 +32,24 @@ setup:
 		curl -L --proto '=https' --tlsv1.2 -sSf \
 			https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash; \
 	fi
-	cargo binstall -y --force cargo-leptos@$(CARGO_LEPTOS_VERSION)
+	cargo binstall -y --force cargo-leptos@$(CARGO_LEPTOS_VERSION) sqlx-cli@$(SQLX_CLI_VERSION)
+
+.PHONY: sqlx-db
+sqlx-db:
+	mkdir -p .local
+	cargo sqlx database setup --source db/migrations --no-dotenv --database-url '$(DATABASE_URL)'
 
 .PHONY: serve
 serve:
 	./cli/dev-local.sh
 
 .PHONY: build
-build:
-	SQLX_OFFLINE=$(SQLX_OFFLINE) cargo leptos build --release
+build: sqlx-db
+	DATABASE_URL='$(DATABASE_URL)' cargo leptos build --release
 
 .PHONY: test
-test:
-	SQLX_OFFLINE=$(SQLX_OFFLINE) cargo test
+test: sqlx-db
+	DATABASE_URL='$(DATABASE_URL)' cargo test
 
 .PHONY: test-e2e
 test-e2e:
@@ -62,8 +69,8 @@ fmt-check:
 	terraform -chdir=terraform fmt -recursive -check
 
 .PHONY: clippy
-clippy:
-	SQLX_OFFLINE=$(SQLX_OFFLINE) cargo clippy --all-targets --all-features -- -Dwarnings
+clippy: sqlx-db
+	DATABASE_URL='$(DATABASE_URL)' cargo clippy --all-targets --all-features -- -Dwarnings
 
 .PHONY: check
 check: fmt-check clippy test

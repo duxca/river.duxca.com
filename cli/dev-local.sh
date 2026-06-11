@@ -20,7 +20,6 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 export RUST_LOG="${RUST_LOG:-server=debug,service=debug,db=debug,tower_sessions=info}"
-export SQLX_OFFLINE="${SQLX_OFFLINE:-true}"
 unset HOST_ADDR
 unset LOCAL_DIST_PATH
 export DATABASE_URL="${DATABASE_URL:-sqlite://${LOCAL_DB_PATH}?mode=rwc}"
@@ -42,6 +41,8 @@ if ! cargo leptos --help >/dev/null 2>&1; then
   echo "cargo-leptos is required. Install with: cargo binstall -y cargo-leptos@0.3.6" >&2
   exit 1
 fi
+
+cargo sqlx database setup --source db/migrations --no-dotenv --database-url "$DATABASE_URL"
 
 echo "server:   http://${SERVER_HOST}:${SERVER_PORT}/"
 echo "frontend: http://${SERVER_HOST}:${SERVER_PORT}/app"

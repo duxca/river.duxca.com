@@ -7,6 +7,7 @@ db/target
 server/.env
 target
 .docker-build
+.local/
 .env
 key.json
 *.db*
