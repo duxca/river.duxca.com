@@ -9,7 +9,7 @@ hydrate = ["leptos/hydrate", "model/js"]
 ssr = ["leptos/ssr", "dep:service", "dep:sqlx"]
 
 [dependencies]
-leptos = { version = "0.8.6", default-features = false }
+leptos = { workspace = true, default-features = false }
 model = { path = "../model" }
 service = { path = "../service", optional = true }
 sqlx = { version = "0.8.6", features = ["runtime-tokio", "sqlite"], optional = true }

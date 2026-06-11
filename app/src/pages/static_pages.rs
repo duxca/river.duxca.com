@@ -15,98 +15,6 @@ impl AuthProviders {
     }
 }
 
-const PAGE_STYLE: &str = r#"
-body {
-    margin: 0;
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    background: #f7f7f5;
-    color: #242424;
-}
-main {
-    max-width: 720px;
-    margin: 0 auto;
-    padding: 48px 20px;
-}
-h1 {
-    margin: 0 0 12px;
-    font-size: 28px;
-    line-height: 1.2;
-}
-p {
-    line-height: 1.7;
-}
-dl {
-    display: grid;
-    grid-template-columns: max-content 1fr;
-    gap: 8px 16px;
-    margin: 20px 0;
-}
-dt {
-    font-weight: 700;
-}
-dd {
-    margin: 0;
-}
-form {
-    display: inline-block;
-    margin: 8px 8px 0 0;
-}
-section {
-    border-top: 1px solid #d8d8d2;
-    margin-top: 28px;
-    padding-top: 24px;
-}
-h2 {
-    font-size: 18px;
-    margin: 0 0 12px;
-}
-.provider {
-    align-items: center;
-    border-top: 1px solid #e1e1dc;
-    display: flex;
-    gap: 16px;
-    justify-content: space-between;
-    padding: 14px 0;
-}
-.provider:first-of-type {
-    border-top: 0;
-}
-.provider form {
-    margin: 0;
-}
-.provider-name {
-    font-weight: 700;
-}
-.provider-id {
-    color: #5d5d58;
-    font-size: 14px;
-    margin-top: 4px;
-    overflow-wrap: anywhere;
-}
-button, a.button {
-    appearance: none;
-    border: 1px solid #222;
-    border-radius: 6px;
-    background: #222;
-    color: #fff;
-    cursor: pointer;
-    display: inline-block;
-    font: inherit;
-    padding: 10px 14px;
-    text-decoration: none;
-    white-space: nowrap;
-}
-a.button.secondary, button.secondary {
-    background: transparent;
-    color: #222;
-}
-code {
-    background: #ecece8;
-    border-radius: 4px;
-    padding: 2px 5px;
-}
-"#;
-
 #[component]
 pub fn HomePage(user: Option<model::user::User>, providers: AuthProviders) -> impl IntoView {
     view! {
@@ -115,14 +23,14 @@ pub fn HomePage(user: Option<model::user::User>, providers: AuthProviders) -> im
                 <meta charset="utf-8"/>
                 <meta name="viewport" content="width=device-width, initial-scale=1"/>
                 <title>"river.duxca.com"</title>
-                <style>{PAGE_STYLE}</style>
+                <link rel="stylesheet" href="/app/pkg/leptos-browser.css"/>
             </head>
-            <body>
+            <body class="static-page">
                 <main>
                     <h1>"river.duxca.com"</h1>
-                    <p>"川下り地図アプリのサーバは動いています。現在は Yew UI を切り離して、ログイン確認用の簡易ページを表示しています。"</p>
+                    <p>"川下り地図アプリのサーバは動いています。"</p>
                     <HomeContent user=user providers=providers/>
-                    <p><a href="/version">"version"</a></p>
+                    <p><a class="button secondary" href="/version">"version"</a></p>
                 </main>
             </body>
         </html>
@@ -143,9 +51,9 @@ pub fn LoginPage(user: Option<model::user::User>, providers: AuthProviders) -> i
                 <meta charset="utf-8"/>
                 <meta name="viewport" content="width=device-width, initial-scale=1"/>
                 <title>{title}</title>
-                <style>{PAGE_STYLE}</style>
+                <link rel="stylesheet" href="/app/pkg/leptos-browser.css"/>
             </head>
-            <body>
+            <body class="static-page">
                 <main>
                     <LoginContent user=user providers=providers/>
                 </main>
@@ -169,6 +77,7 @@ fn HomeContent(user: Option<model::user::User>, providers: AuthProviders) -> imp
                 <dd><code>{user.role}</code></dd>
             </dl>
             <ConnectedAccounts providers=providers/>
+            <LoggedInNavigation role=user.role/>
             <form method="post" action="/logout">
                 <button class="secondary" type="submit">"Logout"</button>
             </form>
@@ -228,6 +137,21 @@ fn LoginContent(user: Option<model::user::User>, providers: AuthProviders) -> im
             </section>
         }
         .into_any(),
+    }
+}
+
+#[component]
+fn LoggedInNavigation(role: i64) -> impl IntoView {
+    view! {
+        <section>
+            <h2>"Navigation"</h2>
+            <p>
+                <a class="button" href="/app">"地図アプリ"</a>
+                {(role == 0).then(|| view! {
+                    <a class="button secondary" href="/admin">"管理画面"</a>
+                })}
+            </p>
+        </section>
     }
 }
 

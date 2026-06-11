@@ -3,7 +3,6 @@ pub mod app;
 pub mod home;
 pub mod login;
 pub mod server_fn;
-pub mod ui;
 
 #[derive(Clone)]
 pub struct State {

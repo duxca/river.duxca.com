@@ -44,6 +44,7 @@ jobs:
             - 'db/litestream'
             - 'db/litestream.yml'
             - 'cli/run.bash'
+            - 'app/**'
             - 'leptos-browser/**'
             - 'server/**'
             - 'shared-api/**'

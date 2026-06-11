@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "app",
     "server",
     "model",
     "db",
@@ -9,6 +10,11 @@ members = [
     "e2e",
 ]
 resolver = "2"
+
+[workspace.dependencies]
+leptos = { version = "0.8.6", default-features = false }
+leptos_axum = { version = "0.8.6" }
+leptos_router = { version = "0.8.6", default-features = false }
 # exclude = [
 #     "material-yew/build",
 #     "material-yew/usages"
@@ -40,4 +46,4 @@ reload-port = 18082
 site-addr = "127.0.0.1:18080"
 site-pkg-dir = "pkg"
 site-root = "target/site"
-style-file = "leptos-browser/style.css"
+style-file = "app/style.css"

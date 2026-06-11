@@ -95,6 +95,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f202df86484c868dbad7eaa557ef785d5c66295e41b460ef922eca0723b842c"
 
 [[package]]
+name = "app"
+version = "0.1.0"
+dependencies = [
+ "leptos",
+ "leptos-leaflet",
+ "leptos_axum",
+ "leptos_router",
+ "model",
+ "serde_json",
+ "shared-api",
+]
+
+[[package]]
 name = "async-compression"
 version = "0.4.42"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2098,10 +2111,9 @@ dependencies = [
 name = "leptos-browser"
 version = "0.1.0"
 dependencies = [
+ "app",
  "console_error_panic_hook",
  "leptos",
- "leptos-leaflet",
- "shared-api",
  "wasm-bindgen",
 ]
 
@@ -3787,6 +3799,7 @@ version = "0.1.0"
 dependencies = [
  "any_spawner",
  "anyhow",
+ "app",
  "async-trait",
  "axum",
  "axum-extra",

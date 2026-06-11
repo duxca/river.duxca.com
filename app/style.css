@@ -1,0 +1,168 @@
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  color: #242424;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+body.static-page {
+  background: #f7f7f5;
+}
+
+.static-page main {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 48px 20px;
+}
+
+.static-page h1 {
+  font-size: 28px;
+  line-height: 1.2;
+  margin: 0 0 12px;
+}
+
+.static-page p {
+  line-height: 1.7;
+}
+
+.static-page dl {
+  display: grid;
+  gap: 8px 16px;
+  grid-template-columns: max-content 1fr;
+  margin: 20px 0;
+}
+
+.static-page dt {
+  font-weight: 700;
+}
+
+.static-page dd {
+  margin: 0;
+}
+
+.static-page form {
+  display: inline-block;
+  margin: 8px 8px 0 0;
+}
+
+.static-page section {
+  border-top: 1px solid #d8d8d2;
+  margin-top: 28px;
+  padding-top: 24px;
+}
+
+.static-page h2 {
+  font-size: 18px;
+  margin: 0 0 12px;
+}
+
+.provider {
+  align-items: center;
+  border-top: 1px solid #e1e1dc;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  padding: 14px 0;
+}
+
+.provider:first-of-type {
+  border-top: 0;
+}
+
+.provider form {
+  margin: 0;
+}
+
+.provider-name {
+  font-weight: 700;
+}
+
+.provider-id {
+  color: #5d5d58;
+  font-size: 14px;
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+}
+
+button,
+a.button {
+  appearance: none;
+  background: #222;
+  border: 1px solid #222;
+  border-radius: 6px;
+  color: #fff;
+  cursor: pointer;
+  display: inline-block;
+  font: inherit;
+  padding: 10px 14px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+a.button.secondary,
+button.secondary {
+  background: transparent;
+  color: #222;
+}
+
+code {
+  background: #ecece8;
+  border-radius: 4px;
+  padding: 2px 5px;
+}
+
+.app-shell {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  height: 100vh;
+  min-height: 480px;
+}
+
+.topbar {
+  align-items: center;
+  background: #ffffff;
+  border-bottom: 1px solid #d8d8d2;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  min-height: 76px;
+  padding: 14px 20px;
+}
+
+.topbar h1 {
+  font-size: 20px;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.topbar p {
+  color: #5d5d58;
+  margin: 4px 0 0;
+}
+
+.river-count {
+  color: #5d5d58;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.river-count--error {
+  color: #8a3b12;
+}
+
+.map,
+.map-loading {
+  min-height: 0;
+  width: 100%;
+}
+
+.map-loading {
+  align-items: center;
+  background: #f7f7f5;
+  display: flex;
+  justify-content: center;
+}
