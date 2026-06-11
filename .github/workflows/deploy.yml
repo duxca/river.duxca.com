@@ -40,9 +40,10 @@ jobs:
       with:
         shared-key: ${{ env.RUST_CACHE_SHARED_KEY }}
     - uses: cargo-bins/cargo-binstall@v1.20.0
-    - name: Install cargo-leptos
+    - name: Install cargo-leptos and sqlx-cli
       run: |
-        cargo binstall -y --force cargo-leptos@0.3.6 sqlx-cli@0.8.6
+        cargo leptos --version >/dev/null 2>&1 || cargo binstall -y cargo-leptos@0.3.6
+        cargo sqlx --version >/dev/null 2>&1 || cargo binstall -y sqlx-cli@0.8.6
         cargo leptos --version
         cargo sqlx --version
     - name: Run unit tests
