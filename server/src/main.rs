@@ -20,6 +20,7 @@ async fn main() -> Result<(), anyhow::Error> {
     session_store.migrate().await?;
 
     let app = server::create_app(config.clone(), pool, session_store.clone()).await?;
+    let app = app.into_make_service_with_connect_info::<std::net::SocketAddr>();
 
     let listener = tokio::net::TcpListener::bind(config.host_addr).await?;
     // セッションの定期削除タスク

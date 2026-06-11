@@ -33,7 +33,7 @@ impl axum::response::IntoResponse for Ise {
         log::error!("{:?}", self.0);
         (
             axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-            "internal server error",
+            format!("Something went wrong: {:?}", self.0),
         )
             .into_response()
     }

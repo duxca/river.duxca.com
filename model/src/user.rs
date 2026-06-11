@@ -33,13 +33,11 @@ impl axum_login::AuthUser for User {
     }
 
     fn session_auth_hash(&self) -> &[u8] {
-        // ヤケクソ
-        unsafe {
-            std::slice::from_raw_parts(
-                &self.user_id as *const i64 as *const u8,
-                std::mem::size_of::<i64>(),
-            )
-        }
+        // This app authenticates users only through OAuth providers, so there
+        // is no local password hash or session version to compare here. User
+        // deletion still invalidates the session because AuthnBackend::get_user
+        // returns None.
+        &[]
     }
 }
 
