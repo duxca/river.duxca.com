@@ -50,16 +50,6 @@ make test-e2e
 - `/login` にプロバイダボタンが表示されること
 - `/app` でLeptos app shellとWASM frontend bundleが配信されること
 
-### ローカル開発用の fake-gcs-server
-
-Google Cloud Storage のエミュレーターとして fake-gcs-server を使用します。以下のコマンドで起動できます：
-
-```bash
-docker-compose up -d
-```
-
-サーバーは http://localhost:4443 で利用可能です。このエミュレーターは開発時の GCS 操作のテストに使用されます。
-
 ## cloud run 環境作成までの道のり
 
 ### サービスアカウントの作成
