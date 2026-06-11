@@ -15,9 +15,4 @@ shared-api = { path = "../shared-api", default-features = false }
 [features]
 default = []
 hydrate = ["leptos/hydrate", "leptos-leaflet/hydrate", "shared-api/hydrate"]
-ssr = [
-    "leptos/ssr",
-    "leptos_router/ssr",
-    "dep:leptos_axum",
-    "shared-api/ssr",
-]
+ssr = ["leptos/ssr", "leptos_router/ssr", "dep:leptos_axum", "shared-api/ssr"]

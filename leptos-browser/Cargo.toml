@@ -8,12 +8,7 @@ crate-type = ["cdylib", "rlib"]
 
 [features]
 default = []
-hydrate = [
-    "app/hydrate",
-    "console_error_panic_hook",
-    "leptos/hydrate",
-    "wasm-bindgen",
-]
+hydrate = ["app/hydrate", "console_error_panic_hook", "leptos/hydrate", "wasm-bindgen"]
 
 [dependencies]
 app = { path = "../app", default-features = false }

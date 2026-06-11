@@ -10,6 +10,7 @@ local = []
 [dependencies]
 any_spawner = "0.3.0"
 anyhow = "1"
+app = { path = "../app", features = ["ssr"] }
 async-trait = "0.1"
 axum = "0.8"
 axum-extra = { version = "0.12.6", features = ["cookie", "form", "query", "file-stream", "attachment"] }
@@ -21,7 +22,6 @@ db = { path = "../db" }
 dotenvy = "0.15"
 env_logger = "0.11.5"
 envy = "0.4.2"
-app = { path = "../app", features = ["ssr"] }
 futures = "0.3.30"
 leptos = { workspace = true, features = ["ssr"] }
 leptos_axum = { workspace = true }

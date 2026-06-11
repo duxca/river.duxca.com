@@ -2,8 +2,8 @@ mod pages;
 
 use leptos::prelude::*;
 use leptos_router::{
-    components::{Route, Router, Routes},
     StaticSegment,
+    components::{Route, Router, Routes},
 };
 
 pub use pages::{AuthProviders, HomePage, LoginPage, MapPage};
