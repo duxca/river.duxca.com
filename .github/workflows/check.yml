@@ -17,8 +17,8 @@ jobs:
     outputs:
       rust: ${{ steps.changes.outputs.rust }}
     steps:
-    - uses: actions/checkout@v4
-    - uses: dorny/paths-filter@v3
+    - uses: actions/checkout@v6
+    - uses: dorny/paths-filter@v4
       id: changes
       with:
         filters: |
@@ -33,7 +33,7 @@ jobs:
     if: ${{ needs.changes.outputs.rust == 'true' }}
     runs-on: ubuntu-24.04
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - uses: dtolnay/rust-toolchain@stable
       with:
         components: rustfmt
@@ -47,7 +47,7 @@ jobs:
     if: ${{ needs.changes.outputs.rust == 'true' }}
     runs-on: ubuntu-24.04
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - uses: dtolnay/rust-toolchain@stable
       with:
         components: clippy
@@ -59,7 +59,7 @@ jobs:
     if: ${{ needs.changes.outputs.rust == 'true' }}
     runs-on: ubuntu-24.04
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - uses: dtolnay/rust-toolchain@stable
     - uses: Swatinem/rust-cache@v2
     - run: cargo test
@@ -82,7 +82,7 @@ jobs:
       REGION: asia-northeast1
       SERVICE_NAME: litestream-sandbox
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Debug Authentication Context
         run: |
           echo "Actor: ${{ github.actor }}"
@@ -93,12 +93,12 @@ jobs:
           echo "Head Ref: ${{ github.head_ref }}"
           echo "Repository Owner: ${{ github.repository_owner }}"
           echo "Repository ID: ${{ github.repository_id }}"
-      - uses: google-github-actions/auth@v2
+      - uses: google-github-actions/auth@v3
         with:
           workload_identity_provider: projects/${{ env.PROJECT_NUMBER }}/locations/global/workloadIdentityPools/${{ env.POOL_ID }}/providers/${{ env.PROVIDER_ID }}
           project_id: ${{ env.PROJECT_ID }}
           service_account: ${{ env.SERVICE_ACCOUNT }}
-      - uses: google-github-actions/setup-gcloud@v2
+      - uses: google-github-actions/setup-gcloud@v3
       - name: Use gcloud CLI
         run: gcloud info
       - name: Resolve current deployed image
@@ -111,7 +111,7 @@ jobs:
           test -n "${container_image}"
           echo "container_image=${container_image}" >> "${GITHUB_OUTPUT}"
           echo "Current image: ${container_image}"
-      - uses: hashicorp/setup-terraform@v3
+      - uses: hashicorp/setup-terraform@v4
         with:
           terraform_version: 1.15.5
           terraform_wrapper: false
@@ -136,7 +136,7 @@ jobs:
           terraform show -no-color tfplan > plan.txt
       - name: Post Plan to PR
         if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const fs = require('fs');
