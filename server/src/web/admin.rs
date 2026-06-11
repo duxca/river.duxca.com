@@ -1,9 +1,49 @@
 use leptos::prelude::{ClassAttribute, ElementChild, RenderHtml};
 
+const ADMIN_CSRF_TOKEN_KEY: &str = "admin.csrf-token";
+const ADMIN_CSRF_FORM_FIELD: &str = "csrf_token";
+
+async fn admin_csrf_token(session: &tower_sessions::Session) -> Result<String, crate::web::Ise> {
+    use anyhow::Context;
+
+    if let Some(token) = session
+        .get::<String>(ADMIN_CSRF_TOKEN_KEY)
+        .await
+        .context("Failed to get admin CSRF token from session")?
+    {
+        return Ok(token);
+    }
+
+    let token = oauth2::CsrfToken::new_random().secret().to_string();
+    session
+        .insert(ADMIN_CSRF_TOKEN_KEY, &token)
+        .await
+        .context("Failed to insert admin CSRF token into session")?;
+    session
+        .save()
+        .await
+        .context("Failed to save session after admin CSRF token insertion")?;
+    Ok(token)
+}
+
+async fn validate_admin_csrf_token(
+    session: &tower_sessions::Session,
+    csrf_token: &str,
+) -> Result<bool, crate::web::Ise> {
+    use anyhow::Context;
+
+    let saved_token = session
+        .get::<String>(ADMIN_CSRF_TOKEN_KEY)
+        .await
+        .context("Failed to get admin CSRF token from session")?;
+    Ok(saved_token.as_deref() == Some(csrf_token))
+}
+
 // GET /admin
-#[tracing::instrument(level = "trace", skip(auth_session, st))]
+#[tracing::instrument(level = "trace", skip(auth_session, session, st))]
 pub async fn admin(
     auth_session: axum_login::AuthSession<crate::web::login::Backend>,
+    session: tower_sessions::Session,
     axum::extract::State(ref st): axum::extract::State<crate::web::State>,
 ) -> Result<impl axum::response::IntoResponse, crate::web::Ise> {
     use axum::response::IntoResponse;
@@ -40,12 +80,14 @@ pub async fn admin(
         river_csv.serialize(model::river::River::<String>::from(river))?;
         river_waypoints.extend(waypoints);
     }
+    let csrf_token = admin_csrf_token(&session).await?;
     let body = leptos::prelude::view! {
         <AdminPage data=AdminPageData {
             users,
             user_auths,
             access_logs,
             river_waypoints,
+            csrf_token,
             river_csv_header: "river_id,user_id,river_name,waypoint,description,created_at".to_string(),
             river_csv: String::from_utf8(river_csv.into_inner()?)?,
             river_waypoints_csv_header: "river_waypoint_id,river_id,user_id,waypoint_name,description,waypoint,created_at,updated_at".to_string(),
@@ -62,6 +104,7 @@ struct AdminPageData {
     user_auths: Vec<model::user::UserAuth>,
     access_logs: Vec<model::user::AccessLog>,
     river_waypoints: Vec<model::river::RiverWaypoint>,
+    csrf_token: String,
     river_csv_header: String,
     river_csv: String,
     river_waypoints_csv_header: String,
@@ -170,6 +213,7 @@ fn AdminPage(data: AdminPageData) -> impl leptos::prelude::IntoView {
         user_auths,
         access_logs,
         river_waypoints,
+        csrf_token,
         river_csv_header,
         river_csv,
         river_waypoints_csv_header,
@@ -270,24 +314,32 @@ fn AdminPage(data: AdminPageData) -> impl leptos::prelude::IntoView {
                     <CsvForm
                         name="river_csv"
                         label="Rivers CSV"
+                        csrf_token=csrf_token.clone()
                         header=river_csv_header
                         body=river_csv
                     />
                     <CsvForm
                         name="river_waypoints_csv"
                         label="River waypoints CSV"
+                        csrf_token=csrf_token.clone()
                         header=river_waypoints_csv_header
                         body=river_waypoints_csv
                     />
                     <CsvForm
                         name="river_tracks_csv"
                         label="River tracks CSV"
+                        csrf_token=csrf_token.clone()
                         header=river_tracks_csv_header
                         body=river_tracks_csv
                     />
                     <section>
                         <h2>"Delete river waypoints"</h2>
                         <form method="post" action="/admin/delete_waypoints">
+                            <input
+                                type="hidden"
+                                name=ADMIN_CSRF_FORM_FIELD
+                                value=csrf_token
+                            />
                             <ul>
                                 {river_waypoints.into_iter().map(|wpt| view! {
                                     <li>
@@ -326,6 +378,7 @@ fn AdminPage(data: AdminPageData) -> impl leptos::prelude::IntoView {
 fn CsvForm(
     name: &'static str,
     label: &'static str,
+    csrf_token: String,
     header: String,
     body: String,
 ) -> impl leptos::prelude::IntoView {
@@ -333,6 +386,11 @@ fn CsvForm(
         <section>
             <h2>{label}</h2>
             <form method="post" action="/admin/apply">
+                <input
+                    type="hidden"
+                    name=ADMIN_CSRF_FORM_FIELD
+                    value=csrf_token
+                />
                 <div class="csv-header">{header}</div>
                 <textarea name=name rows="10" cols="50">{body}</textarea>
                 <button type="submit">"Apply"</button>
@@ -343,17 +401,20 @@ fn CsvForm(
 
 #[derive(Debug, serde::Deserialize)]
 pub struct ApplyForm {
+    csrf_token: String,
     river_csv: Option<String>,
     river_waypoints_csv: Option<String>,
     river_tracks_csv: Option<String>,
 }
 
 // POST /admin/apply
-#[tracing::instrument(level = "trace", skip(auth_session, st))]
+#[tracing::instrument(level = "trace", skip(auth_session, session, st))]
 pub async fn admin_apply(
     auth_session: axum_login::AuthSession<crate::web::login::Backend>,
+    session: tower_sessions::Session,
     axum::extract::State(ref st): axum::extract::State<crate::web::State>,
     axum::extract::Form(ApplyForm {
+        csrf_token,
         river_csv,
         river_waypoints_csv,
         river_tracks_csv,
@@ -365,6 +426,9 @@ pub async fn admin_apply(
     };
     if user.role != 0 {
         return Ok(crate::web::handler_404().await.into_response());
+    }
+    if !validate_admin_csrf_token(&session, &csrf_token).await? {
+        return Ok((axum::http::StatusCode::BAD_REQUEST, "invalid csrf token").into_response());
     }
     let mut reader_builder = csv::ReaderBuilder::new();
     reader_builder
@@ -494,15 +558,20 @@ pub async fn admin_apply(
 
 #[derive(Debug, serde::Deserialize)]
 pub struct ApiForm {
+    pub csrf_token: String,
     pub waypoint_ids: Vec<i64>,
 }
 
 // POST /admin/delete_waypoints
-#[tracing::instrument(level = "trace", skip(auth_session, st))]
+#[tracing::instrument(level = "trace", skip(auth_session, session, st))]
 pub async fn admin_delete_waypoints(
     auth_session: axum_login::AuthSession<crate::web::login::Backend>,
+    session: tower_sessions::Session,
     axum::extract::State(ref st): axum::extract::State<crate::web::State>,
-    axum_extra::extract::Form(ApiForm { waypoint_ids }): axum_extra::extract::Form<ApiForm>,
+    axum_extra::extract::Form(ApiForm {
+        csrf_token,
+        waypoint_ids,
+    }): axum_extra::extract::Form<ApiForm>,
 ) -> Result<impl axum::response::IntoResponse, crate::web::Ise> {
     use axum::response::IntoResponse;
     let Some(user) = auth_session.user else {
@@ -510,6 +579,9 @@ pub async fn admin_delete_waypoints(
     };
     if user.role != 0 {
         return Ok(crate::web::handler_404().await.into_response());
+    }
+    if !validate_admin_csrf_token(&session, &csrf_token).await? {
+        return Ok((axum::http::StatusCode::BAD_REQUEST, "invalid csrf token").into_response());
     }
     for wpt in waypoint_ids {
         service::handler(
