@@ -20,6 +20,7 @@ pub async fn home(
     };
 
     let providers = app::AuthProviders::from_auths(&auths);
+    let options = st.leptos_options.clone();
     let handler = leptos_axum::render_app_to_stream_with_context(
         || {},
         move || {
@@ -28,6 +29,7 @@ pub async fn home(
                     user=user.clone()
                     providers=providers.clone()
                     account=account.clone()
+                    options=options.clone()
                 />
             }
         },
