@@ -9,6 +9,7 @@ env:
   IMAGE_REPOSITORY: asia-northeast1-docker.pkg.dev/duxca-298210/cloud-run-source-deploy/litestream-sandbox
   IMAGE_TAG: latest
   CARGO_TERM_COLOR: always
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   SQLX_OFFLINE: true
 
 on:
