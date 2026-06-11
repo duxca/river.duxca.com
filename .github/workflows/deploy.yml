@@ -25,6 +25,7 @@ jobs:
   deploy:
     if: github.event.pull_request.merged == true
     runs-on: ubuntu-24.04
+    timeout-minutes: 45
     permissions:
       contents: read
       pull-requests: write
@@ -84,9 +85,9 @@ jobs:
         CONTAINER_IMAGE: ${{ steps.image.outputs.image }}
       run: |
         set -euo pipefail
-        terraform init
-        terraform plan -out=tfplan -var="container_image=${CONTAINER_IMAGE}"
-        terraform apply -auto-approve tfplan
+        timeout 5m terraform init
+        timeout 10m terraform plan -out=tfplan -var="container_image=${CONTAINER_IMAGE}"
+        timeout 20m terraform apply -auto-approve tfplan
     - name: Output Service URL
       working-directory: ./terraform
       run: |
