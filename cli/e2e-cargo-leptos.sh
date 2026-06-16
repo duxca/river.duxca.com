@@ -5,7 +5,7 @@ cd "$(dirname "$0")/.."
 
 SERVER_HOST="${SERVER_HOST:-0.0.0.0}"
 SERVER_PORT="${SERVER_PORT:-18080}"
-SERVER_PUBLIC_HOST="${SERVER_PUBLIC_HOST:-127.0.0.1}"
+SERVER_PUBLIC_HOST="${SERVER_PUBLIC_HOST:-host.docker.internal}"
 LISTEN_ADDR="${LEPTOS_SITE_ADDR:-${HOST_ADDR:-${SERVER_HOST}:${SERVER_PORT}}}"
 SITE_ROOT="${LEPTOS_SITE_ROOT:-${LOCAL_DIST_PATH:-target/site}}"
 LOCAL_DB_DIR="${LOCAL_DB_DIR:-.local}"
@@ -17,7 +17,7 @@ export RUST_LOG="${RUST_LOG:-server=debug,service=debug,db=debug,tower_sessions=
 unset HOST_ADDR
 unset LOCAL_DIST_PATH
 export DATABASE_URL="${DATABASE_URL:-sqlite://${LOCAL_DB_PATH}?mode=rwc}"
-export BASE_URL="${BASE_URL:-http://${SERVER_PUBLIC_HOST}:${SERVER_PORT}}"
+export BASE_URL="${BASE_URL:-http://127.0.0.1:${SERVER_PORT}}"
 export LOCAL_BASE_URL="${LOCAL_BASE_URL:-http://${SERVER_PUBLIC_HOST}:${SERVER_PORT}}"
 export LOCAL_CLIENT_ID="${LOCAL_CLIENT_ID:-local}"
 export LOCAL_CLIENT_SECRET="${LOCAL_CLIENT_SECRET:-local}"

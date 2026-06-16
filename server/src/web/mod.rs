@@ -1,5 +1,6 @@
 pub mod admin;
 pub mod app;
+pub mod fake_github;
 pub mod home;
 pub mod login;
 pub mod server_fn;

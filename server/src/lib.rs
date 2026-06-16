@@ -133,17 +133,24 @@ pub async fn create_app(
         .with_expiry(tower_sessions::Expiry::OnInactivity(
             std::time::Duration::from_secs(7 * 24 * 60 * 60).try_into()?,
         ));
-    if cfg!(not(feature = "local")) {
+    if cfg!(feature = "local") {
+        session_layer = session_layer.with_secure(false);
+    } else {
         // 本番環境で有効にする
         session_layer = session_layer.with_secure(true).with_http_only(true);
     }
 
     let backend_settings = if cfg!(feature = "local") {
+        let fake_github_browser_base_url = format!("{}/fake-github", config.local_base_url);
+        let fake_github_server_base_url = format!("{}/fake-github", config.base_url);
         web::login::BackendSettings {
             facebook_client_id: config.facebook_client_id.clone(),
             facebook_client_secret: config.facebook_client_secret.clone(),
             github_client_id: config.local_client_id.clone(),
             github_client_secret: config.local_client_secret.clone(),
+            github_auth_url: format!("{fake_github_browser_base_url}/login/oauth/authorize"),
+            github_token_url: format!("{fake_github_server_base_url}/login/oauth/access_token"),
+            github_user_url: format!("{fake_github_server_base_url}/user"),
             base_url: config.local_base_url.clone(),
         }
     } else {
@@ -152,6 +159,9 @@ pub async fn create_app(
             facebook_client_secret: config.facebook_client_secret.clone(),
             github_client_id: config.github_client_id.clone(),
             github_client_secret: config.github_client_secret.clone(),
+            github_auth_url: web::login::github::AUTH_URL.to_string(),
+            github_token_url: web::login::github::TOKEN_URL.to_string(),
+            github_user_url: web::login::github::USER_URL.to_string(),
             base_url: config.base_url.clone(),
         }
     };
@@ -240,6 +250,9 @@ pub async fn create_app(
             // 一般のリクエストで DB にアクセスするための State
             crate::web::State::new(config.clone(), pool, leptos_options)?
         });
+    if cfg!(feature = "local") {
+        app = app.nest("/fake-github", crate::web::fake_github::router());
+    }
     if cfg!(not(feature = "local")) {
         app = app.layer(axum::middleware::from_fn_with_state(
             CanonicalBaseUrl(config.base_url.clone()),

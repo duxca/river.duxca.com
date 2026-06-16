@@ -66,6 +66,9 @@ pub struct Backend {
 pub struct BackendSettings {
     pub github_client_id: oauth2::ClientId,
     pub github_client_secret: oauth2::ClientSecret,
+    pub github_auth_url: String,
+    pub github_token_url: String,
+    pub github_user_url: String,
     pub facebook_client_id: oauth2::ClientId,
     pub facebook_client_secret: oauth2::ClientSecret,
     pub base_url: String,
@@ -102,9 +105,12 @@ impl axum_login::AuthnBackend for Backend {
                         self.settings.github_client_secret.clone(),
                         creds.auth_code.clone(),
                         &self.settings.base_url,
+                        &self.settings.github_auth_url,
+                        &self.settings.github_token_url,
                     )
                     .await?;
-                    let user_info = github::get_me(&access_token).await?;
+                    let user_info =
+                        github::get_me(&access_token, &self.settings.github_user_url).await?;
                     let res = github::login_db(&self.db, creds.user, user_info).await?;
                     Ok(res)
                 }
