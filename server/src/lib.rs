@@ -121,6 +121,8 @@ pub async fn create_app(
     pool: sqlx::sqlite::SqlitePool,
     session_store: tower_sessions_sqlx_store::SqliteStore,
 ) -> Result<axum::Router, anyhow::Error> {
+    use leptos_axum::LeptosRoutes;
+
     let leptos_options = leptos::config::get_configuration(None)
         .map(|conf| conf.leptos_options)
         .unwrap_or_else(|_| {
@@ -179,6 +181,15 @@ pub async fn create_app(
     let backend = web::login::Backend::new(pool.clone(), backend_settings);
     let app_pkg_dir =
         std::path::PathBuf::from(&*leptos_options.site_root).join(&*leptos_options.site_pkg_dir);
+    let web_state = crate::web::State::new(config.clone(), pool, leptos_options.clone())?;
+    let app_routes = leptos_axum::generate_route_list_with_exclusions(
+        app::App,
+        Some(
+            leptos::server_fn::axum::server_fn_paths()
+                .map(|(path, _)| path.to_string())
+                .collect(),
+        ),
+    );
 
     let governor_conf = tower_governor::governor::GovernorConfigBuilder::default()
         .key_extractor(tower_governor::key_extractor::SmartIpKeyExtractor)
@@ -209,8 +220,10 @@ pub async fn create_app(
     let mut app = axum::Router::new()
         .route("/", axum::routing::get(crate::web::home::home))
         .nest("/api", api_routes)
-        .route("/app", axum::routing::get(crate::web::app::app_shell))
-        .route("/app/", axum::routing::get(crate::web::app::app_shell))
+        .leptos_routes(&web_state, app_routes, {
+            let leptos_options = leptos_options.clone();
+            move || app::shell(leptos_options.clone())
+        })
         .nest_service("/app/pkg", tower_http::services::ServeDir::new(app_pkg_dir))
         .layer(tower_http::cors::CorsLayer::very_permissive())
         .route("/admin", axum::routing::get(crate::web::admin::admin))
@@ -256,10 +269,7 @@ pub async fn create_app(
             );
             default_headers
         }))
-        .with_state({
-            // 一般のリクエストで DB にアクセスするための State
-            crate::web::State::new(config.clone(), pool, leptos_options)?
-        });
+        .with_state(web_state);
     #[cfg(feature = "local")]
     {
         app = app.nest("/fake-github", crate::web::fake_github::router());
