@@ -42,6 +42,9 @@ pub fn HomePage(
                 <main>
                     <h1>"river.duxca.com"</h1>
                     <p>"川下り地図アプリのサーバは動いています。"</p>
+                    <p>
+                        <a class="button" href="/app">"地図アプリ"</a>
+                    </p>
                     <HomeContent user=user providers=providers account=account/>
                     <p><a class="button secondary" href="/version">"version"</a></p>
                 </main>
@@ -103,7 +106,7 @@ fn HomeContent(
                     <dd><code>{user.role}</code></dd>
                 </dl>
                 <ConnectedAccounts providers=providers/>
-                <LoggedInNavigation role=user.role/>
+                <AdminNavigation role=user.role/>
                 <OptionalAccountDeleteSection user=delete_user account=account/>
                 <form method="post" action="/logout">
                     <button class="secondary" type="submit">"Logout"</button>
@@ -177,18 +180,20 @@ fn LoginContent(
 }
 
 #[component]
-fn LoggedInNavigation(role: i64) -> impl IntoView {
+fn AdminNavigation(role: i64) -> impl IntoView {
+    if role != 0 {
+        return ().into_any();
+    }
+
     view! {
         <section>
             <h2>"Navigation"</h2>
             <p>
-                <a class="button" href="/app">"地図アプリ"</a>
-                {(role == 0).then(|| view! {
-                    <a class="button secondary" href="/admin">"管理画面"</a>
-                })}
+                <a class="button secondary" href="/admin">"管理画面"</a>
             </p>
         </section>
     }
+    .into_any()
 }
 
 #[component]

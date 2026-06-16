@@ -165,7 +165,9 @@ button.danger {
   display: grid;
   grid-template-rows: auto 1fr;
   height: 100vh;
+  height: 100dvh;
   min-height: 480px;
+  overflow: hidden;
 }
 
 .topbar {
@@ -202,6 +204,13 @@ button.danger {
 
 .map,
 .map-loading {
+  height: 100%;
+  min-height: 0;
+  width: 100%;
+}
+
+.leaflet-container {
+  height: 100%;
   min-height: 0;
   width: 100%;
 }
