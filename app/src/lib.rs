@@ -6,7 +6,9 @@ use leptos_router::{
     components::{Route, Router, Routes},
 };
 
-pub use pages::{AccountContext, AuthProviders, HomePage, LoginPage, MapPage};
+pub use pages::{
+    AccountContext, AdminPage, AdminPageData, AuthProviders, HomePage, LoginPage, MapPage,
+};
 
 pub fn shell(options: LeptosOptions) -> impl IntoView {
     let css_path = format!("/app{}", options.css_path());
