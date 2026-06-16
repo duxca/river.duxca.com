@@ -203,6 +203,33 @@ button.danger {
   }
 }
 
+.map-controls {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  justify-content: flex-end;
+
+  label {
+    align-items: center;
+    color: $muted-color;
+    display: inline-flex;
+    font-size: 14px;
+    gap: 6px;
+  }
+
+  select {
+    border: 1px solid #c9c9c2;
+    border-radius: 6px;
+    font: inherit;
+    padding: 6px 8px;
+  }
+}
+
+.map-toggle {
+  white-space: nowrap;
+}
+
 .river-count {
   color: $muted-color;
   font-size: 14px;
@@ -224,6 +251,39 @@ button.danger {
   height: 100%;
   min-height: 0;
   width: 100%;
+}
+
+.map-crosshair {
+  height: 20px;
+  left: 50%;
+  margin-left: -10px;
+  margin-top: -10px;
+  pointer-events: none;
+  position: absolute;
+  top: 50%;
+  width: 20px;
+  z-index: 1000;
+
+  &::before,
+  &::after {
+    background: #d33;
+    content: "";
+    position: absolute;
+  }
+
+  &::before {
+    height: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 2px;
+  }
+
+  &::after {
+    height: 2px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+  }
 }
 
 .map-loading {
