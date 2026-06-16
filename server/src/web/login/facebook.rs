@@ -1,6 +1,6 @@
-const AUTH_URL: &str = "https://www.facebook.com/v20.0/dialog/oauth";
-const TOKEN_URL: &str = "https://graph.facebook.com/v20.0/oauth/access_token";
-const USER_URL: &str = "https://graph.facebook.com/v20.0/me";
+pub const AUTH_URL: &str = "https://www.facebook.com/v20.0/dialog/oauth";
+pub const TOKEN_URL: &str = "https://graph.facebook.com/v20.0/oauth/access_token";
+pub const USER_URL: &str = "https://graph.facebook.com/v20.0/me";
 const CSRF_STATE_KEY: &str = "oauth.facebook.csrf-state";
 // https://developers.facebook.com/apps/?show_reminder=true&locale=ja_JP
 const REDIRECT_PATH: &str = "/oauth/callback/facebook";
@@ -19,8 +19,10 @@ pub async fn login(
 ) -> Result<impl axum::response::IntoResponse, crate::web::Ise> {
     use anyhow::Context;
     use axum::response::IntoResponse;
-    let auth_url = oauth2::AuthUrl::new(AUTH_URL.to_string()).unwrap();
-    let token_url = oauth2::TokenUrl::new(TOKEN_URL.to_string()).unwrap();
+    let auth_url =
+        oauth2::AuthUrl::new(auth_session.backend.settings.facebook_auth_url.clone()).unwrap();
+    let token_url =
+        oauth2::TokenUrl::new(auth_session.backend.settings.facebook_token_url.clone()).unwrap();
     let client_id = auth_session.backend.settings.facebook_client_id.clone();
     let client_secret = auth_session.backend.settings.facebook_client_secret.clone();
     let redirect_url = oauth2::RedirectUrl::new(format!(
@@ -120,10 +122,12 @@ pub async fn get_access_token(
     client_secret: oauth2::ClientSecret,
     auth_code: oauth2::AuthorizationCode,
     base_url: &str,
+    auth_url: &str,
+    token_url: &str,
 ) -> Result<oauth2::AccessToken, anyhow::Error> {
     use anyhow::Context;
-    let auth_url = oauth2::AuthUrl::new(AUTH_URL.to_string()).unwrap();
-    let token_url = oauth2::TokenUrl::new(TOKEN_URL.to_string()).unwrap();
+    let auth_url = oauth2::AuthUrl::new(auth_url.to_string()).unwrap();
+    let token_url = oauth2::TokenUrl::new(token_url.to_string()).unwrap();
     let redirect_url = oauth2::RedirectUrl::new(format!("{}{}", base_url, REDIRECT_PATH)).unwrap();
     let client = oauth2::basic::BasicClient::new(client_id)
         .set_client_secret(client_secret)
@@ -151,10 +155,13 @@ pub struct UserInfo {
 }
 
 #[tracing::instrument(level = "trace")]
-pub async fn get_me(access_token: &oauth2::AccessToken) -> Result<UserInfo, anyhow::Error> {
+pub async fn get_me(
+    access_token: &oauth2::AccessToken,
+    user_url: &str,
+) -> Result<UserInfo, anyhow::Error> {
     use anyhow::Context;
     let res = reqwest::Client::new()
-        .get(USER_URL)
+        .get(user_url)
         .query(&[("fields", "id,name")])
         .header(
             axum::http::header::AUTHORIZATION.as_str(),

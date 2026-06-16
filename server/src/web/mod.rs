@@ -1,5 +1,8 @@
 pub mod admin;
 pub mod app;
+#[cfg(feature = "local")]
+pub mod fake_facebook;
+#[cfg(feature = "local")]
 pub mod fake_github;
 pub mod home;
 pub mod login;

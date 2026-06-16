@@ -59,6 +59,9 @@ pub struct BackendSettings {
     pub github_user_url: String,
     pub facebook_client_id: oauth2::ClientId,
     pub facebook_client_secret: oauth2::ClientSecret,
+    pub facebook_auth_url: String,
+    pub facebook_token_url: String,
+    pub facebook_user_url: String,
     pub base_url: String,
 }
 
@@ -108,9 +111,12 @@ impl axum_login::AuthnBackend for Backend {
                         self.settings.facebook_client_secret.clone(),
                         creds.auth_code.clone(),
                         &self.settings.base_url,
+                        &self.settings.facebook_auth_url,
+                        &self.settings.facebook_token_url,
                     )
                     .await?;
-                    let user_info = facebook::get_me(&access_token).await?;
+                    let user_info =
+                        facebook::get_me(&access_token, &self.settings.facebook_user_url).await?;
                     let res = facebook::login_db(&self.db, creds.user, user_info).await?;
                     Ok(res)
                 }

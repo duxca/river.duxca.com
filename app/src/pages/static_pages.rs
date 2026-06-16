@@ -100,7 +100,7 @@ fn HomeContent(
                     <dt>"Role"</dt>
                     <dd><code>{user.role}</code></dd>
                 </dl>
-                <ConnectedAccounts providers=providers/>
+                <ConnectedAccounts providers=providers role=user.role/>
                 <AdminNavigation role=user.role/>
                 <OptionalAccountDeleteSection user=delete_user account=account/>
                 <form method="post" action="/logout">
@@ -304,16 +304,18 @@ async fn logout_and_redirect() {
 }
 
 #[component]
-fn ConnectedAccounts(providers: AuthProviders) -> impl IntoView {
+fn ConnectedAccounts(providers: AuthProviders, role: i64) -> impl IntoView {
     view! {
         <section>
             <h2>"Connected accounts"</h2>
-            <ProviderRow
-                name="GitHub"
-                identifier=providers.github.map(|auth| auth.identifier)
-                action="/login/github"
-                button_label="Connect GitHub"
-            />
+            {(role == 0).then(|| view! {
+                <ProviderRow
+                    name="GitHub"
+                    identifier=providers.github.map(|auth| auth.identifier)
+                    action="/login/github"
+                    button_label="Connect GitHub"
+                />
+            })}
             <ProviderRow
                 name="Facebook"
                 identifier=providers.facebook.map(|auth| auth.identifier)

@@ -99,6 +99,46 @@ async fn unknown_path_returns_not_found() -> Result<()> {
 }
 
 #[tokio::test]
+async fn fake_facebook_login_creates_regular_user() -> Result<()> {
+    let server_url = env_url("SERVER_URL", "http://127.0.0.1:18080");
+    let client = new_client().await?;
+
+    client.goto(&server_url).await?;
+    client
+        .find(Locator::Css("form[action='/login/facebook'] button"))
+        .await?
+        .click()
+        .await?;
+
+    let mut body = String::new();
+    for _ in 0..40 {
+        body = body_text(&client).await.unwrap_or_default();
+        if body.contains("ログイン済み") {
+            break;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(250)).await;
+    }
+    assert!(
+        body.contains("ログイン済み"),
+        "url={} body={body}",
+        client.current_url().await?
+    );
+    assert!(body.contains("fake-facebook-user"));
+    assert!(body.contains("Role"));
+    assert!(body.contains("1"));
+    assert!(!body.contains("管理画面"));
+    assert!(
+        client
+            .find(Locator::Css("form[action='/login/github'] button"))
+            .await
+            .is_err()
+    );
+
+    client.close().await?;
+    Ok(())
+}
+
+#[tokio::test]
 async fn fake_github_login_creates_session() -> Result<()> {
     let server_url = env_url("SERVER_URL", "http://127.0.0.1:18080");
     let client = new_client().await?;
@@ -124,7 +164,16 @@ async fn fake_github_login_creates_session() -> Result<()> {
         client.current_url().await?
     );
     assert!(body.contains("fake-github-user"));
+    assert!(body.contains("Role"));
+    assert!(body.contains("0"));
+    assert!(body.contains("管理画面"));
     assert!(!body.contains("Manage connections"));
+    assert!(
+        client
+            .find(Locator::Css("form[action='/login/github'] button"))
+            .await
+            .is_err()
+    );
 
     client.goto(&format!("{server_url}/login")).await?;
     let body = body_text(&client).await?;

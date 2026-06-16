@@ -73,8 +73,10 @@ mod config_tests {
 }
 
 #[derive(Clone)]
+#[cfg(not(feature = "local"))]
 struct CanonicalBaseUrl(String);
 
+#[cfg(not(feature = "local"))]
 async fn redirect_to_canonical_host(
     axum::extract::State(CanonicalBaseUrl(base_url)): axum::extract::State<CanonicalBaseUrl>,
     req: axum::extract::Request,
@@ -143,9 +145,14 @@ pub async fn create_app(
     let backend_settings = if cfg!(feature = "local") {
         let fake_github_browser_base_url = format!("{}/fake-github", config.local_base_url);
         let fake_github_server_base_url = format!("{}/fake-github", config.base_url);
+        let fake_facebook_browser_base_url = format!("{}/fake-facebook", config.local_base_url);
+        let fake_facebook_server_base_url = format!("{}/fake-facebook", config.base_url);
         web::login::BackendSettings {
             facebook_client_id: config.facebook_client_id.clone(),
             facebook_client_secret: config.facebook_client_secret.clone(),
+            facebook_auth_url: format!("{fake_facebook_browser_base_url}/v20.0/dialog/oauth"),
+            facebook_token_url: format!("{fake_facebook_server_base_url}/v20.0/oauth/access_token"),
+            facebook_user_url: format!("{fake_facebook_server_base_url}/v20.0/me"),
             github_client_id: config.local_client_id.clone(),
             github_client_secret: config.local_client_secret.clone(),
             github_auth_url: format!("{fake_github_browser_base_url}/login/oauth/authorize"),
@@ -157,6 +164,9 @@ pub async fn create_app(
         web::login::BackendSettings {
             facebook_client_id: config.facebook_client_id.clone(),
             facebook_client_secret: config.facebook_client_secret.clone(),
+            facebook_auth_url: web::login::facebook::AUTH_URL.to_string(),
+            facebook_token_url: web::login::facebook::TOKEN_URL.to_string(),
+            facebook_user_url: web::login::facebook::USER_URL.to_string(),
             github_client_id: config.github_client_id.clone(),
             github_client_secret: config.github_client_secret.clone(),
             github_auth_url: web::login::github::AUTH_URL.to_string(),
@@ -250,10 +260,13 @@ pub async fn create_app(
             // 一般のリクエストで DB にアクセスするための State
             crate::web::State::new(config.clone(), pool, leptos_options)?
         });
-    if cfg!(feature = "local") {
+    #[cfg(feature = "local")]
+    {
         app = app.nest("/fake-github", crate::web::fake_github::router());
+        app = app.nest("/fake-facebook", crate::web::fake_facebook::router());
     }
-    if cfg!(not(feature = "local")) {
+    #[cfg(not(feature = "local"))]
+    {
         app = app.layer(axum::middleware::from_fn_with_state(
             CanonicalBaseUrl(config.base_url.clone()),
             redirect_to_canonical_host,

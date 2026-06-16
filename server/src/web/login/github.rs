@@ -221,10 +221,36 @@ pub fn login_db<'a, 'c>(
             )
             .await
             .context("Failed to create new user with GitHub OAuth info")?;
+            #[cfg(feature = "local")]
+            let user = promote_local_fake_github_admin(&mut *db, user, &user_info).await?;
             Ok(Some(user))
         }
     }
     .boxed()
+}
+
+#[cfg(feature = "local")]
+async fn promote_local_fake_github_admin(
+    conn: &mut sqlx::SqliteConnection,
+    user: model::user::User,
+    user_info: &UserInfo,
+) -> Result<model::user::User, anyhow::Error> {
+    if user_info.id != 1 || user_info.login != "fake-github-user" {
+        return Ok(user);
+    }
+
+    sqlx::query!(
+        r#"
+        UPDATE users
+        SET role = 0
+        WHERE user_id = ?1
+        "#,
+        user.user_id
+    )
+    .execute(conn)
+    .await?;
+
+    Ok(model::user::User { role: 0, ..user })
 }
 
 #[cfg(test)]
