@@ -16,34 +16,6 @@ pub(crate) fn oauth_callback_base_url(
     configured_base_url.to_owned()
 }
 
-/// GET /login
-/// ひみつのログインページ
-#[tracing::instrument(level = "trace", skip(auth_session, st))]
-pub async fn login(
-    auth_session: axum_login::AuthSession<Backend>,
-    axum::extract::State(ref st): axum::extract::State<crate::web::State>,
-    req: axum::http::Request<axum::body::Body>,
-) -> Result<impl axum::response::IntoResponse, crate::web::Ise> {
-    use axum::response::IntoResponse;
-    use leptos::prelude::*;
-
-    if auth_session.user.is_some() {
-        return Ok(axum::response::Redirect::to("/").into_response());
-    }
-
-    let options = st.leptos_options.clone();
-    let handler = leptos_axum::render_app_to_stream_with_context(
-        || {},
-        move || {
-            view! {
-                <app::LoginPage options=options.clone()/>
-            }
-        },
-    );
-
-    Ok(handler(req).await.into_response())
-}
-
 /// POST /logout
 #[tracing::instrument(level = "trace", skip(auth_session, session))]
 pub async fn logout(

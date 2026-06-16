@@ -1,4 +1,3 @@
-use leptos::config::LeptosOptions;
 use leptos::prelude::*;
 
 #[derive(Clone, Debug, Default)]
@@ -21,62 +20,49 @@ pub struct AccountContext {
     pub delete_preview: Option<model::user::UserDeletePreview>,
 }
 
+#[derive(Clone, Debug, Default)]
+pub struct HomePageData {
+    pub user: Option<model::user::User>,
+    pub providers: AuthProviders,
+    pub account: AccountContext,
+}
+
 #[component]
-pub fn HomePage(
-    user: Option<model::user::User>,
-    providers: AuthProviders,
-    account: AccountContext,
-    options: LeptosOptions,
-) -> impl IntoView {
-    let css_path = format!("/app{}", options.css_path());
+pub fn HomePage() -> impl IntoView {
+    let HomePageData {
+        user,
+        providers,
+        account,
+    } = use_context::<HomePageData>().unwrap_or_default();
     let is_logged_in = user.is_some();
+
     view! {
-        <html lang="ja">
-            <head>
-                <meta charset="utf-8"/>
-                <meta name="viewport" content="width=device-width, initial-scale=1"/>
-                <title>"river.duxca.com"</title>
-                <link rel="stylesheet" href=css_path/>
-                <HydrationScripts options=options.clone() islands=true root="/app"/>
-            </head>
-            <body class="static-page">
-                <main>
-                    <h1>"river.duxca.com"</h1>
-                    <p>"川下り地図アプリのサーバは動いています。"</p>
-                    {is_logged_in.then(|| view! {
-                        <p>
-                            <a class="button" href="/app">"地図アプリ"</a>
-                        </p>
-                    })}
-                    <HomeContent user=user providers=providers account=account/>
-                    {is_logged_in.then(|| view! {
-                        <p><a class="button secondary" href="/version">"version"</a></p>
-                    })}
-                </main>
-            </body>
-        </html>
+        <div class="static-page">
+            <main>
+                <h1>"river.duxca.com"</h1>
+                <p>"川下り地図アプリのサーバは動いています。"</p>
+                {is_logged_in.then(|| view! {
+                    <p>
+                        <a class="button" href="/app">"地図アプリ"</a>
+                    </p>
+                })}
+                <HomeContent user=user providers=providers account=account/>
+                {is_logged_in.then(|| view! {
+                    <p><a class="button secondary" href="/version">"version"</a></p>
+                })}
+            </main>
+        </div>
     }
 }
 
 #[component]
-pub fn LoginPage(options: LeptosOptions) -> impl IntoView {
-    let css_path = format!("/app{}", options.css_path());
-
+pub fn LoginPage() -> impl IntoView {
     view! {
-        <html lang="ja">
-            <head>
-                <meta charset="utf-8"/>
-                <meta name="viewport" content="width=device-width, initial-scale=1"/>
-                <title>"ログイン"</title>
-                <link rel="stylesheet" href=css_path/>
-                <HydrationScripts options=options.clone() islands=true root="/app"/>
-            </head>
-            <body class="static-page">
-                <main>
-                    <LoginContent/>
-                </main>
-            </body>
-        </html>
+        <div class="static-page">
+            <main>
+                <LoginContent/>
+            </main>
+        </div>
     }
 }
 

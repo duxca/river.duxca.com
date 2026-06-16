@@ -17,8 +17,9 @@ body {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
-body.static-page {
+.static-page {
   background: $page-background;
+  min-height: 100vh;
 }
 
 .static-page {

@@ -7,7 +7,8 @@ use leptos_router::{
 };
 
 pub use pages::{
-    AccountContext, AdminPage, AdminPageData, AuthProviders, HomePage, LoginPage, MapPage,
+    AccountContext, AdminPage, AdminPageData, AuthProviders, HomePage, HomePageData, LoginPage,
+    MapPage,
 };
 
 pub fn shell(options: LeptosOptions) -> impl IntoView {
@@ -44,9 +45,11 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
 #[component]
 pub fn App() -> impl IntoView {
     view! {
-        <Router base="/app">
+        <Router>
             <Routes fallback=|| view! { <p>"ページが見つかりません"</p> }>
-                <Route path=StaticSegment("") view=MapPage/>
+                <Route path=StaticSegment("") view=HomePage/>
+                <Route path=StaticSegment("login") view=LoginPage/>
+                <Route path=StaticSegment("app") view=MapPage/>
             </Routes>
         </Router>
     }

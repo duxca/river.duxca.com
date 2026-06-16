@@ -218,12 +218,8 @@ pub async fn create_app(
         .layer(tower_governor::GovernorLayer::new(governor_conf));
 
     let mut app = axum::Router::new()
-        .route("/", axum::routing::get(crate::web::home::home))
         .nest("/api", api_routes)
-        .leptos_routes(&web_state, app_routes, {
-            let leptos_options = leptos_options.clone();
-            move || app::shell(leptos_options.clone())
-        })
+        .leptos_routes_with_handler(app_routes, crate::web::app::app_shell)
         .nest_service("/app/pkg", tower_http::services::ServeDir::new(app_pkg_dir))
         .layer(tower_http::cors::CorsLayer::very_permissive())
         .route("/admin", axum::routing::get(crate::web::admin::admin))
@@ -235,7 +231,6 @@ pub async fn create_app(
             "/admin/delete_waypoints",
             axum::routing::post(crate::web::admin::admin_delete_waypoints),
         )
-        .route("/login", axum::routing::get(crate::web::login::login))
         .route(
             "/login/github",
             axum::routing::post(crate::web::login::github::login),
