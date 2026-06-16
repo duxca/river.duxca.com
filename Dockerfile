@@ -71,7 +71,7 @@ ENV BASE_URL=https://river.duxca.com
 ENV LOCAL_CLIENT_ID=local
 ENV LOCAL_CLIENT_SECRET=local
 ENV LOCAL_BASE_URL=http://localhost:8080
-ENV LEPTOS_OUTPUT_NAME=leptos-browser
+ENV LEPTOS_OUTPUT_NAME=frontend
 ENV LEPTOS_SITE_ROOT=target/site
 ENV LEPTOS_SITE_PKG_DIR=pkg
 

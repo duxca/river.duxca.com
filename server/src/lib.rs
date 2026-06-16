@@ -125,7 +125,7 @@ pub async fn create_app(
         .map(|conf| conf.leptos_options)
         .unwrap_or_else(|_| {
             leptos::config::LeptosOptions::builder()
-                .output_name("leptos-browser")
+                .output_name("frontend")
                 .site_root(config.local_dist_path.clone())
                 .site_pkg_dir("pkg")
                 .build()

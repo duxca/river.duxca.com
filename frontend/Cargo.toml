@@ -1,6 +1,6 @@
 [package]
 edition = "2024"
-name = "leptos-browser"
+name = "frontend"
 version = "0.1.0"
 
 [lib]

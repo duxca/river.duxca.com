@@ -6,7 +6,7 @@ members = [
     "db",
     "service",
     "shared-api",
-    "leptos-browser",
+    "frontend",
     "e2e",
 ]
 resolver = "2"
@@ -39,9 +39,9 @@ end2end-cmd = "./cli/e2e-local-container.sh --no-server"
 end2end-dir = "."
 lib-default-features = false
 lib-features = ["hydrate"]
-lib-package = "leptos-browser"
+lib-package = "frontend"
 lib-profile-release = "wasm-release"
-name = "leptos-browser"
+name = "frontend"
 reload-port = 18082
 site-addr = "127.0.0.1:18080"
 site-pkg-dir = "pkg"
