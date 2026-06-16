@@ -1,6 +1,21 @@
 pub mod facebook;
 pub mod github;
 
+pub(crate) fn oauth_callback_base_url(
+    configured_base_url: &str,
+    _headers: &axum::http::HeaderMap,
+) -> String {
+    #[cfg(feature = "local")]
+    if let Some(host) = _headers
+        .get(axum::http::header::HOST)
+        .and_then(|host| host.to_str().ok())
+    {
+        return format!("http://{host}");
+    }
+
+    configured_base_url.to_owned()
+}
+
 /// GET /login
 /// ひみつのログインページ
 #[tracing::instrument(level = "trace", skip(auth_session, st))]

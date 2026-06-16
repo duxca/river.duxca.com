@@ -15,6 +15,7 @@ const REDIRECT_PATH: &str = "/oauth/callback/facebook";
 pub async fn login(
     auth_session: axum_login::AuthSession<crate::web::login::Backend>,
     session: tower_sessions::Session,
+    headers: axum::http::HeaderMap,
     // axum::Form(LoginForm { redirect }): axum::Form<LoginForm>,
 ) -> Result<impl axum::response::IntoResponse, crate::web::Ise> {
     use anyhow::Context;
@@ -25,11 +26,9 @@ pub async fn login(
         oauth2::TokenUrl::new(auth_session.backend.settings.facebook_token_url.clone()).unwrap();
     let client_id = auth_session.backend.settings.facebook_client_id.clone();
     let client_secret = auth_session.backend.settings.facebook_client_secret.clone();
-    let redirect_url = oauth2::RedirectUrl::new(format!(
-        "{}{}",
-        auth_session.backend.settings.base_url, REDIRECT_PATH
-    ))
-    .unwrap();
+    let base_url =
+        super::oauth_callback_base_url(&auth_session.backend.settings.base_url, &headers);
+    let redirect_url = oauth2::RedirectUrl::new(format!("{}{}", base_url, REDIRECT_PATH)).unwrap();
     let client = oauth2::basic::BasicClient::new(client_id)
         .set_client_secret(client_secret)
         .set_auth_uri(auth_url)
