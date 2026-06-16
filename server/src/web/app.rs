@@ -12,7 +12,7 @@ pub async fn app_shell(
         db: st.db.clone(),
         user,
     });
-    let handler = leptos_axum::render_app_to_stream_with_context(
+    let handler = leptos_axum::render_app_async_with_context(
         move || {
             if let Some(ctx) = ctx.clone() {
                 provide_context(ctx);
