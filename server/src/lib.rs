@@ -210,15 +210,12 @@ pub async fn create_app(
         }
     });
 
-    let api_routes = axum::Router::new()
-        .route(
-            "/{*fn_name}",
-            axum::routing::post(crate::web::server_fn::server_fn),
-        )
-        .layer(tower_governor::GovernorLayer::new(governor_conf));
-
     let mut app = axum::Router::new()
-        .nest("/api", api_routes)
+        .route(
+            "/api/{*fn_name}",
+            axum::routing::post(crate::web::server_fn::server_fn)
+                .layer(tower_governor::GovernorLayer::new(governor_conf)),
+        )
         .leptos_routes_with_handler(app_routes, crate::web::app::app_shell)
         .nest_service("/app/pkg", tower_http::services::ServeDir::new(app_pkg_dir))
         .layer(tower_http::cors::CorsLayer::very_permissive())
