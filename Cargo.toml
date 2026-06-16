@@ -46,4 +46,4 @@ reload-port = 18082
 site-addr = "127.0.0.1:18080"
 site-pkg-dir = "pkg"
 site-root = "target/site"
-style-file = "app/style.css"
+style-file = "style/style.scss"

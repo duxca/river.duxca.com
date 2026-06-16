@@ -1,3 +1,11 @@
+$text-color: #242424;
+$muted-color: #5d5d58;
+$page-background: #f7f7f5;
+$border-color: #d8d8d2;
+$soft-border-color: #e1e1dc;
+$button-background: #222;
+$danger-color: #8a1f1f;
+
 html,
 body {
   height: 100%;
@@ -5,76 +13,78 @@ body {
 }
 
 body {
-  color: #242424;
+  color: $text-color;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 body.static-page {
-  background: #f7f7f5;
+  background: $page-background;
 }
 
-.static-page main {
-  max-width: 720px;
-  margin: 0 auto;
-  padding: 48px 20px;
-}
+.static-page {
+  main {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 48px 20px;
+  }
 
-.static-page h1 {
-  font-size: 28px;
-  line-height: 1.2;
-  margin: 0 0 12px;
-}
+  h1 {
+    font-size: 28px;
+    line-height: 1.2;
+    margin: 0 0 12px;
+  }
 
-.static-page p {
-  line-height: 1.7;
-}
+  p {
+    line-height: 1.7;
+  }
 
-.static-page dl {
-  display: grid;
-  gap: 8px 16px;
-  grid-template-columns: max-content 1fr;
-  margin: 20px 0;
-}
+  dl {
+    display: grid;
+    gap: 8px 16px;
+    grid-template-columns: max-content 1fr;
+    margin: 20px 0;
+  }
 
-.static-page dt {
-  font-weight: 700;
-}
+  dt {
+    font-weight: 700;
+  }
 
-.static-page dd {
-  margin: 0;
-}
+  dd {
+    margin: 0;
+  }
 
-.static-page form {
-  display: inline-block;
-  margin: 8px 8px 0 0;
-}
+  form {
+    display: inline-block;
+    margin: 8px 8px 0 0;
+  }
 
-.static-page section {
-  border-top: 1px solid #d8d8d2;
-  margin-top: 28px;
-  padding-top: 24px;
-}
+  section {
+    border-top: 1px solid $border-color;
+    margin-top: 28px;
+    padding-top: 24px;
+  }
 
-.static-page h2 {
-  font-size: 18px;
-  margin: 0 0 12px;
+  h2 {
+    font-size: 18px;
+    margin: 0 0 12px;
+  }
 }
 
 .provider {
   align-items: center;
-  border-top: 1px solid #e1e1dc;
+  border-top: 1px solid $soft-border-color;
   display: flex;
   gap: 16px;
   justify-content: space-between;
   padding: 14px 0;
-}
 
-.provider:first-of-type {
-  border-top: 0;
-}
+  &:first-of-type {
+    border-top: 0;
+  }
 
-.provider form {
-  margin: 0;
+  form {
+    margin: 0;
+  }
 }
 
 .provider-name {
@@ -82,7 +92,7 @@ body.static-page {
 }
 
 .provider-id {
-  color: #5d5d58;
+  color: $muted-color;
   font-size: 14px;
   margin-top: 4px;
   overflow-wrap: anywhere;
@@ -91,8 +101,8 @@ body.static-page {
 button,
 a.button {
   appearance: none;
-  background: #222;
-  border: 1px solid #222;
+  background: $button-background;
+  border: 1px solid $button-background;
   border-radius: 6px;
   color: #fff;
   cursor: pointer;
@@ -106,7 +116,7 @@ a.button {
 a.button.secondary,
 button.secondary {
   background: transparent;
-  color: #222;
+  color: $button-background;
 }
 
 code {
@@ -121,10 +131,10 @@ code {
   border-radius: 8px;
   margin-top: 28px;
   padding: 20px;
-}
 
-.danger-zone h2 {
-  color: #8a1f1f;
+  h2 {
+    color: $danger-color;
+  }
 }
 
 .delete-preview {
@@ -157,8 +167,8 @@ code {
 }
 
 button.danger {
-  background: #8a1f1f;
-  border-color: #8a1f1f;
+  background: $danger-color;
+  border-color: $danger-color;
 }
 
 .app-shell {
@@ -173,27 +183,27 @@ button.danger {
 .topbar {
   align-items: center;
   background: #ffffff;
-  border-bottom: 1px solid #d8d8d2;
+  border-bottom: 1px solid $border-color;
   display: flex;
   gap: 16px;
   justify-content: space-between;
   min-height: 76px;
   padding: 14px 20px;
-}
 
-.topbar h1 {
-  font-size: 20px;
-  line-height: 1.2;
-  margin: 0;
-}
+  h1 {
+    font-size: 20px;
+    line-height: 1.2;
+    margin: 0;
+  }
 
-.topbar p {
-  color: #5d5d58;
-  margin: 4px 0 0;
+  p {
+    color: $muted-color;
+    margin: 4px 0 0;
+  }
 }
 
 .river-count {
-  color: #5d5d58;
+  color: $muted-color;
   font-size: 14px;
   white-space: nowrap;
 }
@@ -217,7 +227,7 @@ button.danger {
 
 .map-loading {
   align-items: center;
-  background: #f7f7f5;
+  background: $page-background;
   display: flex;
   justify-content: center;
 }
