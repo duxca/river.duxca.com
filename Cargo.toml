@@ -12,9 +12,12 @@ members = [
 resolver = "2"
 
 [workspace.dependencies]
+console_log = "1.0.0"
 leptos = { version = "0.8.6", default-features = false }
 leptos_axum = { version = "0.8.6" }
+leptos_meta = { version = "0.8.6", default-features = false }
 leptos_router = { version = "0.8.6", default-features = false }
+log = "0.4.22"
 # exclude = [
 #     "material-yew/build",
 #     "material-yew/usages"
@@ -31,6 +34,7 @@ opt-level = "z"
 panic = "abort"
 
 [[workspace.metadata.leptos]]
+assets-dir = "public"
 bin-default-features = false
 bin-features = ["local"]
 bin-package = "server"
@@ -46,4 +50,4 @@ reload-port = 18082
 site-addr = "127.0.0.1:18080"
 site-pkg-dir = "pkg"
 site-root = "target/site"
-style-file = "style/style.scss"
+style-file = "style/main.scss"

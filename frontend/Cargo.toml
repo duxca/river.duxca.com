@@ -8,10 +8,12 @@ crate-type = ["cdylib", "rlib"]
 
 [features]
 default = []
-hydrate = ["app/hydrate", "console_error_panic_hook", "leptos/hydrate", "leptos/islands", "wasm-bindgen"]
+hydrate = ["app/hydrate", "console_error_panic_hook", "console_log", "leptos/hydrate", "leptos/islands", "log", "wasm-bindgen"]
 
 [dependencies]
 app = { path = "../app", default-features = false }
 console_error_panic_hook = { version = "0.1", optional = true }
+console_log = { workspace = true, optional = true }
 leptos = { workspace = true, default-features = false, optional = true }
+log = { workspace = true, optional = true }
 wasm-bindgen = { version = "0.2", optional = true }
