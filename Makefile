@@ -4,6 +4,13 @@ SHELL := /usr/bin/env bash
 CARGO_LEPTOS_VERSION := 0.3.6
 SQLX_CLI_VERSION := 0.8.6
 DATABASE_URL ?= sqlite://.local/river-dev.db?mode=rwc
+PROJECT_ID ?= duxca-298210
+REGION ?= asia-northeast1
+IMAGE_REPOSITORY ?= $(REGION)-docker.pkg.dev/$(PROJECT_ID)/cloud-run-source-deploy/litestream-sandbox
+IMAGE_TAG ?= latest
+DEPLOY_METADATA ?= .local/deploy-image-metadata.json
+DEPLOY_TERRAFORM_PLAN ?= ../.local/tfplan
+DEPLOY_TERRAFORM_REFRESH ?= false
 
 .DEFAULT_GOAL := help
 
@@ -23,6 +30,7 @@ help:
 		'  make check             run fmt-check, clippy, and test' \
 		'  make check-ci          run check plus e2e and terraform validation' \
 		'  make terraform-check   run terraform init, validate, and fmt check' \
+		'  make deploy            build, push, and terraform apply from local main checkout' \
 		'  make clean             remove build output'
 
 .PHONY: setup
@@ -89,6 +97,23 @@ terraform-check:
 	terraform -chdir=terraform init
 	terraform -chdir=terraform validate
 	terraform -chdir=terraform fmt -check
+
+.PHONY: deploy
+deploy:
+	mkdir -p .local
+	gcloud auth configure-docker '$(REGION)-docker.pkg.dev'
+	docker buildx build \
+		--push \
+		--tag '$(IMAGE_REPOSITORY):$(IMAGE_TAG)' \
+		--metadata-file '$(DEPLOY_METADATA)' \
+		.
+	CF_TOKEN="$${CLOUDFLARE_API_TOKEN:-$$(python3 -c 'import pathlib, tomllib; print(tomllib.load(open(pathlib.Path.home() / ".cf/config.toml", "rb"))["access_token"])')}"; \
+		CONTAINER_IMAGE='$(IMAGE_REPOSITORY)'@$$(python3 -c 'import json; print(json.load(open("$(DEPLOY_METADATA)"))["containerimage.digest"])'); \
+		echo "Deploying $${CONTAINER_IMAGE}"; \
+		CLOUDFLARE_API_TOKEN="$${CF_TOKEN}" timeout 5m terraform -chdir=terraform init; \
+		CLOUDFLARE_API_TOKEN="$${CF_TOKEN}" timeout 10m terraform -chdir=terraform plan -refresh=$(DEPLOY_TERRAFORM_REFRESH) -out='$(DEPLOY_TERRAFORM_PLAN)' -var="container_image=$${CONTAINER_IMAGE}"; \
+		CLOUDFLARE_API_TOKEN="$${CF_TOKEN}" timeout 20m terraform -chdir=terraform apply -refresh=$(DEPLOY_TERRAFORM_REFRESH) -auto-approve '$(DEPLOY_TERRAFORM_PLAN)'; \
+		terraform -chdir=terraform output -raw cloud_run_url
 
 .PHONY: clean
 clean:

@@ -40,7 +40,7 @@ RUN \
   for migration in $(find db/migrations -maxdepth 1 -type f -name '*.sql' | sort); do \
     sqlite3 .local/river-dev.db < "${migration}"; \
   done; \
-  DATABASE_URL='sqlite://.local/river-dev.db?mode=rwc' cargo leptos build --release; \
+  DATABASE_URL='sqlite://.local/river-dev.db?mode=rwc' cargo leptos build --release --bin-features ''; \
   mkdir -p /out/site; \
   cp target/release/server /out/server; \
   cp -a target/site/. /out/site/
