@@ -12,28 +12,16 @@ pub async fn login(
     use axum::response::IntoResponse;
     use leptos::prelude::*;
 
-    let mut conn = st.db.acquire().await?;
-    let user = auth_session.user;
-    let mut account = app::AccountContext::default();
-    let auths = if let Some(user) = user.as_ref() {
-        account.delete_preview =
-            Some(db::user::get_user_delete_preview(&mut conn, user.user_id).await?);
-        db::user::get_user_auths(&mut conn, user.user_id).await?
-    } else {
-        vec![]
-    };
-    let providers = app::AuthProviders::from_auths(&auths);
+    if auth_session.user.is_some() {
+        return Ok(axum::response::Redirect::to("/").into_response());
+    }
+
     let options = st.leptos_options.clone();
     let handler = leptos_axum::render_app_to_stream_with_context(
         || {},
         move || {
             view! {
-                <app::LoginPage
-                    user=user.clone()
-                    providers=providers.clone()
-                    account=account.clone()
-                    options=options.clone()
-                />
+                <app::LoginPage options=options.clone()/>
             }
         },
     );

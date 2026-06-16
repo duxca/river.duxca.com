@@ -234,7 +234,7 @@ pub async fn create_app(
             "/version",
             axum::routing::get(|| async { build::CLAP_LONG_VERSION }),
         )
-        .fallback(crate::web::home::home)
+        .fallback(crate::web::handler_404)
         .layer(axum_login::AuthManagerLayerBuilder::new(backend, session_layer).build())
         .layer(tower_http::trace::TraceLayer::new_for_http())
         .layer(tower_http::compression::CompressionLayer::new())

@@ -29,6 +29,7 @@ pub fn HomePage(
     options: LeptosOptions,
 ) -> impl IntoView {
     let css_path = format!("/app{}", options.css_path());
+    let is_logged_in = user.is_some();
     view! {
         <html lang="ja">
             <head>
@@ -42,11 +43,15 @@ pub fn HomePage(
                 <main>
                     <h1>"river.duxca.com"</h1>
                     <p>"川下り地図アプリのサーバは動いています。"</p>
-                    <p>
-                        <a class="button" href="/app">"地図アプリ"</a>
-                    </p>
+                    {is_logged_in.then(|| view! {
+                        <p>
+                            <a class="button" href="/app">"地図アプリ"</a>
+                        </p>
+                    })}
                     <HomeContent user=user providers=providers account=account/>
-                    <p><a class="button secondary" href="/version">"version"</a></p>
+                    {is_logged_in.then(|| view! {
+                        <p><a class="button secondary" href="/version">"version"</a></p>
+                    })}
                 </main>
             </body>
         </html>
@@ -54,17 +59,7 @@ pub fn HomePage(
 }
 
 #[component]
-pub fn LoginPage(
-    user: Option<model::user::User>,
-    providers: AuthProviders,
-    account: AccountContext,
-    options: LeptosOptions,
-) -> impl IntoView {
-    let title = if user.is_some() {
-        "アカウント連携"
-    } else {
-        "ログイン"
-    };
+pub fn LoginPage(options: LeptosOptions) -> impl IntoView {
     let css_path = format!("/app{}", options.css_path());
 
     view! {
@@ -72,13 +67,13 @@ pub fn LoginPage(
             <head>
                 <meta charset="utf-8"/>
                 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-                <title>{title}</title>
+                <title>"ログイン"</title>
                 <link rel="stylesheet" href=css_path/>
                 <HydrationScripts options=options.clone() islands=true root="/app"/>
             </head>
             <body class="static-page">
                 <main>
-                    <LoginContent user=user providers=providers account=account/>
+                    <LoginContent/>
                 </main>
             </body>
         </html>
@@ -119,63 +114,33 @@ fn HomeContent(
                 <dt>"Status"</dt>
                 <dd>"未ログイン"</dd>
             </dl>
-            <form method="post" action="/login/github">
-                <button type="submit">"Login with GitHub"</button>
-            </form>
             <form method="post" action="/login/facebook">
                 <button type="submit">"Login with Facebook"</button>
             </form>
-            <a class="button secondary" href="/login">"Provider status"</a>
         }
         .into_any(),
     }
 }
 
 #[component]
-fn LoginContent(
-    user: Option<model::user::User>,
-    providers: AuthProviders,
-    account: AccountContext,
-) -> impl IntoView {
-    match user {
-        Some(user) => {
-            let delete_user = user.clone();
-            view! {
-                <h1>"アカウント連携"</h1>
-                <p>"ログイン済みのアカウントに、別のログイン方法を追加できます。"</p>
-                <dl>
-                    <dt>"User ID"</dt>
-                    <dd><code>{user.user_id}</code></dd>
-                    <dt>"Nickname"</dt>
-                    <dd>{user.nickname}</dd>
-                </dl>
-                <ConnectedAccounts providers=providers/>
-                <OptionalAccountDeleteSection user=delete_user account=account/>
-                <p>
-                    <a href="/" class="button secondary">"Back"</a>
-                </p>
-            }
-        }
-        .into_any(),
-        None => view! {
-            <h1>"ログイン"</h1>
-            <p>"ログイン方法を選んでください。ログイン後に別のログイン方法を同じアカウントへ連携できます。"</p>
-            <section>
-                <ProviderRow
-                    name="GitHub"
-                    identifier=None
-                    action="/login/github"
-                    button_label="Login with GitHub"
-                />
-                <ProviderRow
-                    name="Facebook"
-                    identifier=None
-                    action="/login/facebook"
-                    button_label="Login with Facebook"
-                />
-            </section>
-        }
-        .into_any(),
+fn LoginContent() -> impl IntoView {
+    view! {
+        <h1>"ログイン"</h1>
+        <p>"ログイン方法を選んでください。ログイン後に別のログイン方法を同じアカウントへ連携できます。"</p>
+        <section>
+            <ProviderRow
+                name="GitHub"
+                identifier=None
+                action="/login/github"
+                button_label="Login with GitHub"
+            />
+            <ProviderRow
+                name="Facebook"
+                identifier=None
+                action="/login/facebook"
+                button_label="Login with Facebook"
+            />
+        </section>
     }
 }
 
@@ -355,7 +320,6 @@ fn ConnectedAccounts(providers: AuthProviders) -> impl IntoView {
                 action="/login/facebook"
                 button_label="Connect Facebook"
             />
-            <a class="button secondary" href="/login">"Manage connections"</a>
         </section>
     }
 }
