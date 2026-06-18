@@ -190,6 +190,33 @@ button.danger {
   margin: 4px 0 0;
 }
 
+.map-toolbar {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.map-layer-select {
+  align-items: center;
+  color: #5d5d58;
+  display: inline-flex;
+  font-size: 14px;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.map-layer-select select {
+  background: #fff;
+  border: 1px solid #c9c9c2;
+  border-radius: 6px;
+  color: #242424;
+  font: inherit;
+  min-height: 36px;
+  padding: 6px 32px 6px 10px;
+}
+
 .river-count {
   color: #5d5d58;
   font-size: 14px;

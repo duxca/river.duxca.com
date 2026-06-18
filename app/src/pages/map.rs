@@ -7,15 +7,73 @@ const DEFAULT_CENTER: Position = Position {
     lng: 138.731_389,
 };
 
+const GSI_ATTRIBUTION: &str = "<a href=\"https://maps.gsi.go.jp/development/ichiran.html\" target=\"_blank\">地理院タイル</a>";
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum BaseLayer {
+    Osm,
+    GsiStandard,
+    GsiRedRelief,
+}
+
+impl BaseLayer {
+    fn from_value(value: &str) -> Self {
+        match value {
+            "gsi-standard" => Self::GsiStandard,
+            "gsi-red-relief" => Self::GsiRedRelief,
+            _ => Self::Osm,
+        }
+    }
+
+    const fn value(self) -> &'static str {
+        match self {
+            Self::Osm => "osm",
+            Self::GsiStandard => "gsi-standard",
+            Self::GsiRedRelief => "gsi-red-relief",
+        }
+    }
+
+    const fn url(self) -> &'static str {
+        match self {
+            Self::Osm => "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+            Self::GsiStandard => "https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png",
+            Self::GsiRedRelief => "https://cyberjapandata.gsi.go.jp/xyz/sekishoku/{z}/{x}/{y}.png",
+        }
+    }
+
+    const fn attribution(self) -> &'static str {
+        match self {
+            Self::Osm => {
+                "&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors"
+            }
+            Self::GsiStandard | Self::GsiRedRelief => GSI_ATTRIBUTION,
+        }
+    }
+}
+
 fn river_position(river: &model::river::River) -> Option<Position> {
     let (lat, lng): (f64, f64) = serde_json::from_value(river.waypoint.clone()).ok()?;
     Some(Position { lat, lng })
 }
 
+#[cfg(feature = "ssr")]
+async fn load_rivers() -> Result<model::api::list_rivers::Response, ServerFnError> {
+    if use_context::<shared_api::ServerApiContext>().is_none() {
+        return Err(ServerFnError::ServerError("login required".into()));
+    }
+    list_rivers().await
+}
+
+#[cfg(feature = "hydrate")]
+async fn load_rivers() -> Result<model::api::list_rivers::Response, ServerFnError> {
+    list_rivers().await
+}
+
 #[component]
 pub fn MapPage() -> impl IntoView {
-    let rivers = Resource::new(|| (), |_| list_rivers());
+    let rivers = Resource::new(|| (), |_| load_rivers());
     let map_ready = RwSignal::new(false);
+    let base_layer = RwSignal::new(BaseLayer::Osm);
 
     Effect::new(move |_| {
         map_ready.set(true);
@@ -28,13 +86,28 @@ pub fn MapPage() -> impl IntoView {
                     <h1>"river.duxca.com"</h1>
                     <p>"Leptos + Leaflet"</p>
                 </div>
-                <RiverStatus rivers/>
+                <div class="map-toolbar">
+                    <label class="map-layer-select">
+                        <span>"背景地図"</span>
+                        <select
+                            prop:value=move || base_layer.get().value()
+                            on:change=move |ev| {
+                                base_layer.set(BaseLayer::from_value(&event_target_value(&ev)));
+                            }
+                        >
+                            <option value="osm">"OpenStreetMap"</option>
+                            <option value="gsi-standard">"地理院地図"</option>
+                            <option value="gsi-red-relief">"赤色立体図"</option>
+                        </select>
+                    </label>
+                    <RiverStatus rivers/>
+                </div>
             </header>
             <Show
                 when=move || map_ready.get()
                 fallback=|| view! { <div class="map-loading">"地図を読み込み中..."</div> }
             >
-                <RiverMap rivers/>
+                <RiverMap rivers base_layer/>
             </Show>
         </div>
     }
@@ -66,6 +139,7 @@ fn RiverStatus(
 #[component]
 fn RiverMap(
     rivers: Resource<Result<model::api::list_rivers::Response, leptos::prelude::ServerFnError>>,
+    base_layer: RwSignal<BaseLayer>,
 ) -> impl IntoView {
     view! {
         <Suspense fallback=|| view! { <div class="map-loading">"地図を読み込み中..."</div> }>
@@ -106,10 +180,15 @@ fn RiverMap(
                         scroll_wheel_zoom=true
                         set_view=true
                     >
-                        <TileLayer
-                            url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-                            attribution="&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors"
-                        />
+                        {move || {
+                            let layer = base_layer.get();
+                            view! {
+                                <TileLayer
+                                    url=layer.url()
+                                    attribution=layer.attribution()
+                                />
+                            }
+                        }}
                         {markers}
                     </MapContainer>
                 }
