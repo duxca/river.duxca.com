@@ -1,3 +1,5 @@
+#![recursion_limit = "256"]
+
 shadow_rs::shadow!(build);
 
 mod web;
