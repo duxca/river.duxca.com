@@ -179,17 +179,20 @@ button.danger {
   height: 100dvh;
   min-height: 480px;
   overflow: hidden;
+  width: 100%;
 }
 
 .topbar {
   align-items: center;
   background: #ffffff;
   border-bottom: 1px solid $border-color;
+  box-sizing: border-box;
   display: flex;
   gap: 16px;
   justify-content: space-between;
   min-height: 76px;
   padding: 14px 20px;
+  width: 100%;
 
   h1 {
     font-size: 20px;
@@ -209,6 +212,7 @@ button.danger {
   flex-wrap: wrap;
   gap: 10px 14px;
   justify-content: flex-end;
+  min-width: 0;
 
   label {
     align-items: center;
@@ -243,14 +247,44 @@ button.danger {
 .map,
 .map-loading {
   height: 100%;
+  max-width: 100%;
   min-height: 0;
+  overflow: hidden;
   width: 100%;
 }
 
 .leaflet-container {
   height: 100%;
+  max-width: 100%;
   min-height: 0;
   width: 100%;
+}
+
+@media (max-width: 640px) {
+  .topbar {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 16px;
+  }
+
+  .topbar > div,
+  .map-controls {
+    width: 100%;
+  }
+
+  .map-controls {
+    justify-content: flex-start;
+  }
+
+  .map-controls label:first-child {
+    width: 100%;
+  }
+
+  .map-controls select {
+    flex: 1;
+    min-width: 0;
+  }
 }
 
 .map-crosshair {

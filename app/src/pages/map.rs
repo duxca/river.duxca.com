@@ -10,6 +10,7 @@ const DEFAULT_CENTER: Position = Position {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum MapLayer {
     Gsi,
+    RedRelief,
     Osm,
     Hillshade,
     Blank,
@@ -17,8 +18,9 @@ enum MapLayer {
 }
 
 impl MapLayer {
-    const ALL: [Self; 5] = [
+    const ALL: [Self; 6] = [
         Self::Gsi,
+        Self::RedRelief,
         Self::Osm,
         Self::Hillshade,
         Self::Blank,
@@ -28,6 +30,7 @@ impl MapLayer {
     fn value(self) -> &'static str {
         match self {
             Self::Gsi => "gsi",
+            Self::RedRelief => "red-relief",
             Self::Osm => "osm",
             Self::Hillshade => "hillshade",
             Self::Blank => "blank",
@@ -38,6 +41,7 @@ impl MapLayer {
     fn label(self) -> &'static str {
         match self {
             Self::Gsi => "地理院タイル",
+            Self::RedRelief => "赤色立体図",
             Self::Osm => "OpenStreetMap",
             Self::Hillshade => "陰影起伏図",
             Self::Blank => "白地図",
@@ -47,6 +51,7 @@ impl MapLayer {
 
     fn from_value(value: &str) -> Self {
         match value {
+            "red-relief" => Self::RedRelief,
             "osm" => Self::Osm,
             "hillshade" => Self::Hillshade,
             "blank" => Self::Blank,
@@ -58,6 +63,7 @@ impl MapLayer {
     fn tile_url(self) -> &'static str {
         match self {
             Self::Gsi => "https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png",
+            Self::RedRelief => "https://cyberjapandata.gsi.go.jp/xyz/sekishoku/{z}/{x}/{y}.png",
             Self::Osm => "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
             Self::Hillshade => "https://cyberjapandata.gsi.go.jp/xyz/hillshademap/{z}/{x}/{y}.png",
             Self::Blank => "https://cyberjapandata.gsi.go.jp/xyz/blank/{z}/{x}/{y}.png",
