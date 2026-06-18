@@ -84,7 +84,7 @@ async fn load_rivers() -> Result<model::api::list_rivers::Response, ServerFnErro
     list_rivers().await
 }
 
-#[cfg(feature = "hydrate")]
+#[cfg(all(feature = "hydrate", not(feature = "ssr")))]
 async fn load_rivers() -> Result<model::api::list_rivers::Response, ServerFnError> {
     list_rivers().await
 }
