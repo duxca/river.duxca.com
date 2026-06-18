@@ -221,7 +221,7 @@ pub fn login_db<'a, 'c>(
             .await
             .context("Failed to create new user with GitHub OAuth info")?;
             #[cfg(feature = "local")]
-            let user = promote_local_fake_github_admin(&mut *db, user, &user_info).await?;
+            let user = promote_local_fake_github_admin(&mut db, user, &user_info).await?;
             Ok(Some(user))
         }
     }
