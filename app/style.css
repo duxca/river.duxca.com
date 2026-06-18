@@ -229,8 +229,15 @@ button.danger {
 
 .map,
 .map-loading {
+  height: 100%;
   min-height: 0;
   width: 100%;
+}
+
+.map-workspace {
+  height: 100%;
+  min-height: 0;
+  position: relative;
 }
 
 .map-loading {
@@ -238,4 +245,52 @@ button.danger {
   background: #f7f7f5;
   display: flex;
   justify-content: center;
+}
+
+.track-editor-panel {
+  background: rgb(255 255 255 / 92%);
+  border: 1px solid #d8d8d2;
+  border-radius: 8px;
+  bottom: 16px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 16%);
+  display: grid;
+  gap: 10px;
+  left: 16px;
+  max-width: min(360px, calc(100vw - 32px));
+  padding: 14px;
+  position: absolute;
+  z-index: 500;
+}
+
+.track-editor-panel p {
+  font-size: 14px;
+  margin: 0;
+}
+
+.track-editor-success {
+  color: #176b35;
+}
+
+.track-editor-error {
+  color: #8a1f1f;
+}
+
+.track-submit-form {
+  display: grid;
+  gap: 10px;
+}
+
+.track-submit-form label {
+  display: grid;
+  gap: 6px;
+}
+
+.track-submit-form input,
+.track-submit-form textarea {
+  border: 1px solid #c9c9c2;
+  border-radius: 6px;
+  box-sizing: border-box;
+  font: inherit;
+  padding: 9px 10px;
+  width: 100%;
 }
