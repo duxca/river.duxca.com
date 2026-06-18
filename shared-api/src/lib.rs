@@ -13,7 +13,8 @@ where
     T: TryFrom<model::api::Response>,
     T::Error: std::fmt::Display,
 {
-    let ctx = expect_context::<ServerApiContext>();
+    let ctx =
+        use_context::<ServerApiContext>().ok_or_else(|| ServerFnError::new("login required"))?;
     let res = service::handler(&ctx.db, &ctx.user, req.into())
         .await
         .map_err(ServerFnError::new)?;
@@ -28,7 +29,8 @@ where
     T: TryFrom<model::api::Response>,
     T::Error: std::fmt::Display,
 {
-    let ctx = expect_context::<ServerApiContext>();
+    let ctx =
+        use_context::<ServerApiContext>().ok_or_else(|| ServerFnError::new("login required"))?;
     let res = service::handler(&ctx.db, &ctx.user, req.into())
         .await
         .map_err(ServerFnError::new)?;

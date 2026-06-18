@@ -1,74 +1,89 @@
 use leptos::prelude::*;
 use leptos_leaflet::prelude::*;
-use shared_api::list_rivers;
+use shared_api::{get_river, list_rivers};
 
 const DEFAULT_CENTER: Position = Position {
     lat: 35.362_222,
     lng: 138.731_389,
 };
 
-const GSI_ATTRIBUTION: &str = "<a href=\"https://maps.gsi.go.jp/development/ichiran.html\" target=\"_blank\">地理院タイル</a>";
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum BaseLayer {
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum MapLayer {
+    Gsi,
     Osm,
-    GsiStandard,
-    GsiRedRelief,
-    GsiHillshade,
-    GsiBlank,
-    GsiSeamlessphoto,
+    Hillshade,
+    Blank,
+    SeamlessPhoto,
 }
 
-impl BaseLayer {
+impl MapLayer {
+    const ALL: [Self; 5] = [
+        Self::Gsi,
+        Self::Osm,
+        Self::Hillshade,
+        Self::Blank,
+        Self::SeamlessPhoto,
+    ];
+
+    fn value(self) -> &'static str {
+        match self {
+            Self::Gsi => "gsi",
+            Self::Osm => "osm",
+            Self::Hillshade => "hillshade",
+            Self::Blank => "blank",
+            Self::SeamlessPhoto => "seamless-photo",
+        }
+    }
+
+    fn label(self) -> &'static str {
+        match self {
+            Self::Gsi => "地理院タイル",
+            Self::Osm => "OpenStreetMap",
+            Self::Hillshade => "陰影起伏図",
+            Self::Blank => "白地図",
+            Self::SeamlessPhoto => "航空写真",
+        }
+    }
+
     fn from_value(value: &str) -> Self {
         match value {
-            "gsi-standard" => Self::GsiStandard,
-            "gsi-red-relief" => Self::GsiRedRelief,
-            "gsi-hillshade" => Self::GsiHillshade,
-            "gsi-blank" => Self::GsiBlank,
-            "gsi-seamlessphoto" => Self::GsiSeamlessphoto,
-            _ => Self::Osm,
+            "osm" => Self::Osm,
+            "hillshade" => Self::Hillshade,
+            "blank" => Self::Blank,
+            "seamless-photo" => Self::SeamlessPhoto,
+            _ => Self::Gsi,
         }
     }
 
-    const fn value(self) -> &'static str {
+    fn tile_url(self) -> &'static str {
         match self {
-            Self::Osm => "osm",
-            Self::GsiStandard => "gsi-standard",
-            Self::GsiRedRelief => "gsi-red-relief",
-            Self::GsiHillshade => "gsi-hillshade",
-            Self::GsiBlank => "gsi-blank",
-            Self::GsiSeamlessphoto => "gsi-seamlessphoto",
-        }
-    }
-
-    const fn url(self) -> &'static str {
-        match self {
+            Self::Gsi => "https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png",
             Self::Osm => "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-            Self::GsiStandard => "https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png",
-            Self::GsiRedRelief => "https://cyberjapandata.gsi.go.jp/xyz/sekishoku/{z}/{x}/{y}.png",
-            Self::GsiHillshade => {
-                "https://cyberjapandata.gsi.go.jp/xyz/hillshademap/{z}/{x}/{y}.png"
-            }
-            Self::GsiBlank => "https://cyberjapandata.gsi.go.jp/xyz/blank/{z}/{x}/{y}.png",
-            Self::GsiSeamlessphoto => {
+            Self::Hillshade => "https://cyberjapandata.gsi.go.jp/xyz/hillshademap/{z}/{x}/{y}.png",
+            Self::Blank => "https://cyberjapandata.gsi.go.jp/xyz/blank/{z}/{x}/{y}.png",
+            Self::SeamlessPhoto => {
                 "https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg"
             }
         }
     }
 
-    const fn attribution(self) -> &'static str {
+    fn attribution(self) -> &'static str {
         match self {
             Self::Osm => {
                 "&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors"
             }
-            Self::GsiStandard
-            | Self::GsiRedRelief
-            | Self::GsiHillshade
-            | Self::GsiBlank
-            | Self::GsiSeamlessphoto => GSI_ATTRIBUTION,
+            _ => {
+                "<a href=\"https://maps.gsi.go.jp/development/ichiran.html\" target=\"_blank\">地理院タイル</a>"
+            }
         }
     }
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+struct MapData {
+    rivers: Vec<model::river::River>,
+    waypoints: Vec<model::river::RiverWaypoint>,
+    tracks: Vec<model::river::RiverTrack>,
 }
 
 fn river_position(river: &model::river::River) -> Option<Position> {
@@ -76,24 +91,46 @@ fn river_position(river: &model::river::River) -> Option<Position> {
     Some(Position { lat, lng })
 }
 
-#[cfg(feature = "ssr")]
-async fn load_rivers() -> Result<model::api::list_rivers::Response, ServerFnError> {
-    if use_context::<shared_api::ServerApiContext>().is_none() {
-        return Err(ServerFnError::ServerError("login required".into()));
-    }
-    list_rivers().await
+fn waypoint_position(waypoint: &model::river::RiverWaypoint) -> Option<Position> {
+    let (lat, lng): (f64, f64) = serde_json::from_value(waypoint.waypoint.clone()).ok()?;
+    Some(Position { lat, lng })
 }
 
-#[cfg(all(feature = "hydrate", not(feature = "ssr")))]
-async fn load_rivers() -> Result<model::api::list_rivers::Response, ServerFnError> {
-    list_rivers().await
+fn track_positions(track: &model::river::RiverTrack) -> Option<Vec<Position>> {
+    let points: Vec<(f64, f64)> = serde_json::from_value(track.track.clone()).ok()?;
+    Some(
+        points
+            .into_iter()
+            .map(|(lat, lng)| Position { lat, lng })
+            .collect(),
+    )
+}
+
+async fn load_map_data() -> Result<MapData, leptos::prelude::ServerFnError> {
+    let response = list_rivers().await?;
+    let mut waypoints = Vec::new();
+    let mut tracks = Vec::new();
+
+    for river in &response.rivers {
+        let mut detail = get_river(river.river_id).await?;
+        waypoints.append(&mut detail.waypoints);
+        tracks.append(&mut detail.tracks);
+    }
+
+    Ok(MapData {
+        rivers: response.rivers,
+        waypoints,
+        tracks,
+    })
 }
 
 #[component]
 pub fn MapPage() -> impl IntoView {
-    let rivers = Resource::new(|| (), |_| load_rivers());
+    let map_data = Resource::new(|| (), |_| load_map_data());
+    let map_layer = RwSignal::new(MapLayer::Gsi);
+    let show_waypoints = RwSignal::new(true);
+    let show_tracks = RwSignal::new(true);
     let map_ready = RwSignal::new(false);
-    let base_layer = RwSignal::new(BaseLayer::Osm);
 
     Effect::new(move |_| {
         map_ready.set(true);
@@ -106,94 +143,103 @@ pub fn MapPage() -> impl IntoView {
                     <h1>"river.duxca.com"</h1>
                     <p>"Leptos + Leaflet"</p>
                 </div>
-                <div class="map-toolbar">
-                    <label class="map-layer-select">
-                        <span>"背景地図"</span>
-                        <select
-                            prop:value=move || base_layer.get().value()
-                            on:change=move |ev| {
-                                base_layer.set(BaseLayer::from_value(&event_target_value(&ev)));
-                            }
-                        >
-                            <option value="osm">"OpenStreetMap"</option>
-                            <option value="gsi-standard">"地理院地図"</option>
-                            <option value="gsi-red-relief">"赤色立体図"</option>
-                            <option value="gsi-hillshade">"陰影起伏図"</option>
-                            <option value="gsi-blank">"白地図"</option>
-                            <option value="gsi-seamlessphoto">"航空写真"</option>
-                        </select>
-                    </label>
-                    <RiverStatus rivers/>
-                </div>
+                <RiverControls
+                    map_data
+                    map_layer
+                    show_waypoints
+                    show_tracks
+                />
             </header>
             <Show
                 when=move || map_ready.get()
                 fallback=|| view! { <div class="map-loading">"地図を読み込み中..."</div> }
             >
-                <RiverMap rivers base_layer/>
+                <RiverMap
+                    map_data
+                    map_layer
+                    show_waypoints
+                    show_tracks
+                />
             </Show>
         </div>
     }
 }
 
 #[component]
-fn RiverStatus(
-    rivers: Resource<Result<model::api::list_rivers::Response, leptos::prelude::ServerFnError>>,
+fn RiverControls(
+    map_data: Resource<Result<MapData, leptos::prelude::ServerFnError>>,
+    map_layer: RwSignal<MapLayer>,
+    show_waypoints: RwSignal<bool>,
+    show_tracks: RwSignal<bool>,
 ) -> impl IntoView {
     view! {
-        <Suspense fallback=|| view! { <span class="river-count">"読み込み中..."</span> }>
-            {move || match rivers.get() {
-                Some(Ok(response)) => view! {
-                    <span class="river-count">{response.rivers.len()}" 件の川"</span>
-                }
-                .into_any(),
-                Some(Err(_)) => view! {
-                    <span class="river-count river-count--error">
-                        "川データを取得できません（ログインが必要かもしれません）"
-                    </span>
-                }
-                .into_any(),
-                None => view! { <span class="river-count">"読み込み中..."</span> }.into_any(),
-            }}
-        </Suspense>
+        <div class="map-controls">
+            <label>
+                <span>"地図"</span>
+                <select
+                    on:change=move |ev| {
+                        map_layer.set(MapLayer::from_value(&event_target_value(&ev)));
+                    }
+                >
+                    {MapLayer::ALL.into_iter().map(|layer| view! {
+                        <option value=layer.value() selected=move || map_layer.get() == layer>
+                            {layer.label()}
+                        </option>
+                    }).collect_view()}
+                </select>
+            </label>
+            <label class="map-toggle">
+                <input
+                    type="checkbox"
+                    checked=move || show_waypoints.get()
+                    on:change=move |ev| show_waypoints.set(event_target_checked(&ev))
+                />
+                <span>"地点"</span>
+            </label>
+            <label class="map-toggle">
+                <input
+                    type="checkbox"
+                    checked=move || show_tracks.get()
+                    on:change=move |ev| show_tracks.set(event_target_checked(&ev))
+                />
+                <span>"道程"</span>
+            </label>
+            <Suspense fallback=|| view! { <span class="river-count">"読み込み中..."</span> }>
+                {move || match map_data.get() {
+                    Some(Ok(data)) => view! {
+                        <span class="river-count">{data.rivers.len()}" 件の川"</span>
+                    }
+                    .into_any(),
+                    Some(Err(_)) => view! {
+                        <span class="river-count river-count--error">
+                            "川データを取得できません（ログインが必要かもしれません）"
+                        </span>
+                    }
+                    .into_any(),
+                    None => view! { <span class="river-count">"読み込み中..."</span> }.into_any(),
+                }}
+            </Suspense>
+        </div>
     }
 }
 
 #[component]
 fn RiverMap(
-    rivers: Resource<Result<model::api::list_rivers::Response, leptos::prelude::ServerFnError>>,
-    base_layer: RwSignal<BaseLayer>,
+    map_data: Resource<Result<MapData, leptos::prelude::ServerFnError>>,
+    map_layer: RwSignal<MapLayer>,
+    show_waypoints: RwSignal<bool>,
+    show_tracks: RwSignal<bool>,
 ) -> impl IntoView {
     view! {
         <Suspense fallback=|| view! { <div class="map-loading">"地図を読み込み中..."</div> }>
             {move || {
-                let river_data = rivers
-                    .get()
-                    .and_then(|result| result.ok())
-                    .map(|response| response.rivers);
+                let data = map_data.get().and_then(|result| result.ok());
 
-                let center = river_data
+                let center = data
                     .as_ref()
-                    .and_then(|rivers| rivers.first())
+                    .and_then(|data| data.rivers.first())
                     .and_then(river_position)
                     .unwrap_or(DEFAULT_CENTER);
-
-                let markers = river_data.map(|rivers| {
-                    rivers
-                        .into_iter()
-                        .filter_map(|river| {
-                            let position = river_position(&river)?;
-                            let name = river.river_name.clone();
-                            Some(view! {
-                                <Marker position=position>
-                                    <Popup>
-                                        <strong>{name}</strong>
-                                    </Popup>
-                                </Marker>
-                            })
-                        })
-                        .collect_view()
-                });
 
                 view! {
                     <MapContainer
@@ -204,18 +250,102 @@ fn RiverMap(
                         set_view=true
                     >
                         {move || {
-                            let layer = base_layer.get();
+                            let layer = map_layer.get();
                             view! {
                                 <TileLayer
-                                    url=layer.url()
+                                    url=layer.tile_url()
                                     attribution=layer.attribution()
+                                    max_zoom=18.0
                                 />
                             }
                         }}
-                        {markers}
+                        <MapOverlays
+                            data=data
+                            show_waypoints
+                            show_tracks
+                        />
                     </MapContainer>
                 }
             }}
         </Suspense>
     }
+}
+
+#[component]
+fn MapOverlays(
+    data: Option<MapData>,
+    show_waypoints: RwSignal<bool>,
+    show_tracks: RwSignal<bool>,
+) -> impl IntoView {
+    let Some(data) = data else {
+        return ().into_any();
+    };
+    let rivers = data.rivers;
+    let waypoints = data.waypoints;
+    let tracks = data.tracks;
+    let marker_rivers = rivers.clone();
+    let marker_waypoints = waypoints.clone();
+    let track_data = tracks.clone();
+
+    view! {
+        {move || if show_waypoints.get() {
+            let rivers = marker_rivers.clone();
+            let waypoints = marker_waypoints.clone();
+            view! {
+                <>
+                    {rivers.into_iter().filter_map(|river| {
+                        let position = river_position(&river)?;
+                        let name = river.river_name.clone();
+                        Some(view! {
+                            <Marker position=position title=name.clone()>
+                                <Popup>
+                                    <strong>{name}</strong>
+                                </Popup>
+                            </Marker>
+                        })
+                    }).collect_view()}
+                    {waypoints.into_iter().filter_map(|waypoint| {
+                        let position = waypoint_position(&waypoint)?;
+                        let name = waypoint.waypoint_name.clone();
+                        Some(view! {
+                            <Marker position=position title=name.clone()>
+                                <Popup>
+                                    <strong>{name}</strong>
+                                </Popup>
+                            </Marker>
+                        })
+                    }).collect_view()}
+                </>
+            }.into_any()
+        } else {
+            ().into_any()
+        }}
+        {move || if show_tracks.get() {
+            let tracks = track_data.clone();
+            view! {
+                <>
+                    {tracks.into_iter().filter_map(|track| {
+                        let positions = track_positions(&track)?;
+                        let name = track.track_name.clone();
+                        Some(view! {
+                            <Polyline
+                                positions=positions
+                                color="#d33"
+                                weight=5.0
+                                opacity=0.55
+                            >
+                                <Popup>
+                                    <strong>{name}</strong>
+                                </Popup>
+                            </Polyline>
+                        })
+                    }).collect_view()}
+                </>
+            }.into_any()
+        } else {
+            ().into_any()
+        }}
+        <div class="map-crosshair" aria-hidden="true"></div>
+    }
+    .into_any()
 }

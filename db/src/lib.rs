@@ -3,9 +3,6 @@ pub mod river_waypoints;
 pub mod rivers;
 pub mod user;
 
-/// SQLite is single-writer; extra pool connections only increase lock contention.
-const SQLITE_MAX_CONNECTIONS: u32 = 1;
-
 pub async fn connect(database_url: &str) -> Result<sqlx::sqlite::SqlitePool, anyhow::Error> {
     use std::str::FromStr;
 
@@ -21,7 +18,6 @@ pub async fn connect(database_url: &str) -> Result<sqlx::sqlite::SqlitePool, any
         .synchronous(sqlx::sqlite::SqliteSynchronous::Normal);
 
     let pool = sqlx::sqlite::SqlitePoolOptions::new()
-        .max_connections(SQLITE_MAX_CONNECTIONS)
         .connect_with(connect_options)
         .await?;
 

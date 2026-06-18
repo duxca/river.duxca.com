@@ -5,19 +5,42 @@ pub async fn app_shell(
     req: axum::http::Request<axum::body::Body>,
 ) -> Result<impl axum::response::IntoResponse, crate::web::Ise> {
     use axum::response::IntoResponse;
-    use leptos::prelude::*;
+    use leptos::prelude::provide_context;
 
-    let options = st.leptos_options.clone();
+    let path = req.uri().path().to_owned();
     let user = auth_session.user;
-    let db = st.db.clone();
+    if matches!(path.as_str(), "/app" | "/app/") && user.is_none() {
+        return Ok(axum::response::Redirect::to("/").into_response());
+    }
+    if path == "/login" && user.is_some() {
+        return Ok(axum::response::Redirect::to("/").into_response());
+    }
+
+    let api_context = user.clone().map(|user| shared_api::ServerApiContext {
+        db: st.db.clone(),
+        user,
+    });
+    let mut account = app::AccountContext::default();
+    let auths = if let Some(user) = user.as_ref() {
+        let mut conn = st.db.acquire().await?;
+        account.delete_preview =
+            Some(db::user::get_user_delete_preview(&mut conn, user.user_id).await?);
+        db::user::get_user_auths(&mut conn, user.user_id).await?
+    } else {
+        vec![]
+    };
+    let home = app::HomePageData {
+        user,
+        providers: app::AuthProviders::from_auths(&auths),
+        account,
+    };
+    let options = st.leptos_options.clone();
     let handler = leptos_axum::render_app_to_stream_with_context(
         move || {
-            if let Some(user) = user.clone() {
-                provide_context(shared_api::ServerApiContext {
-                    db: db.clone(),
-                    user,
-                });
+            if let Some(ctx) = api_context.clone() {
+                provide_context(ctx);
             }
+            provide_context(home.clone());
         },
         move || app::shell(options.clone()),
     );

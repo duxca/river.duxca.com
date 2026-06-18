@@ -7,16 +7,20 @@ use app;
 pub fn hydrate() {
     use app::App;
 
+    _ = console_log::init_with_level(log::Level::Debug);
     console_error_panic_hook::set_once();
 
     let use_islands = leptos::web_sys::window()
         .and_then(|window| window.document())
         .and_then(|document| document.query_selector("leptos-island").ok().flatten())
         .is_some();
+    let is_app_route = leptos::web_sys::window()
+        .and_then(|window| window.location().pathname().ok())
+        .is_some_and(|path| path == "/app" || path.starts_with("/app/"));
 
     if use_islands {
         leptos::mount::hydrate_islands();
-    } else {
+    } else if is_app_route {
         leptos::mount::hydrate_body(App);
     }
 }
