@@ -14,6 +14,9 @@ enum BaseLayer {
     Osm,
     GsiStandard,
     GsiRedRelief,
+    GsiHillshade,
+    GsiBlank,
+    GsiSeamlessphoto,
 }
 
 impl BaseLayer {
@@ -21,6 +24,9 @@ impl BaseLayer {
         match value {
             "gsi-standard" => Self::GsiStandard,
             "gsi-red-relief" => Self::GsiRedRelief,
+            "gsi-hillshade" => Self::GsiHillshade,
+            "gsi-blank" => Self::GsiBlank,
+            "gsi-seamlessphoto" => Self::GsiSeamlessphoto,
             _ => Self::Osm,
         }
     }
@@ -30,6 +36,9 @@ impl BaseLayer {
             Self::Osm => "osm",
             Self::GsiStandard => "gsi-standard",
             Self::GsiRedRelief => "gsi-red-relief",
+            Self::GsiHillshade => "gsi-hillshade",
+            Self::GsiBlank => "gsi-blank",
+            Self::GsiSeamlessphoto => "gsi-seamlessphoto",
         }
     }
 
@@ -38,6 +47,13 @@ impl BaseLayer {
             Self::Osm => "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
             Self::GsiStandard => "https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png",
             Self::GsiRedRelief => "https://cyberjapandata.gsi.go.jp/xyz/sekishoku/{z}/{x}/{y}.png",
+            Self::GsiHillshade => {
+                "https://cyberjapandata.gsi.go.jp/xyz/hillshademap/{z}/{x}/{y}.png"
+            }
+            Self::GsiBlank => "https://cyberjapandata.gsi.go.jp/xyz/blank/{z}/{x}/{y}.png",
+            Self::GsiSeamlessphoto => {
+                "https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg"
+            }
         }
     }
 
@@ -46,7 +62,11 @@ impl BaseLayer {
             Self::Osm => {
                 "&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors"
             }
-            Self::GsiStandard | Self::GsiRedRelief => GSI_ATTRIBUTION,
+            Self::GsiStandard
+            | Self::GsiRedRelief
+            | Self::GsiHillshade
+            | Self::GsiBlank
+            | Self::GsiSeamlessphoto => GSI_ATTRIBUTION,
         }
     }
 }
@@ -98,6 +118,9 @@ pub fn MapPage() -> impl IntoView {
                             <option value="osm">"OpenStreetMap"</option>
                             <option value="gsi-standard">"地理院地図"</option>
                             <option value="gsi-red-relief">"赤色立体図"</option>
+                            <option value="gsi-hillshade">"陰影起伏図"</option>
+                            <option value="gsi-blank">"白地図"</option>
+                            <option value="gsi-seamlessphoto">"航空写真"</option>
                         </select>
                     </label>
                     <RiverStatus rivers/>
