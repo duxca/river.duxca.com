@@ -40,7 +40,7 @@ RUN \
   for migration in $(find db/migrations -maxdepth 1 -type f -name '*.sql' | sort); do \
     sqlite3 .local/river-dev.db < "${migration}"; \
   done; \
-  DATABASE_URL='sqlite://.local/river-dev.db?mode=rwc' cargo leptos build --release; \
+  DATABASE_URL='sqlite://.local/river-dev.db?mode=rwc' cargo leptos build --release --bin-features ''; \
   mkdir -p /out/site; \
   cp target/release/server /out/server; \
   cp -a target/site/. /out/site/
@@ -71,7 +71,7 @@ ENV BASE_URL=https://river.duxca.com
 ENV LOCAL_CLIENT_ID=local
 ENV LOCAL_CLIENT_SECRET=local
 ENV LOCAL_BASE_URL=http://localhost:8080
-ENV LEPTOS_OUTPUT_NAME=leptos-browser
+ENV LEPTOS_OUTPUT_NAME=frontend
 ENV LEPTOS_SITE_ROOT=target/site
 ENV LEPTOS_SITE_PKG_DIR=pkg
 

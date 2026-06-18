@@ -7,6 +7,7 @@ version = "0.1.0"
 leptos = { workspace = true, default-features = false }
 leptos-leaflet = { version = "0.10.2", default-features = false }
 leptos_axum = { workspace = true, optional = true }
+leptos_meta = { workspace = true, default-features = false }
 leptos_router = { workspace = true, default-features = false }
 model = { path = "../model" }
 serde = { version = "1", features = ["derive"] }
@@ -16,4 +17,4 @@ shared-api = { path = "../shared-api", default-features = false }
 [features]
 default = []
 hydrate = ["leptos/hydrate", "leptos/islands", "leptos-leaflet/hydrate", "shared-api/hydrate"]
-ssr = ["leptos/ssr", "leptos/islands", "leptos_router/ssr", "dep:leptos_axum", "shared-api/ssr"]
+ssr = ["leptos/ssr", "leptos/islands", "leptos_meta/ssr", "leptos_router/ssr", "dep:leptos_axum", "shared-api/ssr"]

@@ -1,44 +1,19 @@
 pub mod facebook;
 pub mod github;
 
-/// GET /login
-/// ひみつのログインページ
-#[tracing::instrument(level = "trace", skip(auth_session, st))]
-pub async fn login(
-    auth_session: axum_login::AuthSession<Backend>,
-    axum::extract::State(ref st): axum::extract::State<crate::web::State>,
-    req: axum::http::Request<axum::body::Body>,
-) -> Result<impl axum::response::IntoResponse, crate::web::Ise> {
-    use axum::response::IntoResponse;
-    use leptos::prelude::*;
+pub(crate) fn oauth_callback_base_url(
+    configured_base_url: &str,
+    _headers: &axum::http::HeaderMap,
+) -> String {
+    #[cfg(feature = "local")]
+    if let Some(host) = _headers
+        .get(axum::http::header::HOST)
+        .and_then(|host| host.to_str().ok())
+    {
+        return format!("http://{host}");
+    }
 
-    let mut conn = st.db.acquire().await?;
-    let user = auth_session.user;
-    let mut account = app::AccountContext::default();
-    let auths = if let Some(user) = user.as_ref() {
-        account.delete_preview =
-            Some(db::user::get_user_delete_preview(&mut conn, user.user_id).await?);
-        db::user::get_user_auths(&mut conn, user.user_id).await?
-    } else {
-        vec![]
-    };
-    let providers = app::AuthProviders::from_auths(&auths);
-    let options = st.leptos_options.clone();
-    let handler = leptos_axum::render_app_to_stream_with_context(
-        || {},
-        move || {
-            view! {
-                <app::LoginPage
-                    user=user.clone()
-                    providers=providers.clone()
-                    account=account.clone()
-                    options=options.clone()
-                />
-            }
-        },
-    );
-
-    Ok(handler(req).await.into_response())
+    configured_base_url.to_owned()
 }
 
 /// POST /logout
@@ -66,8 +41,14 @@ pub struct Backend {
 pub struct BackendSettings {
     pub github_client_id: oauth2::ClientId,
     pub github_client_secret: oauth2::ClientSecret,
+    pub github_auth_url: String,
+    pub github_token_url: String,
+    pub github_user_url: String,
     pub facebook_client_id: oauth2::ClientId,
     pub facebook_client_secret: oauth2::ClientSecret,
+    pub facebook_auth_url: String,
+    pub facebook_token_url: String,
+    pub facebook_user_url: String,
     pub base_url: String,
 }
 
@@ -102,9 +83,12 @@ impl axum_login::AuthnBackend for Backend {
                         self.settings.github_client_secret.clone(),
                         creds.auth_code.clone(),
                         &self.settings.base_url,
+                        &self.settings.github_auth_url,
+                        &self.settings.github_token_url,
                     )
                     .await?;
-                    let user_info = github::get_me(&access_token).await?;
+                    let user_info =
+                        github::get_me(&access_token, &self.settings.github_user_url).await?;
                     let res = github::login_db(&self.db, creds.user, user_info).await?;
                     Ok(res)
                 }
@@ -114,9 +98,12 @@ impl axum_login::AuthnBackend for Backend {
                         self.settings.facebook_client_secret.clone(),
                         creds.auth_code.clone(),
                         &self.settings.base_url,
+                        &self.settings.facebook_auth_url,
+                        &self.settings.facebook_token_url,
                     )
                     .await?;
-                    let user_info = facebook::get_me(&access_token).await?;
+                    let user_info =
+                        facebook::get_me(&access_token, &self.settings.facebook_user_url).await?;
                     let res = facebook::login_db(&self.db, creds.user, user_info).await?;
                     Ok(res)
                 }

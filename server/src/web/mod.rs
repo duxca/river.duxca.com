@@ -1,6 +1,9 @@
 pub mod admin;
 pub mod app;
-pub mod home;
+#[cfg(feature = "local")]
+pub mod fake_facebook;
+#[cfg(feature = "local")]
+pub mod fake_github;
 pub mod login;
 pub mod server_fn;
 
@@ -22,6 +25,12 @@ impl State {
             db,
             leptos_options,
         })
+    }
+}
+
+impl axum::extract::FromRef<State> for leptos::config::LeptosOptions {
+    fn from_ref(state: &State) -> Self {
+        state.leptos_options.clone()
     }
 }
 
