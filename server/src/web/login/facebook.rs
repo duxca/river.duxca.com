@@ -1,6 +1,6 @@
-pub const AUTH_URL: &str = "https://www.facebook.com/v20.0/dialog/oauth";
-pub const TOKEN_URL: &str = "https://graph.facebook.com/v20.0/oauth/access_token";
-pub const USER_URL: &str = "https://graph.facebook.com/v20.0/me";
+pub const AUTH_URL: &str = "https://www.facebook.com/v25.0/dialog/oauth";
+pub const TOKEN_URL: &str = "https://graph.facebook.com/v25.0/oauth/access_token";
+pub const USER_URL: &str = "https://graph.facebook.com/v25.0/me";
 const CSRF_STATE_KEY: &str = "oauth.facebook.csrf-state";
 // https://developers.facebook.com/apps/?show_reminder=true&locale=ja_JP
 const REDIRECT_PATH: &str = "/oauth/callback/facebook";
@@ -126,24 +126,51 @@ pub async fn get_access_token(
     token_url: &str,
 ) -> Result<oauth2::AccessToken, anyhow::Error> {
     use anyhow::Context;
-    let auth_url = oauth2::AuthUrl::new(auth_url.to_string()).unwrap();
-    let token_url = oauth2::TokenUrl::new(token_url.to_string()).unwrap();
-    let redirect_url = oauth2::RedirectUrl::new(format!("{}{}", base_url, REDIRECT_PATH)).unwrap();
-    let client = oauth2::basic::BasicClient::new(client_id)
-        .set_client_secret(client_secret)
-        .set_auth_type(oauth2::AuthType::RequestBody)
-        .set_auth_uri(auth_url)
-        .set_token_uri(token_url)
-        .set_redirect_uri(redirect_url);
-    // Process authorization code, expecting a token response back.
-    let token_res = client
-        .exchange_code(auth_code)
-        .request_async(&oauth2::reqwest::Client::new())
+    let redirect_url = format!("{}{}", base_url, REDIRECT_PATH);
+    let token_res = reqwest::Client::new()
+        .get(token_url)
+        .query(&[
+            ("client_id", client_id.as_str()),
+            ("client_secret", client_secret.secret()),
+            ("redirect_uri", &redirect_url),
+            ("code", auth_code.secret()),
+        ])
+        .send()
         .await
-        .context("Failed to exchange authorization code for access token")?;
-    use oauth2::TokenResponse;
-    let access_token = token_res.access_token().clone();
-    Ok(access_token)
+        .context("Failed to send Facebook access token request")?;
+    let status = token_res.status();
+    let token_body = token_res
+        .text()
+        .await
+        .context("Failed to read Facebook access token response")?;
+    if !status.is_success() {
+        let error = serde_json::from_str::<FacebookTokenError>(&token_body).ok();
+        return Err(anyhow::anyhow!(
+            "Failed to exchange authorization code for access token: {}",
+            error
+                .as_ref()
+                .and_then(|error| error.error.message.as_deref())
+                .unwrap_or("Facebook returned an error")
+        ));
+    }
+    let token_res = serde_json::from_str::<FacebookTokenResponse>(&token_body)
+        .context("Failed to parse Facebook access token response")?;
+    Ok(oauth2::AccessToken::new(token_res.access_token))
+}
+
+#[derive(Debug, serde::Deserialize)]
+struct FacebookTokenResponse {
+    access_token: String,
+}
+
+#[derive(Debug, serde::Deserialize)]
+struct FacebookTokenError {
+    error: FacebookTokenErrorBody,
+}
+
+#[derive(Debug, serde::Deserialize)]
+struct FacebookTokenErrorBody {
+    message: Option<String>,
 }
 
 // Use access token to request user info.
