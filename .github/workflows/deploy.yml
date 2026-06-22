@@ -92,7 +92,7 @@ jobs:
         gcloud secrets versions access 2 \
           --project="${PROJECT_ID}" \
           --secret=FACEBOOK_CLIENT_SECRET >/dev/null
-        gcloud secrets versions access 1 \
+        gcloud secrets versions access 2 \
           --project="${PROJECT_ID}" \
           --secret=GITHUB_CLIENT_SECRET >/dev/null
     - name: Terraform Apply GCP App

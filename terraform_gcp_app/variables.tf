@@ -39,7 +39,7 @@ variable "facebook_client_secret_version" {
 variable "github_client_secret_version" {
   description = "Secret Manager version for GITHUB_CLIENT_SECRET"
   type        = string
-  default     = "1"
+  default     = "2"
 }
 
 variable "terraform_state_bucket" {
