@@ -1,3 +1,5 @@
+#![recursion_limit = "256"]
+
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), anyhow::Error> {
     let _ = any_spawner::Executor::init_tokio();

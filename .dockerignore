@@ -4,6 +4,9 @@
 db/.river.db-litestream/
 .local/
 .docker-build/
+.playwright-cli/
+.playwright-mcp/
+playwright-app.png
 db/*.csv
 *.bash
 !cli/run.bash

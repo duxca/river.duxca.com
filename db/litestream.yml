@@ -2,10 +2,9 @@ dbs:
   - path: river.db
     replicas:
       - type: gcs
-        bucket: duxca-litestream-sandbox
+        bucket: ${LITESTREAM_BUCKET}
         path: river.db
         snapshot-interval: 1h
         retention: 3m
         retention-check-interval: 1m
-
 
