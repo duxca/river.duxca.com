@@ -7,7 +7,7 @@ terraform {
   required_providers {
     google = {
       source  = "hashicorp/google"
-      version = ">= 4.0.0, < 5.0.0"
+      version = ">= 6.0.0, < 7.0.0"
     }
   }
 }
@@ -22,23 +22,19 @@ resource "google_storage_bucket" "terraform_state" {
   name     = var.terraform_state_bucket
   location = var.region
 
-  # Force destroy for easier management
   force_destroy = false
 
-  # Prevent accidental deletion
   lifecycle {
     prevent_destroy = true
   }
 
-  # Versioning for state file history
   versioning {
     enabled = true
   }
 
-  # Enable uniform bucket-level access
   uniform_bucket_level_access = true
+  public_access_prevention    = "enforced"
 
-  # Lifecycle management for old state versions
   lifecycle_rule {
     condition {
       age                = 30
@@ -50,7 +46,6 @@ resource "google_storage_bucket" "terraform_state" {
   }
 }
 
-# Output the bucket name for reference
 output "terraform_state_bucket" {
   value       = google_storage_bucket.terraform_state.name
   description = "GCS bucket for Terraform state"

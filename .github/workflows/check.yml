@@ -235,18 +235,21 @@ jobs:
           terraform_wrapper: false
       - name: Terraform Init
         run: |
+          terraform -chdir=terraform_bootstrap init
           terraform -chdir=terraform_gcp_storage init
           terraform -chdir=terraform_gcp_app init
           terraform -chdir=terraform_ci init
           terraform -chdir=terraform_cf init
       - name: Terraform Validate
         run: |
+          terraform -chdir=terraform_bootstrap validate
           terraform -chdir=terraform_gcp_storage validate
           terraform -chdir=terraform_gcp_app validate
           terraform -chdir=terraform_ci validate
           terraform -chdir=terraform_cf validate
       - name: Terraform Format Check
         run: |
+          terraform -chdir=terraform_bootstrap fmt -check
           terraform -chdir=terraform_gcp_storage fmt -recursive -check
           terraform -chdir=terraform_gcp_app fmt -check
           terraform -chdir=terraform_ci fmt -check
@@ -260,6 +263,11 @@ jobs:
           : > terraform-plan.txt
 
           {
+            echo "## terraform_bootstrap"
+            terraform -chdir=terraform_bootstrap import -var-file=prod.tfvars google_storage_bucket.terraform_state river-duxca-prod-terraform-state >/dev/null 2>&1 || true
+            terraform -chdir=terraform_bootstrap plan -no-color -out=tfplan -var-file=prod.tfvars
+            terraform -chdir=terraform_bootstrap show -no-color tfplan
+            echo
             echo "## terraform_gcp_storage"
             terraform -chdir=terraform_gcp_storage plan -no-color -out=tfplan -var-file=prod.tfvars
             terraform -chdir=terraform_gcp_storage show -no-color tfplan

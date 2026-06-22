@@ -54,12 +54,13 @@ make test-e2e
 
 Terraform は役割ごとに state を分けています。
 
+- `terraform_bootstrap`: 各 Terraform stack の remote state 用 GCS bucket。bootstrap 循環を避けるため local state で管理する。
 - `terraform_gcp_storage`: GCP の基盤。API、Artifact Registry、Litestream GCS bucket、Secret Manager secret 本体、Cloud Run service account、IAM。
 - `terraform_gcp_app`: Cloud Run service、public access、`river.duxca.com` の Cloud Run domain mapping。
 - `terraform_ci`: GitHub Actions 用 service account、Workload Identity Federation、deploy IAM。
 - `terraform_cf`: Cloudflare DNS record。
 
-初回デプロイ順は固定です。Artifact Registry repository がないと container image を push できず、container image と secret version がないと Cloud Run を作れないためです。
+初回デプロイ順は固定です。remote state bucket がないと他 stack を初期化できず、Artifact Registry repository がないと container image を push できず、container image と secret version がないと Cloud Run を作れないためです。
 
 ### 1. 認証
 
@@ -74,7 +75,26 @@ ADC を使えない環境では次を使います。
 export GOOGLE_OAUTH_ACCESS_TOKEN="$(gcloud auth print-access-token)"
 ```
 
-### 2. GCP storage stack
+### 2. Terraform bootstrap stack
+
+Remote state 用 GCS bucket を作ります。`terraform_ci` 自身もこの bucket を backend として使うため、state bucket 管理は `terraform_ci` には含めません。
+
+```bash
+terraform -chdir=terraform_bootstrap init
+terraform -chdir=terraform_bootstrap plan -var-file=prod.tfvars
+terraform -chdir=terraform_bootstrap apply -var-file=prod.tfvars
+```
+
+既存 bucket を後から Terraform 管理下に置く場合は、先に import します。
+
+```bash
+terraform -chdir=terraform_bootstrap import \
+  -var-file=prod.tfvars \
+  google_storage_bucket.terraform_state \
+  river-duxca-prod-terraform-state
+```
+
+### 3. GCP storage stack
 
 Artifact Registry、Litestream bucket、Secret Manager secret、service account を作ります。
 
@@ -84,7 +104,7 @@ terraform -chdir=terraform_gcp_storage plan -var-file=prod.tfvars
 terraform -chdir=terraform_gcp_storage apply -var-file=prod.tfvars
 ```
 
-### 3. OAuth client ID と secret を設定する
+### 4. OAuth client ID と secret を設定する
 
 OAuth の `Client ID` は公開識別子なので `terraform_gcp_app/prod.tfvars` に置きます。`Client Secret` だけ Secret Manager に入れます。Terraform は secret の入れ物と IAM だけを管理し、値は version として手で入れます。
 
@@ -113,7 +133,7 @@ printf '%s' "$GITHUB_CLIENT_SECRET" |
 
 Cloud Run は各 client secret の version `1` を参照します。値を入れ直して version が増えた場合は、Terraform 側の `secret_key_ref.key` も合わせて更新してください。
 
-### 4. Container image を push
+### 5. Container image を push
 
 ```bash
 IMAGE_REPOSITORY="asia-northeast1-docker.pkg.dev/river-duxca-prod/cloud-run-source-deploy/litestream-sandbox"
@@ -129,7 +149,7 @@ IMAGE_DIGEST="$(jq -r '."containerimage.digest"' /tmp/river-image-metadata.json)
 CONTAINER_IMAGE="${IMAGE_REPOSITORY}@${IMAGE_DIGEST}"
 ```
 
-### 5. 必要なら Litestream backup を restore
+### 6. 必要なら Litestream backup を restore
 
 空の DB で始めるなら不要です。旧 bucket backup から戻す場合は、新 bucket に `river.db` prefix ができるようにコピーします。
 
@@ -142,7 +162,7 @@ gcloud storage cp --recursive \
   gs://river-duxca-prod-litestream/
 ```
 
-### 6. GCP app stack
+### 7. GCP app stack
 
 `terraform_gcp_app` は `terraform_gcp_storage` の remote state から bucket 名と service account email を読みます。
 
@@ -157,7 +177,7 @@ terraform -chdir=terraform_gcp_app apply \
   -var="container_image=${CONTAINER_IMAGE}"
 ```
 
-### 7. Cloudflare DNS
+### 8. Cloudflare DNS
 
 Cloud Run domain mapping 作成後に DNS を作ります。
 
@@ -176,7 +196,7 @@ CLOUDFLARE_API_TOKEN="$(awk -F ' = ' '/^access_token = / {gsub(/"/, "", $2); pri
   terraform -chdir=terraform_cf apply -var-file=prod.tfvars
 ```
 
-### 8. 確認
+### 9. 確認
 
 ```bash
 gcloud run services describe litestream-sandbox \
@@ -293,6 +313,7 @@ OAuth の client secret は GitHub Secrets から自動投入しません。`ter
 
 `.github/workflows/check.yml` の `terraform-plan` job は PR で次を実行します。
 
+- `terraform_bootstrap`: validate / fmt / import-if-exists / plan
 - `terraform_gcp_storage`: validate / fmt / plan
 - `terraform_gcp_app`: validate / fmt / storage remote state がある場合だけ plan
 - `terraform_ci`: validate / fmt / plan

@@ -24,7 +24,13 @@ terraform/**/terraform.tfstate
 terraform/**/terraform.tfstate.backup
 terraform/tfplan
 terraform/.terraform/
-terraform/bootstrap/.terraform/
+terraform_bootstrap/terraform.tfvars
+terraform_bootstrap/terraform.tfstate
+terraform_bootstrap/terraform.tfstate.backup
+terraform_bootstrap/**/terraform.tfstate
+terraform_bootstrap/**/terraform.tfstate.backup
+terraform_bootstrap/tfplan
+terraform_bootstrap/.terraform/
 terraform_gcp_storage/terraform.tfvars
 terraform_gcp_storage/terraform.tfstate
 terraform_gcp_storage/terraform.tfstate.backup
@@ -32,7 +38,6 @@ terraform_gcp_storage/**/terraform.tfstate
 terraform_gcp_storage/**/terraform.tfstate.backup
 terraform_gcp_storage/tfplan
 terraform_gcp_storage/.terraform/
-terraform_gcp_storage/bootstrap/.terraform/
 terraform_gcp_app/terraform.tfvars
 terraform_gcp_app/terraform.tfstate
 terraform_gcp_app/terraform.tfstate.backup

@@ -74,6 +74,7 @@ fmt:
 	terraform -chdir=terraform_gcp_app fmt
 	terraform -chdir=terraform_ci fmt
 	terraform -chdir=terraform_cf fmt
+	terraform -chdir=terraform_bootstrap fmt
 
 .PHONY: fmt-check
 fmt-check:
@@ -87,6 +88,7 @@ fmt-check:
 	terraform -chdir=terraform_gcp_app fmt -check
 	terraform -chdir=terraform_ci fmt -check
 	terraform -chdir=terraform_cf fmt -check
+	terraform -chdir=terraform_bootstrap fmt -check
 
 .PHONY: clippy
 clippy: sqlx-db
@@ -100,6 +102,9 @@ check-ci: check test-e2e terraform-check
 
 .PHONY: terraform-check
 terraform-check:
+	terraform -chdir=terraform_bootstrap init
+	terraform -chdir=terraform_bootstrap validate
+	terraform -chdir=terraform_bootstrap fmt -check
 	terraform -chdir=terraform_gcp_storage init
 	terraform -chdir=terraform_gcp_storage validate
 	terraform -chdir=terraform_gcp_storage fmt -recursive -check
