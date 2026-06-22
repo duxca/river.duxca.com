@@ -54,10 +54,9 @@ make test-e2e
 
 Terraform は役割ごとに state を分けています。
 
-- `terraform_bootstrap`: 各 Terraform stack の remote state 用 GCS bucket。bootstrap 循環を避けるため local state で管理する。
+- `terraform_ci`: GitHub Actions 用 service account、Workload Identity Federation、deploy IAM。初回に適用する bootstrap 寄りの stack。
 - `terraform_gcp_storage`: GCP の基盤。API、Artifact Registry、Litestream GCS bucket、Secret Manager secret 本体、Cloud Run service account、IAM。
 - `terraform_gcp_app`: Cloud Run service、public access、`river.duxca.com` の Cloud Run domain mapping。
-- `terraform_ci`: GitHub Actions 用 service account、Workload Identity Federation、deploy IAM。
 - `terraform_cf`: Cloudflare DNS record。
 
 初回デプロイ順は固定です。remote state bucket がないと他 stack を初期化できず、Artifact Registry repository がないと container image を push できず、container image と secret version がないと Cloud Run を作れないためです。
@@ -75,26 +74,38 @@ ADC を使えない環境では次を使います。
 export GOOGLE_OAUTH_ACCESS_TOKEN="$(gcloud auth print-access-token)"
 ```
 
-### 2. Terraform bootstrap stack
+### 2. Terraform state bucket を手動作成する
 
-Remote state 用 GCS bucket を作ります。`terraform_ci` 自身もこの bucket を backend として使うため、state bucket 管理は `terraform_ci` には含めません。
-
-```bash
-terraform -chdir=terraform_bootstrap init
-terraform -chdir=terraform_bootstrap plan -var-file=prod.tfvars
-terraform -chdir=terraform_bootstrap apply -var-file=prod.tfvars
-```
-
-既存 bucket を後から Terraform 管理下に置く場合は、先に import します。
+Remote state 用 GCS bucket は Terraform 管理に含めません。`terraform_ci` 自身もこの bucket を backend として使うため、初回だけ手動で作ります。
 
 ```bash
-terraform -chdir=terraform_bootstrap import \
-  -var-file=prod.tfvars \
-  google_storage_bucket.terraform_state \
-  river-duxca-prod-terraform-state
+gcloud storage buckets create gs://river-duxca-prod-terraform-state \
+  --project=river-duxca-prod \
+  --location=asia-northeast1 \
+  --uniform-bucket-level-access \
+  --public-access-prevention
+
+gcloud storage buckets update gs://river-duxca-prod-terraform-state \
+  --versioning
 ```
 
-### 3. GCP storage stack
+既に存在する場合は設定だけ確認します。
+
+```bash
+gcloud storage buckets describe gs://river-duxca-prod-terraform-state
+```
+
+### 3. Terraform CI stack
+
+GitHub Actions 用 service account、Workload Identity Federation、deploy IAM、state bucket への access 権限を作ります。
+
+```bash
+terraform -chdir=terraform_ci init -reconfigure
+terraform -chdir=terraform_ci plan -var-file=prod.tfvars
+terraform -chdir=terraform_ci apply -var-file=prod.tfvars
+```
+
+### 4. GCP storage stack
 
 Artifact Registry、Litestream bucket、Secret Manager secret、service account を作ります。
 
@@ -104,7 +115,7 @@ terraform -chdir=terraform_gcp_storage plan -var-file=prod.tfvars
 terraform -chdir=terraform_gcp_storage apply -var-file=prod.tfvars
 ```
 
-### 4. OAuth client ID と secret を設定する
+### 5. OAuth client ID と secret を設定する
 
 OAuth の `Client ID` は公開識別子なので `terraform_gcp_app/prod.tfvars` に置きます。`Client Secret` だけ Secret Manager に入れます。Terraform は secret の入れ物と IAM だけを管理し、値は version として手で入れます。
 
@@ -313,10 +324,9 @@ OAuth の client secret は GitHub Secrets から自動投入しません。`ter
 
 `.github/workflows/check.yml` の `terraform-plan` job は PR で次を実行します。
 
-- `terraform_bootstrap`: validate / fmt / import-if-exists / plan
+- `terraform_ci`: validate / fmt / plan
 - `terraform_gcp_storage`: validate / fmt / plan
 - `terraform_gcp_app`: validate / fmt / storage remote state がある場合だけ plan
-- `terraform_ci`: validate / fmt / plan
 - `terraform_cf`: validate / fmt / `CLOUDFLARE_API_TOKEN` がある場合だけ plan
 
 ## tips

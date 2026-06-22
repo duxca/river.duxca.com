@@ -11,6 +11,8 @@ This stack manages GitHub Actions deployment identity:
 
 ## Usage
 
+Create the remote state bucket manually before running this stack. The bucket is not managed by Terraform because this stack also uses it as its backend.
+
 ```bash
 cd terraform_ci
 terraform init
