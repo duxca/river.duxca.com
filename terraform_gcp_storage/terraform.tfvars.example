@@ -1,0 +1,7 @@
+# Google Cloudプロジェクト設定
+project_id = "your-project-id"
+region     = "asia-northeast1"
+
+bucket_name = "your-project-litestream"
+
+litestream_bucket_force_destroy = false

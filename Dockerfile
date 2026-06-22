@@ -66,7 +66,7 @@ COPY --from=builder /out/site /app/target/site
 RUN chmod +x /app/litestream /app/run.bash /app/server
 
 ENV HOST_ADDR=0.0.0.0:8080
-ENV DATABASE_URL=sqlite://river.db
+ENV DATABASE_URL=sqlite:///app/river.db?mode=rwc
 ENV BASE_URL=https://river.duxca.com
 ENV LOCAL_CLIENT_ID=local
 ENV LOCAL_CLIENT_SECRET=local

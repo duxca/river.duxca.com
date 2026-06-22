@@ -70,7 +70,10 @@ fmt:
 	find . -name Cargo.toml -print0 | while IFS= read -r -d '' manifest; do \
 		(cd "$$(dirname "$$manifest")" && cargo tomlfmt); \
 	done
-	terraform -chdir=terraform fmt -recursive
+	terraform -chdir=terraform_gcp_storage fmt -recursive
+	terraform -chdir=terraform_gcp_app fmt
+	terraform -chdir=terraform_ci fmt
+	terraform -chdir=terraform_cf fmt
 
 .PHONY: fmt-check
 fmt-check:
@@ -80,7 +83,10 @@ fmt-check:
 	find . -name Cargo.toml -print0 | while IFS= read -r -d '' manifest; do \
 		(cd "$$(dirname "$$manifest")" && cargo tomlfmt -d); \
 	done
-	terraform -chdir=terraform fmt -recursive -check
+	terraform -chdir=terraform_gcp_storage fmt -recursive -check
+	terraform -chdir=terraform_gcp_app fmt -check
+	terraform -chdir=terraform_ci fmt -check
+	terraform -chdir=terraform_cf fmt -check
 
 .PHONY: clippy
 clippy: sqlx-db
@@ -94,9 +100,18 @@ check-ci: check test-e2e terraform-check
 
 .PHONY: terraform-check
 terraform-check:
-	terraform -chdir=terraform init
-	terraform -chdir=terraform validate
-	terraform -chdir=terraform fmt -check
+	terraform -chdir=terraform_gcp_storage init
+	terraform -chdir=terraform_gcp_storage validate
+	terraform -chdir=terraform_gcp_storage fmt -recursive -check
+	terraform -chdir=terraform_gcp_app init
+	terraform -chdir=terraform_gcp_app validate
+	terraform -chdir=terraform_gcp_app fmt -check
+	terraform -chdir=terraform_ci init
+	terraform -chdir=terraform_ci validate
+	terraform -chdir=terraform_ci fmt -check
+	terraform -chdir=terraform_cf init
+	terraform -chdir=terraform_cf validate
+	terraform -chdir=terraform_cf fmt -check
 
 .PHONY: deploy
 deploy:

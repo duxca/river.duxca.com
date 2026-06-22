@@ -188,11 +188,11 @@ jobs:
       pull-requests: write
       id-token: write
     env:
-      PROJECT_ID: duxca-298210
-      PROJECT_NUMBER: 93254674393
+      PROJECT_ID: river-duxca-prod
+      PROJECT_NUMBER: 521139256632
       POOL_ID: githubaction
       PROVIDER_ID: github
-      SERVICE_ACCOUNT: github-action-river@duxca-298210.iam.gserviceaccount.com
+      SERVICE_ACCOUNT: github-action-river@river-duxca-prod.iam.gserviceaccount.com
       REGION: asia-northeast1
       SERVICE_NAME: litestream-sandbox
     steps:
@@ -220,8 +220,12 @@ jobs:
         run: |
           set -euo pipefail
           container_image="$(gcloud run services describe "${SERVICE_NAME}" \
+            --project "${PROJECT_ID}" \
             --region "${REGION}" \
-            --format='value(spec.template.spec.containers[0].image)')"
+            --format='value(spec.template.spec.containers[0].image)' 2>/dev/null || true)"
+          if [[ -z "${container_image}" ]]; then
+            container_image="${REGION}-docker.pkg.dev/${PROJECT_ID}/cloud-run-source-deploy/${SERVICE_NAME}:latest"
+          fi
           test -n "${container_image}"
           echo "container_image=${container_image}" >> "${GITHUB_OUTPUT}"
           echo "Current image: ${container_image}"
@@ -230,31 +234,80 @@ jobs:
           terraform_version: 1.15.5
           terraform_wrapper: false
       - name: Terraform Init
-        working-directory: ./terraform
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: terraform init
+        run: |
+          terraform -chdir=terraform_gcp_storage init
+          terraform -chdir=terraform_gcp_app init
+          terraform -chdir=terraform_ci init
+          terraform -chdir=terraform_cf init
       - name: Terraform Validate
-        working-directory: ./terraform
-        run: terraform validate
+        run: |
+          terraform -chdir=terraform_gcp_storage validate
+          terraform -chdir=terraform_gcp_app validate
+          terraform -chdir=terraform_ci validate
+          terraform -chdir=terraform_cf validate
       - name: Terraform Format Check
-        working-directory: ./terraform
-        run: terraform fmt -check
+        run: |
+          terraform -chdir=terraform_gcp_storage fmt -recursive -check
+          terraform -chdir=terraform_gcp_app fmt -check
+          terraform -chdir=terraform_ci fmt -check
+          terraform -chdir=terraform_cf fmt -check
       - name: Terraform Plan
-        working-directory: ./terraform
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CONTAINER_IMAGE: ${{ steps.current_image.outputs.container_image }}
         run: |
-          terraform plan -no-color -out=tfplan -var="container_image=${CONTAINER_IMAGE}"
-          terraform show -no-color tfplan > plan.txt
+          set -euo pipefail
+          : > terraform-plan.txt
+
+          {
+            echo "## terraform_gcp_storage"
+            terraform -chdir=terraform_gcp_storage plan -no-color -out=tfplan -var-file=prod.tfvars
+            terraform -chdir=terraform_gcp_storage show -no-color tfplan
+          } >> terraform-plan.txt
+
+          if terraform -chdir=terraform_gcp_storage output -raw litestream_bucket_name >/dev/null 2>&1; then
+            {
+              echo
+              echo "## terraform_gcp_app"
+              terraform -chdir=terraform_gcp_app plan -no-color -out=tfplan -var-file=prod.tfvars -var="container_image=${CONTAINER_IMAGE}"
+              terraform -chdir=terraform_gcp_app show -no-color tfplan
+            } >> terraform-plan.txt
+          else
+            {
+              echo
+              echo "## terraform_gcp_app"
+              echo "Skipped because terraform_gcp_storage remote state has no outputs yet."
+            } >> terraform-plan.txt
+          fi
+
+          {
+            echo
+            echo "## terraform_ci"
+            terraform -chdir=terraform_ci plan -no-color -out=tfplan -var-file=prod.tfvars
+            terraform -chdir=terraform_ci show -no-color tfplan
+          } >> terraform-plan.txt
+
+          if [[ -n "${CLOUDFLARE_API_TOKEN:-}" ]]; then
+            {
+              echo
+              echo "## terraform_cf"
+              terraform -chdir=terraform_cf plan -no-color -out=tfplan -var-file=prod.tfvars
+              terraform -chdir=terraform_cf show -no-color tfplan
+            } >> terraform-plan.txt
+          else
+            {
+              echo
+              echo "## terraform_cf"
+              echo "Skipped because CLOUDFLARE_API_TOKEN is not available."
+            } >> terraform-plan.txt
+          fi
       - name: Post Plan to PR
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v9
         with:
           script: |
             const fs = require('fs');
-            const plan = fs.readFileSync('./terraform/plan.txt', 'utf8');
+            const plan = fs.readFileSync('./terraform-plan.txt', 'utf8');
             
             const output = `
             ## Terraform Plan Results

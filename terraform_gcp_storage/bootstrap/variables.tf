@@ -1,7 +1,6 @@
 variable "project_id" {
   description = "Google Cloud project ID"
   type        = string
-  default     = "duxca-298210"
 }
 
 variable "region" {
@@ -13,5 +12,4 @@ variable "region" {
 variable "terraform_state_bucket" {
   description = "GCS bucket name for Terraform state"
   type        = string
-  default     = "duxca-terraform-state"
 }

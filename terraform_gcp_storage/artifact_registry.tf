@@ -5,6 +5,7 @@ resource "google_artifact_registry_repository" "docker_repo" {
   description   = "Docker repository for river application"
   format        = "DOCKER"
 
+  depends_on = [google_project_service.artifact_registry_api]
 }
 
 # IAM permission for service account to pull images

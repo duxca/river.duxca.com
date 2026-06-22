@@ -1,12 +1,12 @@
 name: Deploy to Main
 
 env:
-  PROJECT_ID: duxca-298210
-  PROJECT_NUMBER: 93254674393
+  PROJECT_ID: river-duxca-prod
+  PROJECT_NUMBER: 521139256632
   POOL_ID: githubaction
   PROVIDER_ID: github
-  SERVICE_ACCOUNT: github-action-river@duxca-298210.iam.gserviceaccount.com
-  IMAGE_REPOSITORY: asia-northeast1-docker.pkg.dev/duxca-298210/cloud-run-source-deploy/litestream-sandbox
+  SERVICE_ACCOUNT: github-action-river@river-duxca-prod.iam.gserviceaccount.com
+  IMAGE_REPOSITORY: asia-northeast1-docker.pkg.dev/river-duxca-prod/cloud-run-source-deploy/litestream-sandbox
   IMAGE_TAG: latest
   CARGO_TERM_COLOR: always
   RUST_CACHE_SHARED_KEY: rust-1.96.0
@@ -57,6 +57,17 @@ jobs:
         project_id: ${{ env.PROJECT_ID }}
         service_account: ${{ env.SERVICE_ACCOUNT }}
     - uses: google-github-actions/setup-gcloud@v3
+    - uses: hashicorp/setup-terraform@v4
+      with:
+        terraform_version: 1.15.5
+        terraform_wrapper: false
+    - name: Terraform Apply GCP Storage
+      working-directory: ./terraform_gcp_storage
+      run: |
+        set -euo pipefail
+        timeout 5m terraform init
+        timeout 10m terraform plan -out=tfplan -var-file=prod.tfvars
+        timeout 20m terraform apply -auto-approve tfplan
     - run: gcloud auth configure-docker asia-northeast1-docker.pkg.dev
     - uses: docker/setup-buildx-action@v4
     - name: Build and push image
@@ -75,21 +86,37 @@ jobs:
         image="${{ env.IMAGE_REPOSITORY }}@${{ steps.build.outputs.digest }}"
         echo "image=${image}" >> "${GITHUB_OUTPUT}"
         echo "Pushed ${image}"
-    - uses: hashicorp/setup-terraform@v4
-      with:
-        terraform_version: 1.15.5
-    - name: Terraform Init and Apply
-      working-directory: ./terraform
+    - name: Verify Secret Manager versions
+      run: |
+        set -euo pipefail
+        for secret in \
+          FACEBOOK_CLIENT_SECRET \
+          GITHUB_CLIENT_SECRET
+        do
+          gcloud secrets versions access 1 \
+            --project="${PROJECT_ID}" \
+            --secret="${secret}" >/dev/null
+        done
+    - name: Terraform Apply GCP App
+      working-directory: ./terraform_gcp_app
       env:
-        CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         CONTAINER_IMAGE: ${{ steps.image.outputs.image }}
       run: |
         set -euo pipefail
         timeout 5m terraform init
-        timeout 10m terraform plan -out=tfplan -var="container_image=${CONTAINER_IMAGE}"
+        timeout 10m terraform plan -out=tfplan -var-file=prod.tfvars -var="container_image=${CONTAINER_IMAGE}"
+        timeout 20m terraform apply -auto-approve tfplan
+    - name: Terraform Apply Cloudflare
+      working-directory: ./terraform_cf
+      env:
+        CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      run: |
+        set -euo pipefail
+        timeout 5m terraform init
+        timeout 10m terraform plan -out=tfplan -var-file=prod.tfvars
         timeout 20m terraform apply -auto-approve tfplan
     - name: Output Service URL
-      working-directory: ./terraform
+      working-directory: ./terraform_gcp_app
       run: |
         echo "✅ デプロイが完了しました！"
         echo "🌐 サービスURL: $(terraform output -raw cloud_run_url)"

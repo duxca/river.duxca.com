@@ -50,98 +50,253 @@ make test-e2e
 - `/login` にプロバイダボタンが表示されること
 - `/app` でLeptos app shellとWASM frontend bundleが配信されること
 
-## cloud run 環境作成までの道のり
+## 本番デプロイ
 
-### サービスアカウントの作成
-- ふたつ作る必要がある
-- cloudrun 実行用のやつ、deployの引数にわたす
-  - https://zenn.dev/nbstsh/scraps/96a5919e94ac2f
-  - `roles/secretmanager.secretAccessor`
-- litestream用のやつ、secret managerでマウントしてファイルで渡す
-  - cloud run 環境内から gcp へアクセスするため
-  - storage access(管理者)が必要
-    - storage.buckets.get
-    - storage.buckets.getIamPolicy
-    - storage.buckets.update
-    - storage.objects.create
-    - storage.objects.delete
-    - storage.objects.get
-    - storage.objects.getIamPolicy
-    - storage.objects.list
-    - storage.objects.update
-    - resourcemanager.projects.get
-    - resourcemanager.projects.list
-    - storage.managedFolders.get
-    - storage.managedFolders.list
+Terraform は役割ごとに state を分けています。
 
+- `terraform_gcp_storage`: GCP の基盤。API、Artifact Registry、Litestream GCS bucket、Secret Manager secret 本体、Cloud Run service account、IAM。
+- `terraform_gcp_app`: Cloud Run service、public access、`river.duxca.com` の Cloud Run domain mapping。
+- `terraform_ci`: GitHub Actions 用 service account、Workload Identity Federation、deploy IAM。
+- `terraform_cf`: Cloudflare DNS record。
 
-```
-gcloud iam service-accounts create ...
-gcloud secrets add-iam-policy-binding ...
+初回デプロイ順は固定です。Artifact Registry repository がないと container image を push できず、container image と secret version がないと Cloud Run を作れないためです。
+
+### 1. 認証
+
+```bash
+gcloud auth application-default login
+gcloud config set project river-duxca-prod
 ```
 
-### secret manager の設定
+ADC を使えない環境では次を使います。
 
-- cloud run から secret manager へアクセスするためのクレデンシャルをコンテナ内部に渡す方法
-- https://blog.g-gen.co.jp/entry/secret-manager-with-cloud-run
-
-```
-gcloud secrets create ...
+```bash
+export GOOGLE_OAUTH_ACCESS_TOKEN="$(gcloud auth print-access-token)"
 ```
 
-- cloud run ごとにシークレットは共通状態なので管理はデプロイとは別にしないとけない
-- https://cloud.google.com/run/docs/configuring/services/secrets?hl=ja
+### 2. GCP storage stack
 
-```
-gcloud run services update ... \
-  --clear-secrets --clear-volumes --clear-volume-mounts --clear-env-vars
-gcloud run services describe ...
-```
+Artifact Registry、Litestream bucket、Secret Manager secret、service account を作ります。
 
-### gar へ docker push するための設定
-
-```
-gcloud artifacts repositories create ...
-gcloud auth configure-docker ...
-docker build ...
-docker push ...
+```bash
+terraform -chdir=terraform_gcp_storage init -reconfigure
+terraform -chdir=terraform_gcp_storage plan -var-file=prod.tfvars
+terraform -chdir=terraform_gcp_storage apply -var-file=prod.tfvars
 ```
 
-### デプロイ
+### 3. OAuth client ID と secret を設定する
 
-- 環境変数とか https://cloud.google.com/run/docs/configuring/services/secrets?hl=ja
+OAuth の `Client ID` は公開識別子なので `terraform_gcp_app/prod.tfvars` に置きます。`Client Secret` だけ Secret Manager に入れます。Terraform は secret の入れ物と IAM だけを管理し、値は version として手で入れます。
 
+GitHub OAuth の値は GitHub の OAuth App で作ります。
+
+1. GitHub の `Settings` → `Developer settings` → `OAuth Apps` → `New OAuth App` を開く。
+2. `Application name`: `river.duxca.com`
+3. `Homepage URL`: `https://river.duxca.com`
+4. `Authorization callback URL`: `https://river.duxca.com/oauth/callback/github`
+5. 作成後に表示される `Client ID` を `terraform_gcp_app/prod.tfvars` の `github_client_id` に設定する。
+6. `Generate a new client secret` で作った値を `GITHUB_CLIENT_SECRET` secret version に入れる。
+
+Facebook OAuth の値も同じく Facebook Developers 側で app を作り、callback URL は `https://river.duxca.com/oauth/callback/facebook` にします。`App ID` は `terraform_gcp_app/prod.tfvars` の `facebook_client_id`、`App Secret` は `FACEBOOK_CLIENT_SECRET` secret version に入れます。
+
+```bash
+printf '%s' "$FACEBOOK_CLIENT_SECRET" |
+  gcloud secrets versions add FACEBOOK_CLIENT_SECRET \
+    --project=river-duxca-prod \
+    --data-file=-
+
+printf '%s' "$GITHUB_CLIENT_SECRET" |
+  gcloud secrets versions add GITHUB_CLIENT_SECRET \
+    --project=river-duxca-prod \
+    --data-file=-
 ```
-gcloud run deploy ... \
-  --image ... \
-  --service-account ... \
-  --update-secrets=FACEBOOK_CLIENT_ID=FACEBOOK_CLIENT_ID:1 \
+
+Cloud Run は各 client secret の version `1` を参照します。値を入れ直して version が増えた場合は、Terraform 側の `secret_key_ref.key` も合わせて更新してください。
+
+### 4. Container image を push
+
+```bash
+IMAGE_REPOSITORY="asia-northeast1-docker.pkg.dev/river-duxca-prod/cloud-run-source-deploy/litestream-sandbox"
+
+gcloud auth configure-docker asia-northeast1-docker.pkg.dev
+
+docker buildx build . \
+  --tag="${IMAGE_REPOSITORY}:latest" \
+  --push \
+  --metadata-file=/tmp/river-image-metadata.json
+
+IMAGE_DIGEST="$(jq -r '."containerimage.digest"' /tmp/river-image-metadata.json)"
+CONTAINER_IMAGE="${IMAGE_REPOSITORY}@${IMAGE_DIGEST}"
 ```
 
-### 起動時のプローブのタイムアウトの設定
+### 5. 必要なら Litestream backup を restore
+
+空の DB で始めるなら不要です。旧 bucket backup から戻す場合は、新 bucket に `river.db` prefix ができるようにコピーします。
+
+```bash
+mkdir -p /tmp/river-backup-restore
+tar -xzf backup/litestream-backup-20260622-003554.tar.gz -C /tmp/river-backup-restore
+
+gcloud storage cp --recursive \
+  /tmp/river-backup-restore/litestream-20260622-003554/duxca-litestream-sandbox/river.db \
+  gs://river-duxca-prod-litestream/
 ```
-gcloud run services describe litestream-sandbox --format export > service.yaml
+
+### 6. GCP app stack
+
+`terraform_gcp_app` は `terraform_gcp_storage` の remote state から bucket 名と service account email を読みます。
+
+```bash
+terraform -chdir=terraform_gcp_app init -reconfigure
+terraform -chdir=terraform_gcp_app plan \
+  -var-file=prod.tfvars \
+  -var="container_image=${CONTAINER_IMAGE}"
+
+terraform -chdir=terraform_gcp_app apply \
+  -var-file=prod.tfvars \
+  -var="container_image=${CONTAINER_IMAGE}"
 ```
 
-- service.yaml をごにょごにょする
-- https://cloud.google.com/run/docs/configuring/healthchecks?hl=ja
+### 7. Cloudflare DNS
 
+Cloud Run domain mapping 作成後に DNS を作ります。
+
+ローカルでは `cf` CLI の OAuth token を使います。`cf auth whoami` で token を更新してから、更新後の access token を Terraform provider にそのコマンドだけ渡します。
+
+```bash
+cf auth whoami >/dev/null
+
+CLOUDFLARE_API_TOKEN="$(awk -F ' = ' '/^access_token = / {gsub(/"/, "", $2); print $2}' ~/.cf/config.toml)" \
+  terraform -chdir=terraform_cf init -reconfigure
+
+CLOUDFLARE_API_TOKEN="$(awk -F ' = ' '/^access_token = / {gsub(/"/, "", $2); print $2}' ~/.cf/config.toml)" \
+  terraform -chdir=terraform_cf plan -var-file=prod.tfvars
+
+CLOUDFLARE_API_TOKEN="$(awk -F ' = ' '/^access_token = / {gsub(/"/, "", $2); print $2}' ~/.cf/config.toml)" \
+  terraform -chdir=terraform_cf apply -var-file=prod.tfvars
 ```
-gcloud run services replace service.yaml
+
+### 8. 確認
+
+```bash
+gcloud run services describe litestream-sandbox \
+  --project=river-duxca-prod \
+  --region=asia-northeast1 \
+  --format='value(status.url)'
+
+gcloud run domain-mappings describe river.duxca.com \
+  --project=river-duxca-prod \
+  --region=asia-northeast1
 ```
 
-### custom domain mapping で dns の設定
+## GitHub Actions deploy
 
-- https://zenn.dev/mseto/articles/cloud-run-domain
+`.github/workflows/deploy.yml` は `main` への merged PR を契機に実行されます。処理順は手動デプロイと同じです。
 
-## github action から deploy するための設定
-- https://docs.github.com/ja/actions/security-for-github-actions/security-hardening-your-deployments/configuring-openid-connect-in-google-cloud-platform
-- https://github.com/google-github-actions/deploy-cloudrun
-- https://zenn.dev/cloud_ace/articles/7fe428ac4f25c8
-- https://zenn.dev/marblet/articles/e61c0dcafc3dba
-- Artifact Registry 書き込み
-- Cloud Run 管理者
-- サービス アカウント ユーザー`:
+1. test / e2e test
+2. `terraform_gcp_storage apply`
+3. Docker image build / Artifact Registry push
+4. Secret Manager の client secret version `1` の存在確認
+5. `terraform_gcp_app apply`
+6. `terraform_cf apply`
+
+### GitHub Actions 用の GCP 認証
+
+workflow は Workload Identity Federation で `github-action-river@river-duxca-prod.iam.gserviceaccount.com` を使います。このサービスアカウントは Terraform 管理対象のアプリ用 service account とは別です。`terraform_ci` で管理します。
+
+```bash
+terraform -chdir=terraform_ci init
+terraform -chdir=terraform_ci plan -var-file=prod.tfvars
+terraform -chdir=terraform_ci apply -var-file=prod.tfvars
+```
+
+手動で作る場合の等価コマンドは以下です。
+
+```bash
+PROJECT_ID="river-duxca-prod"
+PROJECT_NUMBER="521139256632"
+POOL_ID="githubaction"
+PROVIDER_ID="github"
+GITHUB_REPOSITORY="legokichi/river.duxca.com"
+DEPLOYER_SA="github-action-river@${PROJECT_ID}.iam.gserviceaccount.com"
+
+gcloud iam service-accounts create github-action-river \
+  --project="${PROJECT_ID}" \
+  --display-name="GitHub Actions River deployer"
+
+gcloud iam workload-identity-pools create "${POOL_ID}" \
+  --project="${PROJECT_ID}" \
+  --location="global" \
+  --display-name="GitHub Actions"
+
+gcloud iam workload-identity-pools providers create-oidc "${PROVIDER_ID}" \
+  --project="${PROJECT_ID}" \
+  --location="global" \
+  --workload-identity-pool="${POOL_ID}" \
+  --display-name="GitHub" \
+  --issuer-uri="https://token.actions.githubusercontent.com" \
+  --attribute-mapping="google.subject=assertion.sub,attribute.repository=assertion.repository,attribute.actor=assertion.actor" \
+  --attribute-condition="attribute.repository == '${GITHUB_REPOSITORY}'"
+
+gcloud iam service-accounts add-iam-policy-binding "${DEPLOYER_SA}" \
+  --project="${PROJECT_ID}" \
+  --role="roles/iam.workloadIdentityUser" \
+  --member="principalSet://iam.googleapis.com/projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/${POOL_ID}/attribute.repository/${GITHUB_REPOSITORY}"
+```
+
+### GitHub Actions 用の IAM
+
+deploy workflow は Terraform apply、Artifact Registry push、Cloud Run 更新、Cloudflare DNS 更新を行います。GCP 側では少なくとも次の権限が必要です。
+
+```bash
+for role in \
+  roles/serviceusage.serviceUsageAdmin \
+  roles/artifactregistry.admin \
+  roles/artifactregistry.writer \
+  roles/storage.admin \
+  roles/secretmanager.admin \
+  roles/iam.serviceAccountAdmin \
+  roles/iam.serviceAccountUser \
+  roles/run.admin
+do
+  gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
+    --member="serviceAccount:${DEPLOYER_SA}" \
+    --role="${role}"
+done
+
+gcloud storage buckets add-iam-policy-binding gs://river-duxca-prod-terraform-state \
+  --member="serviceAccount:${DEPLOYER_SA}" \
+  --role="roles/storage.objectAdmin"
+```
+
+`terraform_gcp_app` は Cloud Run 実行用の `river-container@river-duxca-prod.iam.gserviceaccount.com` を使います。storage stack apply 後に作られるため、初回 storage apply 後に deployer へ service account user 権限を明示的に付ける運用でも構いません。
+
+```bash
+gcloud iam service-accounts add-iam-policy-binding \
+  "river-container@${PROJECT_ID}.iam.gserviceaccount.com" \
+  --project="${PROJECT_ID}" \
+  --member="serviceAccount:${DEPLOYER_SA}" \
+  --role="roles/iam.serviceAccountUser"
+```
+
+### GitHub Secrets
+
+GitHub repository secret に Cloudflare token を保存します。
+
+```text
+CLOUDFLARE_API_TOKEN
+```
+
+OAuth の client secret は GitHub Secrets から自動投入しません。`terraform_gcp_storage apply` 後に、手動デプロイ手順と同じく Secret Manager の version `1` を作ってください。workflow は app apply 前に `FACEBOOK_CLIENT_SECRET` と `GITHUB_CLIENT_SECRET` の version `1` が読めることだけ確認します。
+
+### Actions の Terraform plan
+
+`.github/workflows/check.yml` の `terraform-plan` job は PR で次を実行します。
+
+- `terraform_gcp_storage`: validate / fmt / plan
+- `terraform_gcp_app`: validate / fmt / storage remote state がある場合だけ plan
+- `terraform_ci`: validate / fmt / plan
+- `terraform_cf`: validate / fmt / `CLOUDFLARE_API_TOKEN` がある場合だけ plan
 
 ## tips
 
