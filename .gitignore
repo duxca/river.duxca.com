@@ -13,6 +13,9 @@ key.json
 *.db*
 .*.db*
 .aider*
+.playwright-cli/
+.playwright-mcp/
+playwright-app.png
 backup
 terraform/terraform.tfvars
 terraform/terraform.tfstate

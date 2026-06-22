@@ -36,7 +36,7 @@ panic = "abort"
 [[workspace.metadata.leptos]]
 assets-dir = "public"
 bin-default-features = false
-bin-features = ["local"]
+bin-features = []
 bin-package = "server"
 browserquery = "defaults"
 end2end-cmd = "./cli/e2e-local-container.sh --no-server"

@@ -9,8 +9,7 @@ resource "google_cloud_run_service" "litestream_sandbox" {
 
   lifecycle {
     ignore_changes = [
-      template[0].spec[0].containers[0].resources[0].limits,
-      autogenerate_revision_name
+      template[0].spec[0].containers[0].resources[0].limits
     ]
   }
 
@@ -86,7 +85,7 @@ resource "google_cloud_run_service" "litestream_sandbox" {
     latest_revision = true
   }
 
-  autogenerate_revision_name = false
+  autogenerate_revision_name = true
 }
 
 resource "google_cloud_run_service_iam_member" "public_access" {
