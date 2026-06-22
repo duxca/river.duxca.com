@@ -222,7 +222,7 @@ gcloud run domain-mappings describe river.duxca.com \
 
 ## GitHub Actions deploy
 
-`.github/workflows/deploy.yml` は `main` への merged PR を契機に実行されます。処理順は手動デプロイと同じです。
+`.github/workflows/deploy.yml` は `main` への push を契機に実行されます。公開リポジトリで PR から本番 credential を触らせないため、`pull_request` では deploy しません。処理順は手動デプロイと同じです。
 
 1. test / e2e test
 2. `terraform_gcp_storage apply`
@@ -234,6 +234,8 @@ gcloud run domain-mappings describe river.duxca.com \
 ### GitHub Actions 用の GCP 認証
 
 workflow は Workload Identity Federation で `github-action-river@river-duxca-prod.iam.gserviceaccount.com` を使います。このサービスアカウントは Terraform 管理対象のアプリ用 service account とは別です。`terraform_ci` で管理します。
+
+WIF provider は `legokichi/river.duxca.com` または `duxca/river.duxca.com` の `refs/heads/main` OIDC token だけを受け入れます。`duxca` org への移管前後で deploy を壊さないため、一時的に両方の repository claim を許可しています。PR workflow には `id-token: write` を渡さず、GCP service account を impersonate できない構成にしています。
 
 ```bash
 terraform -chdir=terraform_ci init
@@ -249,6 +251,7 @@ PROJECT_NUMBER="521139256632"
 POOL_ID="githubaction"
 PROVIDER_ID="github"
 GITHUB_REPOSITORY="legokichi/river.duxca.com"
+GITHUB_REPOSITORY_AFTER_TRANSFER="duxca/river.duxca.com"
 DEPLOYER_SA="github-action-river@${PROJECT_ID}.iam.gserviceaccount.com"
 
 gcloud iam service-accounts create github-action-river \
@@ -266,13 +269,13 @@ gcloud iam workload-identity-pools providers create-oidc "${PROVIDER_ID}" \
   --workload-identity-pool="${POOL_ID}" \
   --display-name="GitHub" \
   --issuer-uri="https://token.actions.githubusercontent.com" \
-  --attribute-mapping="google.subject=assertion.sub,attribute.repository=assertion.repository,attribute.actor=assertion.actor" \
-  --attribute-condition="attribute.repository == '${GITHUB_REPOSITORY}'"
+  --attribute-mapping="google.subject=assertion.sub,attribute.repository=assertion.repository,attribute.actor=assertion.actor,attribute.ref=assertion.ref" \
+  --attribute-condition="(attribute.repository == '${GITHUB_REPOSITORY}' || attribute.repository == '${GITHUB_REPOSITORY_AFTER_TRANSFER}') && attribute.ref == 'refs/heads/main'"
 
 gcloud iam service-accounts add-iam-policy-binding "${DEPLOYER_SA}" \
   --project="${PROJECT_ID}" \
   --role="roles/iam.workloadIdentityUser" \
-  --member="principalSet://iam.googleapis.com/projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/${POOL_ID}/attribute.repository/${GITHUB_REPOSITORY}"
+  --member="principalSet://iam.googleapis.com/projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/${POOL_ID}/attribute.ref/refs/heads/main"
 ```
 
 ### GitHub Actions 用の IAM
@@ -320,14 +323,28 @@ CLOUDFLARE_API_TOKEN
 
 OAuth の client secret は GitHub Secrets から自動投入しません。`terraform_gcp_storage apply` 後に、手動デプロイ手順と同じく Secret Manager の version を作ってください。workflow は app apply 前に Terraform が参照する `FACEBOOK_CLIENT_SECRET` と `GITHUB_CLIENT_SECRET` の version が読めることだけ確認します。
 
-### Actions の Terraform plan
+### Actions の PR check
 
-`.github/workflows/check.yml` の `terraform-plan` job は PR で次を実行します。
+`.github/workflows/check.yml` は PR で本番 credential を使いません。GitHub Secrets、Cloudflare token、GCP Workload Identity Federation は PR workflow に渡しません。
 
-- `terraform_ci`: validate / fmt / plan
-- `terraform_gcp_storage`: validate / fmt / plan
-- `terraform_gcp_app`: validate / fmt / storage remote state がある場合だけ plan
-- `terraform_cf`: validate / fmt / `CLOUDFLARE_API_TOKEN` がある場合だけ plan
+- Rust fmt / clippy / test
+- e2e test
+- runtime image smoke test
+- Gitleaks secret scan
+- Terraform init `-backend=false` / validate / fmt check
+
+Terraform plan/apply、Artifact Registry push、Cloud Run 更新、Cloudflare apply は `main` push の deploy workflow だけで実行します。
+
+### 公開リポジトリ向け GitHub 設定
+
+公開前後で以下を維持してください。
+
+- Actions の default `GITHUB_TOKEN` permission は read-only
+- 外部 contributor の workflow 実行は approval 必須
+- Secret scanning / push protection を有効化
+- `main` は branch protection または ruleset で direct push 禁止、required checks、review 必須にする
+
+この repo は private の間、GitHub のプラン制限で branch protection API が使えない場合があります。その場合は public 化後に `main` protection を設定してください。
 
 ## tips
 

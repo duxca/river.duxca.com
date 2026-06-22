@@ -12,9 +12,8 @@ env:
   RUST_CACHE_SHARED_KEY: rust-1.96.0
 
 on:
-  pull_request:
+  push:
     branches: [ "main" ]
-    types: [ "closed" ]
 
 concurrency:
   group: deploy-main
@@ -23,7 +22,6 @@ concurrency:
 jobs:
 
   deploy:
-    if: github.event.pull_request.merged == true
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     permissions:
@@ -32,8 +30,6 @@ jobs:
       id-token: write
     steps:
     - uses: actions/checkout@v6
-      with:
-        ref: ${{ github.event.pull_request.merge_commit_sha }}
     - uses: dtolnay/rust-toolchain@1.96.0
       with:
         targets: wasm32-unknown-unknown

@@ -8,9 +8,9 @@ variable "project_number" {
   type        = string
 }
 
-variable "github_repository" {
-  description = "GitHub repository allowed to impersonate the deployer service account"
-  type        = string
+variable "github_repositories" {
+  description = "GitHub repositories allowed to impersonate the deployer service account from main"
+  type        = list(string)
 }
 
 variable "workload_identity_pool_id" {
