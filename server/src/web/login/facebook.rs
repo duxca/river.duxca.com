@@ -31,6 +31,7 @@ pub async fn login(
     let redirect_url = oauth2::RedirectUrl::new(format!("{}{}", base_url, REDIRECT_PATH)).unwrap();
     let client = oauth2::basic::BasicClient::new(client_id)
         .set_client_secret(client_secret)
+        .set_auth_type(oauth2::AuthType::RequestBody)
         .set_auth_uri(auth_url)
         .set_token_uri(token_url)
         .set_redirect_uri(redirect_url);
@@ -130,6 +131,7 @@ pub async fn get_access_token(
     let redirect_url = oauth2::RedirectUrl::new(format!("{}{}", base_url, REDIRECT_PATH)).unwrap();
     let client = oauth2::basic::BasicClient::new(client_id)
         .set_client_secret(client_secret)
+        .set_auth_type(oauth2::AuthType::RequestBody)
         .set_auth_uri(auth_url)
         .set_token_uri(token_url)
         .set_redirect_uri(redirect_url);
