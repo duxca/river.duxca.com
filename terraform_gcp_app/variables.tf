@@ -30,6 +30,18 @@ variable "github_client_id" {
   type        = string
 }
 
+variable "facebook_client_secret_version" {
+  description = "Secret Manager version for FACEBOOK_CLIENT_SECRET"
+  type        = string
+  default     = "2"
+}
+
+variable "github_client_secret_version" {
+  description = "Secret Manager version for GITHUB_CLIENT_SECRET"
+  type        = string
+  default     = "1"
+}
+
 variable "terraform_state_bucket" {
   description = "Terraform remote state bucket"
   type        = string

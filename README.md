@@ -142,7 +142,7 @@ printf '%s' "$GITHUB_CLIENT_SECRET" |
     --data-file=-
 ```
 
-Cloud Run は各 client secret の version `1` を参照します。値を入れ直して version が増えた場合は、Terraform 側の `secret_key_ref.key` も合わせて更新してください。
+Cloud Run が参照する secret version は `terraform_gcp_app` の `facebook_client_secret_version` と `github_client_secret_version` で管理します。値を入れ直して version が増えた場合は、該当する変数の default も合わせて更新してください。secret 値は末尾改行を含めないでください。
 
 ### 5. Container image を push
 
@@ -227,7 +227,7 @@ gcloud run domain-mappings describe river.duxca.com \
 1. test / e2e test
 2. `terraform_gcp_storage apply`
 3. Docker image build / Artifact Registry push
-4. Secret Manager の client secret version `1` の存在確認
+4. Secret Manager の client secret version の存在確認
 5. `terraform_gcp_app apply`
 6. `terraform_cf apply`
 
@@ -318,7 +318,7 @@ GitHub repository secret に Cloudflare token を保存します。
 CLOUDFLARE_API_TOKEN
 ```
 
-OAuth の client secret は GitHub Secrets から自動投入しません。`terraform_gcp_storage apply` 後に、手動デプロイ手順と同じく Secret Manager の version `1` を作ってください。workflow は app apply 前に `FACEBOOK_CLIENT_SECRET` と `GITHUB_CLIENT_SECRET` の version `1` が読めることだけ確認します。
+OAuth の client secret は GitHub Secrets から自動投入しません。`terraform_gcp_storage apply` 後に、手動デプロイ手順と同じく Secret Manager の version を作ってください。workflow は app apply 前に Terraform が参照する `FACEBOOK_CLIENT_SECRET` と `GITHUB_CLIENT_SECRET` の version が読めることだけ確認します。
 
 ### Actions の Terraform plan
 

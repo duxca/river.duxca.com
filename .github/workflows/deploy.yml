@@ -89,14 +89,12 @@ jobs:
     - name: Verify Secret Manager versions
       run: |
         set -euo pipefail
-        for secret in \
-          FACEBOOK_CLIENT_SECRET \
-          GITHUB_CLIENT_SECRET
-        do
-          gcloud secrets versions access 1 \
-            --project="${PROJECT_ID}" \
-            --secret="${secret}" >/dev/null
-        done
+        gcloud secrets versions access 2 \
+          --project="${PROJECT_ID}" \
+          --secret=FACEBOOK_CLIENT_SECRET >/dev/null
+        gcloud secrets versions access 1 \
+          --project="${PROJECT_ID}" \
+          --secret=GITHUB_CLIENT_SECRET >/dev/null
     - name: Terraform Apply GCP App
       working-directory: ./terraform_gcp_app
       env:

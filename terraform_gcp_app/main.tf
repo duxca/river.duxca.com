@@ -45,7 +45,7 @@ resource "google_cloud_run_service" "litestream_sandbox" {
           value_from {
             secret_key_ref {
               name = "FACEBOOK_CLIENT_SECRET"
-              key  = "1"
+              key  = var.facebook_client_secret_version
             }
           }
         }
@@ -60,7 +60,7 @@ resource "google_cloud_run_service" "litestream_sandbox" {
           value_from {
             secret_key_ref {
               name = "GITHUB_CLIENT_SECRET"
-              key  = "1"
+              key  = var.github_client_secret_version
             }
           }
         }
