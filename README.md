@@ -1,5 +1,5 @@
-[![workflow](https://github.com/legokichi/river.duxca.com/actions/workflows/check.yml/badge.svg)](https://github.com/legokichi/river.duxca.com/actions/workflows/check.yml)
-[![deploy](https://github.com/legokichi/river.duxca.com/actions/workflows/deploy.yml/badge.svg)](https://github.com/legokichi/river.duxca.com/actions/workflows/deploy.yml)
+[![workflow](https://github.com/duxca/river.duxca.com/actions/workflows/check.yml/badge.svg)](https://github.com/duxca/river.duxca.com/actions/workflows/check.yml)
+[![deploy](https://github.com/duxca/river.duxca.com/actions/workflows/deploy.yml/badge.svg)](https://github.com/duxca/river.duxca.com/actions/workflows/deploy.yml)
 
 ## 開発環境のセットアップ
 
