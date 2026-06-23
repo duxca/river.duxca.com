@@ -31,6 +31,7 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
                     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
                     crossorigin=""
                 ></script>
+                <script src="/register-sw.js"></script>
                 <AutoReload options=options.clone()/>
                 <HydrationScripts options=options.clone() root="/app"/>
             </head>
