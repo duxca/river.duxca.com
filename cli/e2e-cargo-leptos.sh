@@ -33,4 +33,4 @@ export LEPTOS_RELOAD_PORT="${LEPTOS_RELOAD_PORT:-18082}"
 
 cargo sqlx database setup --source db/migrations --no-dotenv --database-url "$DATABASE_URL"
 
-exec cargo leptos end-to-end
+exec cargo leptos end-to-end --bin-features local

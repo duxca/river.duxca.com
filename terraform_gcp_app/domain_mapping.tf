@@ -3,7 +3,7 @@ resource "google_cloud_run_domain_mapping" "river" {
   location = var.region
 
   metadata {
-    namespace = var.project_number
+    namespace = var.project_id
   }
 
   spec {

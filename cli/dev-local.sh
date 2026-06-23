@@ -47,4 +47,4 @@ cargo sqlx database setup --source db/migrations --no-dotenv --database-url "$DA
 echo "server:   http://${SERVER_HOST}:${SERVER_PORT}/"
 echo "frontend: http://${SERVER_HOST}:${SERVER_PORT}/app"
 
-exec cargo leptos watch
+exec cargo leptos watch --bin-features local

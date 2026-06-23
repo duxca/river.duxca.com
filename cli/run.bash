@@ -1,6 +1,9 @@
 #!/bin/bash
 set -euo pipefail
 
+: "${LITESTREAM_BUCKET:=duxca-litestream-sandbox}"
+export LITESTREAM_BUCKET
+
 restore_dir="$(mktemp -d ./river-db-restore.XXXXXX)"
 restore_db="${restore_dir}/river.db"
 

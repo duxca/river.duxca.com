@@ -1,5 +1,8 @@
 name: Check Code
 
+permissions:
+  contents: read
+
 env:
   CARGO_TERM_COLOR: always
   RUST_CACHE_SHARED_KEY: rust-1.96.0
@@ -21,6 +24,7 @@ jobs:
     outputs:
       rust: ${{ steps.changes.outputs.rust }}
       runtime: ${{ steps.changes.outputs.runtime }}
+      terraform: ${{ steps.changes.outputs.terraform }}
     steps:
     - uses: actions/checkout@v6
     - uses: dorny/paths-filter@v4
@@ -51,6 +55,12 @@ jobs:
             - 'service/**'
             - 'model/**'
             - 'db/**'
+          terraform:
+            - '.github/workflows/**'
+            - 'terraform_ci/**'
+            - 'terraform_gcp_storage/**'
+            - 'terraform_gcp_app/**'
+            - 'terraform_cf/**'
 
   fmt:
     needs: changes
@@ -71,6 +81,40 @@ jobs:
         find . -name Cargo.toml -print0 | while IFS= read -r -d '' manifest; do
           (cd "$(dirname "$manifest")" && cargo tomlfmt -d)
         done
+
+  terraform-check:
+    needs: changes
+    if: ${{ needs.changes.outputs.terraform == 'true' }}
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: 1.15.5
+          terraform_wrapper: false
+      - name: Terraform Init Without Backend
+        run: |
+          set -euo pipefail
+          terraform -chdir=terraform_ci init -backend=false
+          terraform -chdir=terraform_gcp_storage init -backend=false
+          terraform -chdir=terraform_gcp_app init -backend=false
+          terraform -chdir=terraform_cf init -backend=false
+      - name: Terraform Validate
+        run: |
+          set -euo pipefail
+          terraform -chdir=terraform_ci validate
+          terraform -chdir=terraform_gcp_storage validate
+          terraform -chdir=terraform_gcp_app validate
+          terraform -chdir=terraform_cf validate
+      - name: Terraform Format Check
+        run: |
+          set -euo pipefail
+          terraform -chdir=terraform_ci fmt -check
+          terraform -chdir=terraform_gcp_storage fmt -recursive -check
+          terraform -chdir=terraform_gcp_app fmt -check
+          terraform -chdir=terraform_cf fmt -check
 
   clippy:
     needs: changes
@@ -177,103 +221,3 @@ jobs:
           sleep 1
         done
         exit 1
-
-  terraform-plan:
-    if: |
-      github.event.pull_request.user.login == 'legokichi' &&
-      github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: write
-      id-token: write
-    env:
-      PROJECT_ID: duxca-298210
-      PROJECT_NUMBER: 93254674393
-      POOL_ID: githubaction
-      PROVIDER_ID: github
-      SERVICE_ACCOUNT: github-action-river@duxca-298210.iam.gserviceaccount.com
-      REGION: asia-northeast1
-      SERVICE_NAME: litestream-sandbox
-    steps:
-      - uses: actions/checkout@v6
-      - name: Debug Authentication Context
-        run: |
-          echo "Actor: ${{ github.actor }}"
-          echo "Repository: ${{ github.repository }}"
-          echo "Event: ${{ github.event_name }}"
-          echo "PR User: ${{ github.event.pull_request.user.login }}"
-          echo "Ref: ${{ github.ref }}"
-          echo "Head Ref: ${{ github.head_ref }}"
-          echo "Repository Owner: ${{ github.repository_owner }}"
-          echo "Repository ID: ${{ github.repository_id }}"
-      - uses: google-github-actions/auth@v3
-        with:
-          workload_identity_provider: projects/${{ env.PROJECT_NUMBER }}/locations/global/workloadIdentityPools/${{ env.POOL_ID }}/providers/${{ env.PROVIDER_ID }}
-          project_id: ${{ env.PROJECT_ID }}
-          service_account: ${{ env.SERVICE_ACCOUNT }}
-      - uses: google-github-actions/setup-gcloud@v3
-      - name: Use gcloud CLI
-        run: gcloud info
-      - name: Resolve current deployed image
-        id: current_image
-        run: |
-          set -euo pipefail
-          container_image="$(gcloud run services describe "${SERVICE_NAME}" \
-            --region "${REGION}" \
-            --format='value(spec.template.spec.containers[0].image)')"
-          test -n "${container_image}"
-          echo "container_image=${container_image}" >> "${GITHUB_OUTPUT}"
-          echo "Current image: ${container_image}"
-      - uses: hashicorp/setup-terraform@v4
-        with:
-          terraform_version: 1.15.5
-          terraform_wrapper: false
-      - name: Terraform Init
-        working-directory: ./terraform
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: terraform init
-      - name: Terraform Validate
-        working-directory: ./terraform
-        run: terraform validate
-      - name: Terraform Format Check
-        working-directory: ./terraform
-        run: terraform fmt -check
-      - name: Terraform Plan
-        working-directory: ./terraform
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CONTAINER_IMAGE: ${{ steps.current_image.outputs.container_image }}
-        run: |
-          terraform plan -no-color -out=tfplan -var="container_image=${CONTAINER_IMAGE}"
-          terraform show -no-color tfplan > plan.txt
-      - name: Post Plan to PR
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v9
-        with:
-          script: |
-            const fs = require('fs');
-            const plan = fs.readFileSync('./terraform/plan.txt', 'utf8');
-            
-            const output = `
-            ## Terraform Plan Results
-            
-            <details>
-            <summary>Terraform Plan Output</summary>
-            
-            \`\`\`
-            ${plan}
-            \`\`\`
-            
-            </details>
-            
-            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*
-            `;
-            
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: output
-            });
