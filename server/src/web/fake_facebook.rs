@@ -1,7 +1,10 @@
 pub fn router() -> axum::Router {
     axum::Router::new()
         .route("/v20.0/dialog/oauth", axum::routing::get(authorize))
-        .route("/v20.0/oauth/access_token", axum::routing::post(token))
+        .route(
+            "/v20.0/oauth/access_token",
+            axum::routing::get(token).post(token),
+        )
         .route("/v20.0/me", axum::routing::get(user))
 }
 

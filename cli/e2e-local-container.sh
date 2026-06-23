@@ -47,6 +47,7 @@ fi
 
 docker run --rm \
   --add-host=host.docker.internal:host-gateway \
+  -e RUST_TEST_THREADS=1 \
   -e SERVER_URL="http://host.docker.internal:${SERVER_PORT}" \
   -e FRONTEND_URL="http://host.docker.internal:${SERVER_PORT}/app" \
   "$E2E_IMAGE"
