@@ -152,6 +152,60 @@ pub fn home(Props { user: _ }: &Props) -> HtmlResult {
             edit_mode.set(EditMode::AddWaypoint);
         }
     });
+    let onchange_select_river = use_callback(selected_river.clone(), {
+        move |river_id: i64, selected_river| {
+            selected_river.set(river_id);
+        }
+    });
+    let onclick_save_waypoint = {
+        let edit_mode = edit_mode.clone();
+        let focus = focus.clone();
+        let selected_river = selected_river.clone();
+        let waypoints = waypoints.clone();
+        Callback::from(move |(river_id, waypoint_name): (i64, String)| {
+            let waypoint_name = waypoint_name.trim().to_string();
+            if river_id == 0 {
+                log::warn!("river is not selected");
+                return;
+            }
+            if waypoint_name.is_empty() {
+                log::warn!("waypoint name is empty");
+                return;
+            }
+
+            let (latitude, longitude) = *focus;
+            let edit_mode = edit_mode.clone();
+            let selected_river = selected_river.clone();
+            let waypoints = waypoints.clone();
+            wasm_bindgen_futures::spawn_local(async move {
+                let res = crate::api::call::<model::api::create_river_waypoint::Response>(
+                    model::api::create_river_waypoint::Request {
+                        river_id,
+                        name: waypoint_name.clone(),
+                        latitude,
+                        longitude,
+                    },
+                )
+                .await;
+
+                match res {
+                    Ok(res) => {
+                        let mut tmp_waypoints = (*waypoints).clone();
+                        tmp_waypoints.insert(
+                            res.river_waypoint_id,
+                            (waypoint_name, (latitude, longitude)),
+                        );
+                        waypoints.set(tmp_waypoints);
+                        selected_river.set(river_id);
+                        edit_mode.set(EditMode::Home);
+                    }
+                    Err(err) => {
+                        log::error!("failed to create river waypoint: {:?}", err);
+                    }
+                }
+            });
+        })
+    };
 
     // initial fetch
     use_effect_with((), {
@@ -260,7 +314,7 @@ pub fn home(Props { user: _ }: &Props) -> HtmlResult {
                 <crate::components::select_river::SelectRiver
                     selected_river={*selected_river}
                     rivers={(*rivers).clone()}
-                    onchange={Callback::from(|_|{})}
+                    onchange={onchange_select_river}
                 />
             </crate::components::dialog::Dialog>
         } else if let EditMode::AddRoute(AddRouteMode{state, ..}) = &*edit_mode {
@@ -282,7 +336,7 @@ pub fn home(Props { user: _ }: &Props) -> HtmlResult {
                     selected_river={*selected_river}
                     rivers={(*rivers).clone()}
                     focus={*focus}
-                    onsave={Callback::from(|_|{})}
+                    onsave={onclick_save_waypoint}
                 />
             </crate::components::dialog::Dialog>
         }

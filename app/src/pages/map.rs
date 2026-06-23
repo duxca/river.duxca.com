@@ -1,6 +1,6 @@
 use leptos::prelude::*;
 use leptos_leaflet::prelude::*;
-use shared_api::{create_river_track, get_river, list_rivers};
+use shared_api::{create_river_track, create_river_waypoint, get_river, list_rivers};
 
 const DEFAULT_CENTER: Position = Position {
     lat: 35.362_222,
@@ -141,9 +141,13 @@ pub fn MapPage() -> impl IntoView {
     let selected_river_id = RwSignal::new(None::<i64>);
     let editing = RwSignal::new(false);
     let draft_track = RwSignal::new(Vec::<Position>::new());
+    let waypoint_editing = RwSignal::new(false);
+    let draft_waypoint = RwSignal::new(None::<Position>);
     let show_track_form = RwSignal::new(false);
+    let show_waypoint_form = RwSignal::new(false);
     let track_name = RwSignal::new(String::new());
     let track_description = RwSignal::new(String::new());
+    let waypoint_name = RwSignal::new(String::new());
     let form_error = RwSignal::new(None::<String>);
     let submit_result = RwSignal::new(None::<String>);
     let create_track = Action::new(move |input: &(i64, String, String, Vec<Position>)| {
@@ -157,6 +161,10 @@ pub fn MapPage() -> impl IntoView {
             )
             .await
         }
+    });
+    let create_waypoint = Action::new(move |input: &(i64, String, Position)| {
+        let (river_id, name, position) = input.clone();
+        async move { create_river_waypoint(river_id, name, position.lat, position.lng).await }
     });
 
     Effect::new(move |_| {
@@ -193,17 +201,50 @@ pub fn MapPage() -> impl IntoView {
         None => {}
     });
 
+    Effect::new(move |_| match create_waypoint.value().get() {
+        Some(Ok(response)) => {
+            waypoint_editing.set(false);
+            draft_waypoint.set(None);
+            show_waypoint_form.set(false);
+            waypoint_name.set(String::new());
+            form_error.set(None);
+            submit_result.set(Some(format!(
+                "地点を投稿しました #{}",
+                response.river_waypoint_id
+            )));
+            map_data.refetch();
+        }
+        Some(Err(_)) => {
+            form_error.set(Some("地点の投稿に失敗しました。".to_string()));
+        }
+        None => {}
+    });
+
     let begin_edit = move |_| {
         editing.set(true);
+        waypoint_editing.set(false);
         show_track_form.set(false);
+        show_waypoint_form.set(false);
         form_error.set(None);
         submit_result.set(None);
     };
     let cancel_edit = move |_| {
         editing.set(false);
+        waypoint_editing.set(false);
         show_track_form.set(false);
+        show_waypoint_form.set(false);
         draft_track.set(Vec::new());
+        draft_waypoint.set(None);
         form_error.set(None);
+    };
+    let begin_waypoint_edit = move |_| {
+        waypoint_editing.set(true);
+        editing.set(false);
+        show_track_form.set(false);
+        show_waypoint_form.set(false);
+        draft_waypoint.set(None);
+        form_error.set(None);
+        submit_result.set(None);
     };
     let undo_point = move |_| {
         draft_track.update(|points| {
@@ -243,6 +284,38 @@ pub fn MapPage() -> impl IntoView {
 
         create_track.dispatch((river_id, name, track_description.get(), points));
     };
+    let open_waypoint_form = move |_| {
+        form_error.set(None);
+        if selected_river_id.get().is_none() {
+            form_error.set(Some("投稿先の川を選択してください。".to_string()));
+            return;
+        }
+        if draft_waypoint.get().is_none() {
+            form_error.set(Some("地点を地図上で指定してください。".to_string()));
+            return;
+        }
+        show_waypoint_form.set(true);
+    };
+    let submit_waypoint = move |ev: leptos::ev::SubmitEvent| {
+        ev.prevent_default();
+        form_error.set(None);
+
+        let Some(river_id) = selected_river_id.get() else {
+            form_error.set(Some("投稿先の川を選択してください。".to_string()));
+            return;
+        };
+        let Some(position) = draft_waypoint.get() else {
+            form_error.set(Some("地点を地図上で指定してください。".to_string()));
+            return;
+        };
+        let name = waypoint_name.get().trim().to_owned();
+        if name.is_empty() {
+            form_error.set(Some("地点名を入力してください。".to_string()));
+            return;
+        }
+
+        create_waypoint.dispatch((river_id, name, position));
+    };
 
     view! {
         <div class="app-shell">
@@ -270,6 +343,8 @@ pub fn MapPage() -> impl IntoView {
                         show_tracks
                         editing
                         draft_track
+                        waypoint_editing
+                        draft_waypoint
                     />
                 </Show>
                 <div class="track-editor-panel">
@@ -311,7 +386,14 @@ pub fn MapPage() -> impl IntoView {
                     </label>
                     <div class="track-editor-actions">
                         <button type="button" on:click=begin_edit disabled=move || editing.get()>
-                            "編集"
+                            "経路編集"
+                        </button>
+                        <button
+                            type="button"
+                            on:click=begin_waypoint_edit
+                            disabled=move || waypoint_editing.get()
+                        >
+                            "地点指定"
                         </button>
                         <button
                             class="secondary"
@@ -325,7 +407,10 @@ pub fn MapPage() -> impl IntoView {
                             class="secondary"
                             type="button"
                             on:click=cancel_edit
-                            disabled=move || !editing.get() && draft_track.get().is_empty()
+                            disabled=move || !editing.get()
+                                && !waypoint_editing.get()
+                                && draft_track.get().is_empty()
+                                && draft_waypoint.get().is_none()
                         >
                             "クリア"
                         </button>
@@ -336,15 +421,29 @@ pub fn MapPage() -> impl IntoView {
                         >
                             "投稿"
                         </button>
+                        <button
+                            type="button"
+                            on:click=open_waypoint_form
+                            disabled=move || draft_waypoint.get().is_none() || create_waypoint.pending().get()
+                        >
+                            "地点投稿"
+                        </button>
                     </div>
                     <p>
-                        {move || if editing.get() {
+                        {move || if waypoint_editing.get() {
+                            "地点指定モード: 地図をクリックして地点を指定"
+                        } else if editing.get() {
                             "編集モード: 地図をクリックして経路点を追加"
                         } else {
-                            "編集ボタンで経路作成を開始"
+                            "経路編集または地点指定を開始"
                         }}
                     </p>
                     <p>{move || format!("{} 点", draft_track.get().len())}</p>
+                    {move || draft_waypoint.get().map(|position| view! {
+                        <p>
+                            {format!("地点: {:.6}, {:.6}", position.lat, position.lng)}
+                        </p>
+                    })}
                     {move || submit_result.get().map(|message| view! {
                         <p class="track-editor-success" role="status">{message}</p>
                     })}
@@ -376,6 +475,27 @@ pub fn MapPage() -> impl IntoView {
                                     "投稿中..."
                                 } else {
                                     "経路を投稿"
+                                }}
+                            </button>
+                        </form>
+                    </Show>
+                    <Show when=move || show_waypoint_form.get()>
+                        <form class="track-submit-form" on:submit=submit_waypoint>
+                            <label>
+                                <span>"地点名"</span>
+                                <input
+                                    type="text"
+                                    bind:value=waypoint_name
+                                    required=true
+                                    autocomplete="off"
+                                    placeholder="例: 二子玉川"
+                                />
+                            </label>
+                            <button type="submit" disabled=move || create_waypoint.pending().get()>
+                                {move || if create_waypoint.pending().get() {
+                                    "投稿中..."
+                                } else {
+                                    "地点を投稿"
                                 }}
                             </button>
                         </form>
@@ -452,6 +572,8 @@ fn RiverMap(
     show_tracks: RwSignal<bool>,
     editing: RwSignal<bool>,
     draft_track: RwSignal<Vec<Position>>,
+    waypoint_editing: RwSignal<bool>,
+    draft_waypoint: RwSignal<Option<Position>>,
 ) -> impl IntoView {
     view! {
         <Suspense fallback=|| view! { <div class="map-loading">"地図を読み込み中..."</div> }>
@@ -472,10 +594,17 @@ fn RiverMap(
                         scroll_wheel_zoom=true
                         set_view=true
                         events=MapEvents::new().mouse_click(move |event| {
+                            let lat_lng = event.lat_lng();
+                            if waypoint_editing.get_untracked() {
+                                draft_waypoint.set(Some(Position {
+                                    lat: lat_lng.lat(),
+                                    lng: lat_lng.lng(),
+                                }));
+                                return;
+                            }
                             if !editing.get_untracked() {
                                 return;
                             }
-                            let lat_lng = event.lat_lng();
                             draft_track.update(|points| {
                                 points.push(Position {
                                     lat: lat_lng.lat(),
@@ -499,6 +628,7 @@ fn RiverMap(
                             show_waypoints
                             show_tracks
                             draft_track
+                            draft_waypoint
                         />
                     </MapContainer>
                 }
@@ -513,6 +643,7 @@ fn MapOverlays(
     show_waypoints: RwSignal<bool>,
     show_tracks: RwSignal<bool>,
     draft_track: RwSignal<Vec<Position>>,
+    draft_waypoint: RwSignal<Option<Position>>,
 ) -> impl IntoView {
     let Some(data) = data else {
         return ().into_any();
@@ -615,6 +746,13 @@ fn MapOverlays(
                 {draft_line}
             }
         }}
+        {move || draft_waypoint.get().map(|position| view! {
+            <Marker position=position>
+                <Popup>
+                    <strong>"登録予定地点"</strong>
+                </Popup>
+            </Marker>
+        })}
         <div class="map-crosshair" aria-hidden="true"></div>
     }
     .into_any()
