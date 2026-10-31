@@ -162,7 +162,18 @@ CONTAINER_IMAGE="${IMAGE_REPOSITORY}@${IMAGE_DIGEST}"
 
 ### 6. 必要なら Litestream backup を restore
 
-空の DB で始めるなら不要です。旧 bucket backup から戻す場合は、新 bucket に `river.db` prefix ができるようにコピーします。
+空の DB で始めるならコピーは不要です。ただし `cli/run.bash` はレプリカが見つからないと restore を失敗させて起動しません（空 DB でレプリカを上書きする事故を防ぐため）。空の DB で始める初回だけ、7 の apply で作ったリビジョンが起動に失敗したら `LITESTREAM_ALLOW_EMPTY_RESTORE=1` を付けて起動させます。
+
+```bash
+gcloud run services update litestream-sandbox \
+  --project=river-duxca-prod \
+  --region=asia-northeast1 \
+  --update-env-vars=LITESTREAM_ALLOW_EMPTY_RESTORE=1
+```
+
+起動してレプリカができたら `--remove-env-vars=LITESTREAM_ALLOW_EMPTY_RESTORE` で外します。
+
+旧 bucket backup から戻す場合は、新 bucket に `river.db` prefix ができるようにコピーします。
 
 ```bash
 mkdir -p /tmp/river-backup-restore
