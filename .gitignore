@@ -52,3 +52,4 @@ terraform_cf/**/terraform.tfstate
 terraform_cf/**/terraform.tfstate.backup
 terraform_cf/tfplan
 terraform_cf/.terraform/
+/db/litestream

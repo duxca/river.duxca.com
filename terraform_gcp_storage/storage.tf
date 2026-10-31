@@ -14,7 +14,8 @@ resource "google_storage_bucket" "litestream_bucket" {
 
   lifecycle_rule {
     condition {
-      age = 90
+      with_state                 = "ARCHIVED"
+      days_since_noncurrent_time = 90
     }
     action {
       type = "Delete"
