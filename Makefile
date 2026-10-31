@@ -31,6 +31,7 @@ help:
 		'  make check-ci          run check plus e2e and terraform validation' \
 		'  make terraform-check   run terraform init, validate, and fmt check' \
 		'  make deploy            build, push, and terraform apply from local main checkout' \
+		'  make litestream        fetch the Dockerfile-pinned litestream into .local/bin' \
 		'  make clean             remove build output'
 
 .PHONY: setup
@@ -136,6 +137,10 @@ deploy:
 		CLOUDFLARE_API_TOKEN="$${CF_TOKEN}" timeout 10m terraform -chdir=terraform_cf plan -var-file=prod.tfvars; \
 		CLOUDFLARE_API_TOKEN="$${CF_TOKEN}" timeout 20m terraform -chdir=terraform_cf apply -auto-approve -var-file=prod.tfvars; \
 		terraform -chdir=terraform_gcp_app output -raw cloud_run_url
+
+.PHONY: litestream
+litestream:
+	docker buildx build --target litestream-bin --output type=local,dest=.local/bin .
 
 .PHONY: clean
 clean:

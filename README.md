@@ -27,6 +27,25 @@ http://127.0.0.1:18080/login  # ログイン UI
 http://127.0.0.1:18080/app    # hot reload 付き Leptos frontend
 ```
 
+### Litestream バイナリ
+
+litestream はリポジトリに置かず、Dockerfile の `litestream` 段が固定した版と sha256 で取得します。ローカルの `cli/*` で使うバイナリは次で `.local/bin/litestream` に取り出します（docker buildx が必要）。
+
+```bash
+make litestream
+.local/bin/litestream version
+```
+
+別の版は ARG を上書きし、出力先を分けて取得します。
+
+```bash
+docker buildx build --target litestream-bin \
+  --build-arg LITESTREAM_VERSION=v0.3.14 \
+  --build-arg LITESTREAM_TARBALL=litestream-v0.3.14-linux-amd64.tar.gz \
+  --build-arg LITESTREAM_SHA256=880ccafc9514650c4a2a0cc78eb1e61aaad95dd3e86e877c8694f955c9095436 \
+  --output type=local,dest=.local/bin/v0.3.14 .
+```
+
 ### テスト
 
 サーバ、WASM frontend、e2e crate のコンパイル確認:
@@ -173,16 +192,31 @@ gcloud run services update litestream-sandbox \
 
 起動してレプリカができたら `--remove-env-vars=LITESTREAM_ALLOW_EMPTY_RESTORE` で外します。
 
-旧 bucket backup から戻す場合は、新 bucket に `river.db` prefix ができるようにコピーします。
+レプリカは Litestream v0.5 形式（`river.db/ltx/`）です。通常の restore は `make litestream` で取得した `.local/bin/litestream` で行います。
 
 ```bash
-mkdir -p /tmp/river-backup-restore
+cd db
+LITESTREAM_BUCKET=river-duxca-prod-litestream \
+  ../.local/bin/litestream restore -config litestream.yml -o ../.local/restore/river.db river.db
+```
+
+v0.3 形式のバックアップ（`river.db/generations/` を持つもの。v0.5 へ切り替える前に取った `backup/litestream-backup-*.tar.gz` や旧 bucket）は、v0.5 の path へ `gcloud storage cp` しても読めません。旧バイナリで SQLite ファイルに restore し、それを v0.5 で seed します。
+
+```bash
+mkdir -p /tmp/river-backup-restore .local/restore/seed
 tar -xzf backup/litestream-backup-20260622-003554.tar.gz -C /tmp/river-backup-restore
 
-gcloud storage cp --recursive \
-  /tmp/river-backup-restore/litestream-20260622-003554/duxca-litestream-sandbox/river.db \
-  gs://river-duxca-prod-litestream/
+# 1) v0.3.14（上の「Litestream バイナリ」の手順で取得）で restore
+.local/bin/v0.3.14/litestream restore -o .local/restore/seed/river.db \
+  file:///tmp/river-backup-restore/litestream-20260622-003554/duxca-litestream-sandbox/river.db
+sqlite3 .local/restore/seed/river.db 'PRAGMA integrity_check'
+
+# 2) v0.5 で seed
+.local/bin/litestream replicate -once -force-snapshot \
+  .local/restore/seed/river.db gs://river-duxca-prod-litestream/river.db
 ```
+
+seed は書き込み先の path が空で、Cloud Run のインスタンスが動いていないときだけ行います。v0.5 の GCS には書き手の排他が無く、動いているインスタンスや既存のレプリカと同じ path へ書くと TXID が衝突しえます。
 
 ### 7. GCP app stack
 

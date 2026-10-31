@@ -1,10 +1,11 @@
+# Litestream v0.5 系。0.3 形式のレプリカとは互換性がないため、移行はカットオーバー手順で行う
+snapshot:
+  interval: 1h
+  retention: 720h
+
 dbs:
   - path: river.db
-    replicas:
-      - type: gcs
-        bucket: ${LITESTREAM_BUCKET}
-        path: river.db
-        snapshot-interval: 1h
-        retention: 3m
-        retention-check-interval: 1m
-
+    replica:
+      type: gs
+      bucket: ${LITESTREAM_BUCKET}
+      path: river.db

@@ -4,7 +4,7 @@ set -euo pipefail
 # Litestream GCS Restore Script
 # This script restores a Litestream backup to GCS bucket
 
-BUCKET_NAME="${LITESTREAM_BUCKET:-duxca-litestream-sandbox}"
+BUCKET_NAME="${LITESTREAM_BUCKET:?LITESTREAM_BUCKET is required}"
 # Change to project root directory
 cd "$(dirname "$0")/.."
 

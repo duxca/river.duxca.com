@@ -45,7 +45,6 @@ jobs:
             - '**/Cargo.lock'
             - 'Dockerfile'
             - '.dockerignore'
-            - 'db/litestream'
             - 'db/litestream.yml'
             - 'cli/run.bash'
             - 'app/**'
@@ -195,6 +194,7 @@ jobs:
       run: |
         set -euo pipefail
         docker run --rm --entrypoint ldd river-runtime-smoke:pr /app/server
+        docker run --rm --entrypoint /app/litestream river-runtime-smoke:pr version
     - name: Smoke test runtime server boot
       run: |
         set -euo pipefail
