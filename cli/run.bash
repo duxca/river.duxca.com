@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-: "${LITESTREAM_BUCKET:=duxca-litestream-sandbox}"
+: "${LITESTREAM_BUCKET:?LITESTREAM_BUCKET is required}"
 export LITESTREAM_BUCKET
 
 restore_dir="$(mktemp -d ./river-db-restore.XXXXXX)"
@@ -12,7 +12,12 @@ cleanup() {
 }
 trap cleanup EXIT
 
-./litestream restore -config ./litestream.yml -if-replica-exists -o "$restore_db" ./river.db
+restore_flags=()
+# 新規環境の初回起動だけ 1 にする。既定ではレプリカが無ければ起動を失敗させ、空 DB での上書きを防ぐ
+if [ "${LITESTREAM_ALLOW_EMPTY_RESTORE:-0}" = 1 ]; then
+    restore_flags+=(-if-replica-exists)
+fi
+./litestream restore -config ./litestream.yml "${restore_flags[@]}" -o "$restore_db" ./river.db
 
 if [ -f "$restore_db" ]; then
     # restore に成功したら使うようにする
