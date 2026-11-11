@@ -12,4 +12,4 @@ ssr = ["leptos/ssr", "dep:service", "dep:sqlx"]
 leptos = { workspace = true, default-features = false }
 model = { path = "../model" }
 service = { path = "../service", optional = true }
-sqlx = { version = "0.8.6", features = ["runtime-tokio", "sqlite"], optional = true }
+sqlx = { version = "0.9", features = ["runtime-tokio", "sqlite"], optional = true }

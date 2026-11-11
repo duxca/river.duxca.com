@@ -16,7 +16,7 @@ pub fn create_river_waypoint<'a, 'c>(
             r#"
             INSERT INTO river_waypoints (river_id, user_id, waypoint_name, description, waypoint)
             VALUES (?1, ?2, ?3, ?4, ?5)
-            RETURNING river_waypoint_id;
+            RETURNING river_waypoint_id AS "river_waypoint_id!";
             "#,
             river_id,
             user_id,
