@@ -26,8 +26,8 @@ jobs:
       runtime: ${{ steps.changes.outputs.runtime }}
       terraform: ${{ steps.changes.outputs.terraform }}
     steps:
-    - uses: actions/checkout@v6
-    - uses: dorny/paths-filter@v4
+    - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+    - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4
       id: changes
       with:
         filters: |
@@ -66,11 +66,12 @@ jobs:
     if: ${{ needs.changes.outputs.rust == 'true' }}
     runs-on: ubuntu-24.04
     steps:
-    - uses: actions/checkout@v6
-    - uses: dtolnay/rust-toolchain@1.96.0
+    - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+    - uses: dtolnay/rust-toolchain@d86e0fa8f147d6539442c26a61ebba8becc19489 # 1.96.0
       with:
+        toolchain: 1.96.0
         components: rustfmt
-    - uses: cargo-bins/cargo-binstall@v1.20.0
+    - uses: cargo-bins/cargo-binstall@30b5ca8b54e1dcffd9548bc87ede1531310fdc67 # v1.20.0
     - run: cargo binstall -y --force cargo-tomlfmt
     - run: cargo fmt --all -- --check
     - run: |
@@ -88,8 +89,8 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v6
-      - uses: hashicorp/setup-terraform@v4
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4
         with:
           terraform_version: 1.15.5
           terraform_wrapper: false
@@ -120,14 +121,15 @@ jobs:
     if: ${{ needs.changes.outputs.rust == 'true' }}
     runs-on: ubuntu-24.04
     steps:
-    - uses: actions/checkout@v6
-    - uses: dtolnay/rust-toolchain@1.96.0
+    - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+    - uses: dtolnay/rust-toolchain@d86e0fa8f147d6539442c26a61ebba8becc19489 # 1.96.0
       with:
+        toolchain: 1.96.0
         components: clippy
-    - uses: Swatinem/rust-cache@v2
+    - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
       with:
         shared-key: ${{ env.RUST_CACHE_SHARED_KEY }}
-    - uses: cargo-bins/cargo-binstall@v1.20.0
+    - uses: cargo-bins/cargo-binstall@30b5ca8b54e1dcffd9548bc87ede1531310fdc67 # v1.20.0
     - name: Install sqlx-cli
       run: |
         cargo sqlx --version >/dev/null 2>&1 || cargo binstall -y sqlx-cli@0.8.6
@@ -139,12 +141,14 @@ jobs:
     if: ${{ needs.changes.outputs.rust == 'true' }}
     runs-on: ubuntu-24.04
     steps:
-    - uses: actions/checkout@v6
-    - uses: dtolnay/rust-toolchain@1.96.0
-    - uses: Swatinem/rust-cache@v2
+    - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+    - uses: dtolnay/rust-toolchain@d86e0fa8f147d6539442c26a61ebba8becc19489 # 1.96.0
+      with:
+        toolchain: 1.96.0
+    - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
       with:
         shared-key: ${{ env.RUST_CACHE_SHARED_KEY }}
-    - uses: cargo-bins/cargo-binstall@v1.20.0
+    - uses: cargo-bins/cargo-binstall@30b5ca8b54e1dcffd9548bc87ede1531310fdc67 # v1.20.0
     - name: Install sqlx-cli
       run: |
         cargo sqlx --version >/dev/null 2>&1 || cargo binstall -y sqlx-cli@0.8.6
@@ -157,14 +161,15 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
-    - uses: actions/checkout@v6
-    - uses: dtolnay/rust-toolchain@1.96.0
+    - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+    - uses: dtolnay/rust-toolchain@d86e0fa8f147d6539442c26a61ebba8becc19489 # 1.96.0
       with:
+        toolchain: 1.96.0
         targets: wasm32-unknown-unknown
-    - uses: Swatinem/rust-cache@v2
+    - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
       with:
         shared-key: ${{ env.RUST_CACHE_SHARED_KEY }}
-    - uses: cargo-bins/cargo-binstall@v1.20.0
+    - uses: cargo-bins/cargo-binstall@30b5ca8b54e1dcffd9548bc87ede1531310fdc67 # v1.20.0
     - name: Install cargo-leptos and sqlx-cli
       run: |
         cargo leptos --version >/dev/null 2>&1 || cargo binstall -y cargo-leptos@0.3.6
@@ -180,10 +185,10 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
-    - uses: actions/checkout@v6
-    - uses: docker/setup-buildx-action@v4
+    - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+    - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
     - name: Build runtime image
-      uses: docker/build-push-action@v7
+      uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
       with:
         context: .
         load: true
