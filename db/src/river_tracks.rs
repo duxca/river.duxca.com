@@ -16,7 +16,7 @@ pub fn create_river_track<'a, 'c>(
             r#"
             INSERT INTO river_tracks (river_id, user_id, track_name, track, description)
             VALUES (?1, ?2, ?3, ?4, ?5)
-            RETURNING river_track_id;
+            RETURNING river_track_id AS "river_track_id!";
             "#,
             river_id,
             user_id,

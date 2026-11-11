@@ -17,7 +17,7 @@ async fn main() -> Result<(), anyhow::Error> {
     let config = envy::from_env::<server::Config>()?;
 
     let pool = db::connect(&config.database_url).await?;
-    let session_store = tower_sessions_sqlx_store::SqliteStore::new(pool.clone());
+    let session_store = server::session_store::SqliteStore::new(pool.clone());
     // セッションテーブルの作成
     session_store.migrate().await?;
 

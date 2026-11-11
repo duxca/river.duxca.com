@@ -2,6 +2,7 @@
 
 shadow_rs::shadow!(build);
 
+pub mod session_store;
 mod web;
 
 #[derive(serde::Deserialize, Debug, Clone)]
@@ -68,7 +69,7 @@ async fn redirect_to_canonical_host(
 pub async fn create_app(
     config: Config,
     pool: sqlx::sqlite::SqlitePool,
-    session_store: tower_sessions_sqlx_store::SqliteStore,
+    session_store: crate::session_store::SqliteStore,
 ) -> Result<axum::Router, anyhow::Error> {
     use leptos_axum::LeptosRoutes;
 
