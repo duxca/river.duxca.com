@@ -74,7 +74,7 @@ make test-e2e
 Terraform は役割ごとに state を分けています。
 
 - `terraform_ci`: GitHub Actions 用 service account、Workload Identity Federation、deploy IAM。初回に適用する bootstrap 寄りの stack。
-- `terraform_gcp_storage`: GCP の基盤。API、Artifact Registry、Litestream GCS bucket、Secret Manager secret 本体、Cloud Run service account、IAM。
+- `terraform_ci`: GitHub Actions の認証（WIF、デプロイ SA）と GCP の基盤。API、Artifact Registry、Litestream GCS bucket、Secret Manager secret 本体、Cloud Run service account、IAM。
 - `terraform_gcp_app`: Cloud Run service、public access、`river.duxca.com` の Cloud Run domain mapping。
 - `terraform_cf`: Cloudflare DNS record。
 
@@ -129,9 +129,9 @@ terraform -chdir=terraform_ci apply -var-file=prod.tfvars
 Artifact Registry、Litestream bucket、Secret Manager secret、service account を作ります。
 
 ```bash
-terraform -chdir=terraform_gcp_storage init -reconfigure
-terraform -chdir=terraform_gcp_storage plan -var-file=prod.tfvars
-terraform -chdir=terraform_gcp_storage apply -var-file=prod.tfvars
+terraform -chdir=terraform_ci init -reconfigure
+terraform -chdir=terraform_ci plan -var-file=prod.tfvars
+terraform -chdir=terraform_ci apply -var-file=prod.tfvars
 ```
 
 ### 5. OAuth client ID と secret を設定する
@@ -220,7 +220,7 @@ seed は書き込み先の path が空で、Cloud Run のインスタンスが�
 
 ### 7. GCP app stack
 
-`terraform_gcp_app` は `terraform_gcp_storage` の remote state から bucket 名と service account email を読みます。
+`terraform_gcp_app` は `terraform_ci` の remote state から bucket 名と service account email を読みます。
 
 ```bash
 terraform -chdir=terraform_gcp_app init -reconfigure
@@ -270,7 +270,7 @@ gcloud run domain-mappings describe river.duxca.com \
 `.github/workflows/deploy.yml` は `main` への push を契機に実行されます。公開リポジトリで PR から本番 credential を触らせないため、`pull_request` では deploy しません。処理順は手動デプロイと同じです。
 
 1. test / e2e test
-2. `terraform_gcp_storage apply`
+2. `terraform_ci apply`
 3. Docker image build / Artifact Registry push
 4. Secret Manager の client secret version の存在確認
 5. `terraform_gcp_app apply`
@@ -366,7 +366,7 @@ GitHub repository secret に Cloudflare token を保存します。
 CLOUDFLARE_API_TOKEN
 ```
 
-OAuth の client secret は GitHub Secrets から自動投入しません。`terraform_gcp_storage apply` 後に、手動デプロイ手順と同じく Secret Manager の version を作ってください。workflow は app apply 前に Terraform が参照する `FACEBOOK_CLIENT_SECRET` と `GITHUB_CLIENT_SECRET` の version が読めることだけ確認します。
+OAuth の client secret は GitHub Secrets から自動投入しません。`terraform_ci apply` 後に、手動デプロイ手順と同じく Secret Manager の version を作ってください。workflow は app apply 前に Terraform が参照する `FACEBOOK_CLIENT_SECRET` と `GITHUB_CLIENT_SECRET` の version が読めることだけ確認します。
 
 ### Actions の PR check
 

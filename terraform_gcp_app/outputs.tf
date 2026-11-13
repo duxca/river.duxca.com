@@ -16,5 +16,5 @@ output "cloud_run_service_location" {
 
 output "litestream_bucket_name" {
   description = "Litestreamレプリカ用GCSバケット名"
-  value       = data.terraform_remote_state.storage.outputs.litestream_bucket_name
+  value       = data.terraform_remote_state.foundation.outputs.litestream_bucket_name
 }

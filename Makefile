@@ -71,7 +71,6 @@ fmt:
 	find . -name Cargo.toml -print0 | while IFS= read -r -d '' manifest; do \
 		(cd "$$(dirname "$$manifest")" && cargo tomlfmt); \
 	done
-	terraform -chdir=terraform_gcp_storage fmt -recursive
 	terraform -chdir=terraform_gcp_app fmt
 	terraform -chdir=terraform_ci fmt
 	terraform -chdir=terraform_cf fmt
@@ -84,7 +83,6 @@ fmt-check:
 	find . -name Cargo.toml -print0 | while IFS= read -r -d '' manifest; do \
 		(cd "$$(dirname "$$manifest")" && cargo tomlfmt -d); \
 	done
-	terraform -chdir=terraform_gcp_storage fmt -recursive -check
 	terraform -chdir=terraform_gcp_app fmt -check
 	terraform -chdir=terraform_ci fmt -check
 	terraform -chdir=terraform_cf fmt -check
@@ -104,9 +102,6 @@ terraform-check:
 	terraform -chdir=terraform_ci init
 	terraform -chdir=terraform_ci validate
 	terraform -chdir=terraform_ci fmt -check
-	terraform -chdir=terraform_gcp_storage init
-	terraform -chdir=terraform_gcp_storage validate
-	terraform -chdir=terraform_gcp_storage fmt -recursive -check
 	terraform -chdir=terraform_gcp_app init
 	terraform -chdir=terraform_gcp_app validate
 	terraform -chdir=terraform_gcp_app fmt -check
@@ -127,9 +122,6 @@ deploy:
 	CF_TOKEN="$${CLOUDFLARE_API_TOKEN:-$$(python3 -c 'import pathlib, tomllib; print(tomllib.load(open(pathlib.Path.home() / ".cf/config.toml", "rb"))["access_token"])')}"; \
 		CONTAINER_IMAGE='$(IMAGE_REPOSITORY)'@$$(python3 -c 'import json; print(json.load(open("$(DEPLOY_METADATA)"))["containerimage.digest"])'); \
 		echo "Deploying $${CONTAINER_IMAGE}"; \
-		timeout 5m terraform -chdir=terraform_gcp_storage init; \
-		timeout 10m terraform -chdir=terraform_gcp_storage plan -var-file=prod.tfvars; \
-		timeout 20m terraform -chdir=terraform_gcp_storage apply -auto-approve -var-file=prod.tfvars; \
 		timeout 5m terraform -chdir=terraform_gcp_app init; \
 		timeout 10m terraform -chdir=terraform_gcp_app plan -refresh=$(DEPLOY_TERRAFORM_REFRESH) -out='$(DEPLOY_TERRAFORM_PLAN)' -var-file=prod.tfvars -var="container_image=$${CONTAINER_IMAGE}"; \
 		timeout 20m terraform -chdir=terraform_gcp_app apply -refresh=$(DEPLOY_TERRAFORM_REFRESH) -auto-approve '$(DEPLOY_TERRAFORM_PLAN)'; \

@@ -48,8 +48,8 @@ variable "terraform_state_bucket" {
   default     = "river-duxca-prod-terraform-state"
 }
 
-variable "storage_state_prefix" {
-  description = "Terraform remote state prefix for terraform_gcp_storage"
+variable "foundation_state_prefix" {
+  description = "Terraform remote state prefix for terraform_ci"
   type        = string
-  default     = "river.duxca.com/gcp_storage"
+  default     = "river.duxca.com/ci"
 }

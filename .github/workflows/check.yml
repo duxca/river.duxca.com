@@ -57,7 +57,6 @@ jobs:
           terraform:
             - '.github/workflows/**'
             - 'terraform_ci/**'
-            - 'terraform_gcp_storage/**'
             - 'terraform_gcp_app/**'
             - 'terraform_cf/**'
 
@@ -97,21 +96,18 @@ jobs:
         run: |
           set -euo pipefail
           terraform -chdir=terraform_ci init -backend=false
-          terraform -chdir=terraform_gcp_storage init -backend=false
           terraform -chdir=terraform_gcp_app init -backend=false
           terraform -chdir=terraform_cf init -backend=false
       - name: Terraform Validate
         run: |
           set -euo pipefail
           terraform -chdir=terraform_ci validate
-          terraform -chdir=terraform_gcp_storage validate
           terraform -chdir=terraform_gcp_app validate
           terraform -chdir=terraform_cf validate
       - name: Terraform Format Check
         run: |
           set -euo pipefail
           terraform -chdir=terraform_ci fmt -check
-          terraform -chdir=terraform_gcp_storage fmt -recursive -check
           terraform -chdir=terraform_gcp_app fmt -check
           terraform -chdir=terraform_cf fmt -check
 
