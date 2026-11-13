@@ -24,7 +24,7 @@ resource "google_cloud_run_service" "litestream_sandbox" {
 
         env {
           name  = "LITESTREAM_BUCKET"
-          value = data.terraform_remote_state.storage.outputs.litestream_bucket_name
+          value = data.terraform_remote_state.foundation.outputs.litestream_bucket_name
         }
 
         resources {
@@ -67,7 +67,7 @@ resource "google_cloud_run_service" "litestream_sandbox" {
 
       }
 
-      service_account_name = data.terraform_remote_state.storage.outputs.river_container_service_account_email
+      service_account_name = data.terraform_remote_state.foundation.outputs.river_container_service_account_email
     }
 
     metadata {
@@ -88,9 +88,3 @@ resource "google_cloud_run_service" "litestream_sandbox" {
   autogenerate_revision_name = true
 }
 
-resource "google_cloud_run_service_iam_member" "public_access" {
-  service  = google_cloud_run_service.litestream_sandbox.name
-  location = google_cloud_run_service.litestream_sandbox.location
-  role     = "roles/run.invoker"
-  member   = "allUsers"
-}

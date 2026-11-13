@@ -9,14 +9,8 @@ locals {
   github_repository_condition    = join(" || ", [for repository in var.github_repositories : "attribute.repository == '${repository}'"])
 
   project_roles = toset([
-    "roles/artifactregistry.admin",
     "roles/artifactregistry.writer",
-    "roles/iam.serviceAccountAdmin",
-    "roles/iam.serviceAccountUser",
-    "roles/run.admin",
-    "roles/secretmanager.admin",
-    "roles/serviceusage.serviceUsageAdmin",
-    "roles/storage.admin",
+    "roles/run.developer",
   ])
 }
 
@@ -73,4 +67,42 @@ resource "google_service_account_iam_member" "app_service_account_user" {
   service_account_id = "projects/${var.project_id}/serviceAccounts/${var.app_service_account_email}"
   role               = "roles/iam.serviceAccountUser"
   member             = local.deployer_member
+}
+
+# The deploy workflow verifies the expected secret versions by accessing
+# them, so the deployer gets payload access to the two app secrets only.
+resource "google_secret_manager_secret_iam_member" "deployer_secret_access" {
+  for_each = toset(["GITHUB_CLIENT_SECRET", "FACEBOOK_CLIENT_SECRET"])
+
+  project   = var.project_id
+  secret_id = each.value
+  role      = "roles/secretmanager.secretAccessor"
+  member    = local.deployer_member
+}
+
+# Public access for the Cloud Run service. Managing a service IAM binding
+# needs run.services.setIamPolicy, which run.developer does not have, so
+# this static binding is managed here instead of in terraform_gcp_app.
+resource "google_cloud_run_service_iam_member" "public_access" {
+  project  = var.project_id
+  location = var.region
+  service  = var.app_service_name
+  role     = "roles/run.invoker"
+  member   = "allUsers"
+}
+
+# Custom domain mapping. run.developer has no domainmappings permissions,
+# so this static mapping is managed here instead of in terraform_gcp_app.
+resource "google_cloud_run_domain_mapping" "river" {
+  name     = "river.duxca.com"
+  location = var.region
+
+  metadata {
+    namespace = var.project_id
+  }
+
+  spec {
+    route_name       = var.app_service_name
+    certificate_mode = "AUTOMATIC"
+  }
 }

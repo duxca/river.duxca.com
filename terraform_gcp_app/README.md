@@ -6,7 +6,7 @@ This stack manages the Cloud Run application resources:
 - Public invoker IAM binding
 - Cloud Run domain mapping for `river.duxca.com`
 
-It reads bucket and service account outputs from `../terraform_gcp_storage` via `terraform_remote_state`.
+It reads bucket and service account outputs from `../terraform_ci` via `terraform_remote_state`.
 
 ## Backend
 
@@ -18,7 +18,7 @@ terraform init -reconfigure \
 
 ## Usage
 
-Apply `../terraform_gcp_storage` first, then push a container image and add secret versions.
+Apply `../terraform_ci` first, then push a container image and add secret versions.
 
 ```bash
 cd terraform_gcp_app
